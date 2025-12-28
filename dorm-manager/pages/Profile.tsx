@@ -1,9 +1,10 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import { UserRole } from '../types';
+import { getStudentById, StudentProfile } from '../api/studentApi';
 
 interface ProfileProps {
   isManager?: boolean;
@@ -11,12 +12,47 @@ interface ProfileProps {
 
 const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
   const { user } = useContext(AuthContext);
+  const [studentData, setStudentData] = useState<StudentProfile | null>(null);
   const [formData, setFormData] = useState({
-    phone: '0987654321',
-    email: 'nguyenvanA@gmail.com'
+    phone: '',
+    email: ''
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [showChangeRoomModal, setShowChangeRoomModal] = useState(false);
   const [showRemoveRoomModal, setShowRemoveRoomModal] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // Load dữ liệu sinh viên từ API
+  useEffect(() => {
+    const loadStudentData = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setIsLoading(true);
+        const data = await getStudentById(user.id);
+        setStudentData(data);
+        setFormData({
+          phone: data.phone_number || '',
+          email: data.email || ''
+        });
+        setError(null);
+      } catch (err) {
+        console.error('Lỗi khi tải dữ liệu sinh viên:', err);
+        setError('Không thể tải thông tin sinh viên');
+        // Nếu không load được, sử dụng dữ liệu từ user context
+        setFormData({
+          phone: '',
+          email: ''
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStudentData();
+  }, [user?.id]);
 
   if (!user) return null;
 
@@ -25,10 +61,27 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API call
-    alert('Thông tin liên lạc đã được cập nhật thành công!');
+    try {
+      // TODO: Thêm API call để cập nhật thông tin
+      setShowSuccessMessage(true);
+      setIsEditMode(false);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+    } catch (err) {
+      console.error('Lỗi khi cập nhật thông tin:', err);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+    // Restore original data
+    if (studentData) {
+      setFormData({
+        phone: studentData.phone_number || '',
+        email: studentData.email || ''
+      });
+    }
   };
 
   return (
@@ -38,7 +91,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
       headerTitle={isManager ? "Thông tin sinh viên" : "Thông tin cá nhân"}
     >
       <div className="max-w-[1200px] mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
-
+          <>
         {/* Profile Header Card */}
         <div className="rounded-2xl border border-border-color bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-surface-dark overflow-hidden relative">
           <div className="absolute right-0 top-0 h-full w-1/4 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none"></div>
@@ -46,7 +99,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
             <div className="relative group cursor-pointer shrink-0">
               <div 
                 className="h-28 w-28 overflow-hidden rounded-full border-4 border-gray-50 shadow-md dark:border-gray-700 bg-center bg-cover bg-no-repeat transition-transform hover:scale-105" 
-                style={{ backgroundImage: `url("${user.avatar}")` }}
+                style={{ backgroundImage: `url("${user?.avatar}")` }}
               ></div>
               {!isManager && (
                 <div className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-full bg-primary text-white shadow-lg ring-4 ring-white dark:ring-surface-dark transition-all hover:scale-110 active:scale-95">
@@ -56,14 +109,13 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
             </div>
             <div className="flex flex-1 flex-col items-center text-center sm:items-start sm:text-left">
               <div className="mb-2 flex items-center gap-3 flex-wrap justify-center sm:justify-start">
-                <h2 className="text-2xl font-black text-text-main dark:text-white">{user.name}</h2>
-                <span className="rounded-full bg-green-50 px-3 py-1 text-[11px] font-black text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-100 dark:border-green-800 uppercase tracking-wider">Đang ở KTX</span>
+                <h2 className="text-2xl font-black text-text-main dark:text-white">{studentData?.full_name}</h2>
               </div>
               <div className="flex flex-col gap-1.5">
-                <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">MSSV: <span className="font-bold text-text-main dark:text-white">{user.id.replace('S', '')}</span></p>
+                <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">MSSV: <span className="font-bold text-text-main dark:text-white">{studentData?.mssv}</span></p>
                 <p className="text-text-secondary dark:text-gray-400 text-sm font-medium flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary text-[18px]">school</span>
-                  Khoa Công nghệ Thông tin - K65
+                  {studentData?.class_name || 'Chưa cập nhật'}
                 </p>
               </div>
             </div>
@@ -82,6 +134,17 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                 >
                   <span className="material-symbols-outlined text-[18px]">logout</span>
                   <span>Xóa khỏi phòng</span>
+                </button>
+              </div>
+            )}
+            {!isManager && !isEditMode  && (
+              <div className="shrink-0">
+                <button 
+                  onClick={() => setIsEditMode(true)}
+                  className="flex items-center justify-center gap-2 h-11 px-5 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 whitespace-nowrap"
+                >
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
+                  <span>Chỉnh sửa</span>
                 </button>
               </div>
             )}
@@ -105,14 +168,14 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500">Họ và tên</label>
                   <div className="flex items-center rounded-xl border border-border-color bg-gray-50 h-11 px-4 dark:border-gray-700 dark:bg-gray-800/50">
-                    <span className="text-sm font-bold text-text-main dark:text-white">{user.name}</span>
+                    <span className="text-sm font-bold text-text-main dark:text-white">{studentData?.full_name}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500">Mã số sinh viên</label>
                   <div className="flex items-center rounded-xl border border-border-color bg-gray-50 h-11 px-4 dark:border-gray-700 dark:bg-gray-800/50">
-                    <span className="text-sm font-bold text-text-main dark:text-white">{user.id.replace('S', '')}</span>
+                    <span className="text-sm font-bold text-text-main dark:text-white">{studentData?.mssv}</span>
                   </div>
                 </div>
 
@@ -120,37 +183,41 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                   <label className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500">Ngày sinh</label>
                   <div className="flex items-center rounded-xl border border-border-color bg-gray-50 h-11 px-4 dark:border-gray-700 dark:bg-gray-800/50">
                     <span className="material-symbols-outlined mr-3 text-text-secondary text-lg">calendar_today</span>
-                    <span className="text-sm font-bold text-text-main dark:text-white">15/08/2002</span>
+                    <span className="text-sm font-bold text-text-main dark:text-white">Chưa cập nhật</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500">Giới tính</label>
                   <div className="flex items-center rounded-xl border border-border-color bg-gray-50 h-11 px-4 dark:border-gray-700 dark:bg-gray-800/50">
-                    <span className="text-sm font-bold text-text-main dark:text-white">Nam</span>
+                    <span className="text-sm font-bold text-text-main dark:text-white">{studentData?.gender || 'Chưa cập nhật'}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500">Lớp sinh hoạt</label>
                   <div className="flex items-center rounded-xl border border-border-color bg-gray-50 h-11 px-4 dark:border-gray-700 dark:bg-gray-800/50">
-                    <span className="text-sm font-bold text-text-main dark:text-white">CNTT-K65</span>
+                    <span className="text-sm font-bold text-text-main dark:text-white">{studentData?.class_name || 'Chưa cập nhật'}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500">Số CCCD</label>
                   <div className="flex items-center rounded-xl border border-border-color bg-gray-50 h-11 px-4 dark:border-gray-700 dark:bg-gray-800/50">
-                    <span className="text-sm font-bold text-text-main dark:text-white">001202012345</span>
-                    <span className="ml-auto material-symbols-outlined text-green-600 text-lg font-bold" title="Đã xác thực">verified</span>
+                    <span className="text-sm font-bold text-text-main dark:text-white">Chưa cập nhật</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500">Quê quán</label>
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500">Phòng ở hiện tại</label>
                   <div className="flex items-center rounded-xl border border-border-color bg-gray-50 h-11 px-4 dark:border-gray-700 dark:bg-gray-800/50">
                     <span className="material-symbols-outlined mr-3 text-text-secondary text-lg">location_on</span>
-                    <span className="text-sm font-bold text-text-main dark:text-white">Số 1 Đại Cồ Việt, Hai Bà Trưng, Hà Nội</span>
+                    <span className="text-sm font-bold text-text-main dark:text-white">
+                      {studentData?.room_number && studentData?.building_name 
+                        ? `${studentData?.room_number} - ${studentData?.building_name}`
+                        : 'Chưa cập nhật'
+                      }
+                    </span>
                   </div>
                 </div>
 
@@ -192,12 +259,17 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                       <span className="material-symbols-outlined text-text-secondary text-lg">call</span>
                     </div>
                     <input 
-                      className="block w-full rounded-xl border border-border-color bg-white py-3 pl-10 text-sm font-bold text-text-main shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white transition-all outline-none" 
+                      className={`block w-full rounded-xl border py-3 pl-10 text-sm font-bold shadow-sm transition-all outline-none ${
+                        isEditMode
+                          ? 'border-border-color bg-white text-text-main focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white'
+                          : 'border-border-color bg-gray-50 text-text-main cursor-not-allowed dark:border-gray-700 dark:bg-gray-800/50 dark:text-white'
+                      }`}
                       id="phone" 
                       name="phone" 
                       type="tel" 
                       value={formData.phone}
                       onChange={handleInputChange}
+                      disabled={!isEditMode}
                     />
                   </div>
                 </div>
@@ -209,27 +281,50 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                       <span className="material-symbols-outlined text-text-secondary text-lg">mail</span>
                     </div>
                     <input 
-                      className="block w-full rounded-xl border border-border-color bg-white py-3 pl-10 text-sm font-bold text-text-main shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white transition-all outline-none" 
+                      className={`block w-full rounded-xl border py-3 pl-10 text-sm font-bold shadow-sm transition-all outline-none ${
+                        isEditMode
+                          ? 'border-border-color bg-white text-text-main focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white'
+                          : 'border-border-color bg-gray-50 text-text-main cursor-not-allowed dark:border-gray-700 dark:bg-gray-800/50 dark:text-white'
+                      }`}
                       id="email" 
                       name="email" 
                       type="email" 
                       value={formData.email}
                       onChange={handleInputChange}
+                      disabled={!isEditMode}
                     />
                   </div>
                 </div>
 
                 <div className="mt-auto pt-10">
-                  {!isManager && (
-                    <button 
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-sm font-black text-white shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all uppercase tracking-wider" 
-                      type="submit"
-                    >
-                      <span className="material-symbols-outlined text-lg font-bold">save</span>
-                      Lưu thay đổi
-                    </button>
+                  {!isManager && isEditMode && (
+                    <div className="flex gap-3">
+                      <button 
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-color text-sm font-black p-2 text-text-main shadow-md hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 transition-all uppercase tracking-wider"
+                      >
+                        <span className="material-symbols-outlined text-lg font-bold">close</span>
+                        Hủy
+                      </button>
+                      <button 
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white p-2 shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all uppercase tracking-wider" 
+                        type="submit"
+                      >
+                        <span className="material-symbols-outlined text-lg font-bold">save</span>
+                        Lưu thay đổi
+                      </button>
+                    </div>
                   )}
                 </div>
+
+                {/* Success Message */}
+                {showSuccessMessage && (
+                  <div className="animate-in fade-in slide-in-from-top duration-300 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/30 p-3 text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                    <span className="material-symbols-outlined">check_circle</span>
+                    <span>Thông tin đã được cập nhật thành công!</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -336,6 +431,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
             </div>
           </div>
         )}
+          </>
       </div>
     </DashboardLayout>
   );

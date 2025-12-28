@@ -20,10 +20,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token hết hạn hoặc không hợp lệ - xóa và redirect
+    // Kiểm tra nếu là lỗi 401 VÀ không phải là request gửi đến endpoint /login
+    if (error.response?.status === 401 && !error.config.url.includes('/login')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      // Chỉ redirect khi token hết hạn lúc đang sử dụng app
       window.location.href = '/login';
     }
     return Promise.reject(error);

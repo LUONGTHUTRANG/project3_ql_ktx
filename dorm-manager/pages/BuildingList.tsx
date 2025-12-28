@@ -34,11 +34,6 @@ interface Room {
 }
 
 interface DisplayBuilding extends Building {
-  info: string;
-  floors: number;
-  emptyRooms: string;
-  status: 'available' | 'maintenance' | 'full';
-  statusLabel: string;
   color: string;
 }
 
@@ -68,7 +63,6 @@ const BuildingList: React.FC = () => {
   
   // Data states
   const [allBuildings, setAllBuildings] = useState<DisplayBuilding[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -78,49 +72,20 @@ const BuildingList: React.FC = () => {
     return uniqueLocations.sort();
   }, [allBuildings]);
 
-  // Load buildings and rooms from API
+  // Load buildings from API
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const [buildingsData, roomsData] = await Promise.all([
-          fetchBuildings(),
-          fetchRooms()
-        ]);
+        const buildingsData = await fetchBuildings();
         
-        setRooms(roomsData);
-        
-        // Transform buildings data
-        const transformedBuildings: DisplayBuilding[] = buildingsData.map((building: Building, index: number) => {
-          const buildingRooms = roomsData.filter((r: Room) => r.building_id === building.id);
-          const totalRooms = buildingRooms.length;
-          const emptyRoomsCount = buildingRooms.filter((r: Room) => r.status === 'AVAILABLE').length;
-          
-          // Determine building status
-          let status: 'available' | 'maintenance' | 'full' = 'available';
-          if (totalRooms === 0) {
-            status = 'maintenance';
-          } else if (emptyRoomsCount === 0) {
-            status = 'full';
-          }
-          
-          // Get max floor for a building
-          const maxFloor = buildingRooms.length > 0 
-            ? Math.max(...buildingRooms.map(r => r.floor))
-            : 1;
-          
-          return {
-            ...building,
-            info: `${building.location || 'Chưa xác định'}${building.gender_restriction ? ` - Dành cho ${building.gender_restriction}` : ''}`,
-            floors: maxFloor,
-            emptyRooms: totalRooms > 0 ? `${emptyRoomsCount} / ${totalRooms}` : '-',
-            status,
-            statusLabel: status === 'available' ? 'Còn chỗ' : status === 'maintenance' ? 'Bảo trì' : 'Hết chỗ',
-            color: BUILDING_COLORS[index % BUILDING_COLORS.length]
-          };
-        });
+        // Transform buildings data - thêm colors
+        const transformedBuildings: DisplayBuilding[] = buildingsData.map((building: Building, index: number) => ({
+          ...building,
+          color: BUILDING_COLORS[index % BUILDING_COLORS.length]
+        }));
         
         setAllBuildings(transformedBuildings);
       } catch (err: any) {
@@ -139,12 +104,11 @@ const BuildingList: React.FC = () => {
   const filteredBuildings = useMemo(() => {
     return allBuildings.filter(b => {
       const matchesSearch = b.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           b.info.toLowerCase().includes(searchTerm.toLowerCase());
+                           b.location.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesArea = filterArea === '' || b.location === filterArea;
-      const matchesStatus = filterStatus === '' || b.status === filterStatus;
-      return matchesSearch && matchesArea && matchesStatus;
+      return matchesSearch && matchesArea;
     });
-  }, [searchTerm, filterArea, filterStatus]);
+  }, [searchTerm, filterArea, allBuildings]);
 
   const totalItems = filteredBuildings.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -180,7 +144,7 @@ const BuildingList: React.FC = () => {
         {/* Filters & Search */}
         <div className="flex flex-col lg:flex-row gap-4">
           <Input
-            placeholder="Tìm kiếm theo tên hoặc thông tin tòa nhà..."
+            placeholder="Tìm kiếm theo tên hoặc vị trí tòa nhà..."
             prefix={<SearchOutlined />}
             className="w-full h-11 gap-3 pl-1 flex-1"
             value={searchTerm}
@@ -197,20 +161,6 @@ const BuildingList: React.FC = () => {
                 ...locations.map(loc => ({ value: loc, label: loc }))
               ]}
               suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
-            />
-
-            {/* Status Filter using AntD Select */}
-            <Select
-              className="min-w-[180px] h-11"
-              value={filterStatus}
-              onChange={(val) => handleFilterChange('status', val)}
-              options={[
-                { value: '', label: 'Tất cả trạng thái' },
-                { value: 'available', label: 'Còn chỗ' },
-                { value: 'maintenance', label: 'Bảo trì' },
-                { value: 'full', label: 'Hết chỗ' },
-              ]}
-              suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">filter_list</span>}
             />
           </div>
         </div>
@@ -242,9 +192,8 @@ const BuildingList: React.FC = () => {
                     <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-border-color dark:border-gray-700">
                       <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Tên Tòa nhà</th>
                       <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Vị trí</th>
-                      <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider text-center">Số tầng</th>
-                      <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider text-center">Phòng trống</th>
-                      <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider text-right">Trạng thái</th>
+                      <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Giới tính</th>
+                      <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider text-center">Số phòng</th>
                       <th className="p-4 text-right text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Thao tác</th>
                     </tr>
                   </thead>
@@ -258,7 +207,6 @@ const BuildingList: React.FC = () => {
                             </div>
                             <div>
                               <p className="text-sm font-bold text-text-main dark:text-white group-hover:text-primary transition-colors cursor-pointer" onClick={() => handleBuildingClick(String(b.id))}>{b.name}</p>
-                              <p className="text-xs text-text-secondary dark:text-gray-500 mt-0.5 line-clamp-1">{b.info}</p>
                             </div>
                           </div>
                         </td>
@@ -268,25 +216,16 @@ const BuildingList: React.FC = () => {
                             {b.location}
                           </div>
                         </td>
-                        <td className="p-4 text-center">
-                          <span className="text-sm font-medium text-text-main dark:text-gray-300">{b.floors}</span>
-                        </td>
-                        <td className="p-4 text-center">
-                          <span className={`text-sm font-medium ${b.status === 'full' ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>{b.emptyRooms}</span>
-                        </td>
-                        <td className="p-4 text-right">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            b.status === 'available' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 
-                            b.status === 'maintenance' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 
-                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          }`}>
-                            {b.status === 'maintenance' ? (
-                              <span className="material-symbols-outlined text-[14px]">build</span>
-                            ) : (
-                              <span className={`w-1.5 h-1.5 rounded-full ${b.status === 'available' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                            )}
-                            {b.statusLabel}
+                        <td className="p-4">
+                          <span className="text-sm font-medium text-text-main dark:text-gray-300">
+                            {b.gender_restriction === 'MIXED' ? 'Nam và Nữ' : 
+                             b.gender_restriction === 'MALE' ? 'Nam' : 
+                             b.gender_restriction === 'FEMALE' ? 'Nữ' : 
+                             'Chưa xác định'}
                           </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className="text-sm font-medium text-text-main dark:text-gray-300">{b.room_count || 0}</span>
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-1 sm:gap-2">
@@ -297,25 +236,13 @@ const BuildingList: React.FC = () => {
                             >
                               <span className="material-symbols-outlined text-[20px]">visibility</span>
                             </button>
-                            <button 
-                              className="p-1.5 rounded-lg text-text-secondary hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors" 
-                              title="Sửa tòa nhà"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">edit_square</span>
-                            </button>
-                            <button 
-                              className="p-1.5 rounded-lg text-text-secondary hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" 
-                              title="Xóa tòa nhà"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">delete</span>
-                            </button>
                           </div>
                         </td>
                       </tr>
                     ))}
                     {currentItems.length === 0 && !loading && (
                       <tr>
-                        <td colSpan={6} className="p-12 text-center text-text-secondary dark:text-gray-500">
+                        <td colSpan={5} className="p-12 text-center text-text-secondary dark:text-gray-500">
                           <div className="flex flex-col items-center gap-2">
                             <span className="material-symbols-outlined text-4xl">search_off</span>
                             <p className="font-medium">Không tìm thấy tòa nhà nào phù hợp với bộ lọc.</p>

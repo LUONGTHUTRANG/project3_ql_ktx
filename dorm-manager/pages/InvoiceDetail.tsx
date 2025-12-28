@@ -20,7 +20,7 @@ const InvoiceDetail: React.FC = () => {
     period: 'Tháng 10/2023',
     status: 'unpaid',
     studentName: user.name,
-    studentId: user.id.replace('S', ''),
+    studentId: '',
     email: 'nguyenvana@student.edu.vn',
     room: 'Phòng 302',
     building: 'Khu B - Tòa Nhà B',

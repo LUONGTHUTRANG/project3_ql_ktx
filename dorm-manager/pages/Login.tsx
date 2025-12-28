@@ -2,35 +2,52 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../App';
 import { UserRole } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { App } from "antd";
 
 const Login: React.FC = () => {
+  const { notification } = App.useApp();
   const { login, loading, error } = useContext(AuthContext);
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.STUDENT);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [localError, setLocalError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLocalError('');
 
     if (!username.trim() || !password.trim()) {
-      setLocalError('Vui lòng nhập tên đăng nhập và mật khẩu');
+      const errorMsg = 'Vui lòng nhập tên đăng nhập và mật khẩu';
+      notification.error({
+        message: 'Lỗi đăng nhập',
+        description: errorMsg,
+        placement: 'topRight',
+        duration: 1,
+      });
       return;
     }
 
     try {
       await login(username, password, selectedRole === UserRole.STUDENT ? 'student' : 'manager');
+      // Notification thành công
+      notification.success({
+        message: 'Đăng nhập thành công',
+        description: 'Chào mừng bạn đến với hệ thống quản lý ký túc xá',
+        placement: 'topRight',
+        duration: 1,
+      });
       // Navigate to appropriate dashboard after successful login
       navigate(selectedRole === UserRole.STUDENT ? '/student' : '/manager');
     } catch (err: any) {
-      setLocalError(err.message || 'Đăng nhập thất bại. Vui lòng thử lại');
+      const errorMsg = err.message || 'Đăng nhập thất bại. Vui lòng thử lại';
+      notification.error({
+        message: 'Đăng nhập thất bại',
+        description: errorMsg,
+        placement: 'topRight',
+        duration: 1,
+      });
     }
   };
-
-  const displayError = localError || error;
 
   return (
     <div className="relative flex h-screen w-full overflow-hidden font-display bg-background-light dark:bg-background-dark text-text-main">
@@ -67,13 +84,6 @@ const Login: React.FC = () => {
                 <h2 className="text-text-main dark:text-white text-2xl font-bold mb-2">Chào mừng trở lại!</h2>
                 <p className="text-text-secondary dark:text-gray-400 text-sm">Vui lòng đăng nhập để tiếp tục vào hệ thống</p>
               </div>
-
-              {/* Error Message */}
-              {displayError && (
-                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-red-700 dark:text-red-400 text-sm font-medium">{displayError}</p>
-                </div>
-              )}
 
               <div className="mb-6">
                 <div className="flex p-1 bg-[#f0f2f4] dark:bg-gray-800 rounded-lg">

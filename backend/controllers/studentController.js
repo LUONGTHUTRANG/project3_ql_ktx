@@ -32,6 +32,18 @@ export const getStudentsByRoomId = async (req, res) => {
   }
 };
 
+export const getStudentById = async (req, res) => {
+  try {
+    const student = await Student.getById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+    res.json(student);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const getStudentsByBuildingId = async (req, res) => {
   try {
     const students = await Student.getByBuildingId(req.params.buildingId);

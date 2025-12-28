@@ -12,6 +12,11 @@ router.get(
   studentController.getAllStudents
 );
 router.get(
+  "/:id",
+  authorizeRoles("admin", "manager", "student"),
+  studentController.getStudentById
+);
+router.get(
   "/room/:roomId",
   authorizeRoles("admin", "manager", "student"),
   studentController.getStudentsByRoomId

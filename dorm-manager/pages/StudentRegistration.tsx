@@ -239,7 +239,7 @@ const StudentRegistration: React.FC = () => {
                           <input 
                             className="w-full h-11 rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-secondary dark:text-gray-400 cursor-not-allowed text-sm" 
                             readOnly 
-                            value={user.id.replace('S', '')} 
+                            // value={user.id.replace('S', '')} 
                           />
                           <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">lock</span>
                         </div>
@@ -420,7 +420,7 @@ const StudentRegistration: React.FC = () => {
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Mã số sinh viên</span>
-                        <input className="h-11 w-full rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-main dark:text-white text-sm cursor-not-allowed font-medium" disabled value={user.id.replace('S', '')} />
+                        <input className="h-11 w-full rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-main dark:text-white text-sm cursor-not-allowed font-medium" disabled />
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Lớp sinh hoạt</span>

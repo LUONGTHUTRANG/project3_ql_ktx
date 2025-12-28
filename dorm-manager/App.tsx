@@ -43,6 +43,7 @@ export const AuthContext = React.createContext<AuthContextType>({
 
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +60,8 @@ const AppContent: React.FC = () => {
         subtitle: storedUser.email || storedUser.buildingId || 'User',
       });
     }
+    // Kết thúc quá trình kiểm tra auth
+    setAuthLoading(false);
   }, []);
 
   const login = async (username: string, password: string, role: string) => {
@@ -92,17 +95,26 @@ const AppContent: React.FC = () => {
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading, error }}>
-      <Routes>
-        <Route path="/login" element={user ? <Navigate to={user.role === UserRole.STUDENT ? "/student" : "/manager"} replace /> : <Login />} />
-        
-        <Route 
-          path="/student" 
-          element={
-            user && user.role === UserRole.STUDENT 
-              ? <StudentDashboard /> 
-              : <Navigate to="/login" replace />
-          } 
-        />
+      {authLoading ? (
+        // Hiển thị loading screen khi đang kiểm tra authentication
+        <div className="flex items-center justify-center h-screen bg-gradient-to-br from-primary/5 to-primary/10">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+            <p className="text-text-secondary dark:text-gray-400">Đang tải...</p>
+          </div>
+        </div>
+      ) : (
+        <Routes>
+          <Route path="/login" element={user ? <Navigate to={user.role === UserRole.STUDENT ? "/student" : "/manager"} replace /> : <Login />} />
+          
+          <Route 
+            path="/student" 
+            element={
+              user && user.role === UserRole.STUDENT 
+                ? <StudentDashboard /> 
+                : <Navigate to="/login" replace />
+            } 
+          />
 
         <Route 
           path="/student/profile" 
@@ -308,7 +320,8 @@ const AppContent: React.FC = () => {
         />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+        </Routes>
+      )}
     </AuthContext.Provider>
   );
 };

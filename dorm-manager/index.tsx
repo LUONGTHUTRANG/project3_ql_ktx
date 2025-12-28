@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ConfigProvider } from "antd";
+import { App as AntdApp } from "antd";
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -18,7 +19,9 @@ root.render(
           },
         }}
       >
-      <App />
+      <AntdApp>
+        <App />
+      </AntdApp>
     </ConfigProvider>
   </React.StrictMode>
 );

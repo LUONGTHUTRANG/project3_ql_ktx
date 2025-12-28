@@ -85,7 +85,22 @@ const Room = {
   },
 
   delete: async (id) => {
+    // Delete related data from other tables (cascade delete)
+    // 1. Delete invoices related to this room
+    await db.query("DELETE FROM invoices WHERE room_id = ?", [id]);
+    
+    // 2. Delete monthly usages related to this room
+    await db.query("DELETE FROM monthly_usages WHERE room_id = ?", [id]);
+    
+    // 3. Delete notification recipients related to this room
+    await db.query("DELETE FROM notification_recipients WHERE room_id = ?", [id]);
+    
+    // 4. Delete registrations with this room as desired_room
+    await db.query("DELETE FROM registrations WHERE desired_room_id = ?", [id]);
+    
+    // 5. Finally, delete the room itself
     await db.query("DELETE FROM rooms WHERE id = ?", [id]);
+    
     return { id };
   },
 };
