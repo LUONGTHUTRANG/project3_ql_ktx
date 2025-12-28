@@ -1,0 +1,25 @@
+// api/config.ts
+/**
+ * API Configuration
+ * Centralized configuration for all API endpoints
+ */
+
+// Backend server URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// API Endpoints
+export const API_ENDPOINTS = {
+  BUILDINGS: `${API_BASE_URL}/buildings`,
+  ROOMS: `${API_BASE_URL}/rooms`,
+  AUTH: `${API_BASE_URL}/auth`,
+  STUDENTS: `${API_BASE_URL}/students`,
+  MANAGERS: `${API_BASE_URL}/managers`,
+  INVOICES: `${API_BASE_URL}/invoices`,
+  SEMESTERS: `${API_BASE_URL}/semesters`,
+  REGISTRATIONS: `${API_BASE_URL}/registrations`,
+  NOTIFICATIONS: `${API_BASE_URL}/notifications`,
+  MONTHLY_USAGE: `${API_BASE_URL}/monthly-usage`,
+  SUPPORT_REQUESTS: `${API_BASE_URL}/support-requests`,
+};
+
+export default API_BASE_URL;
