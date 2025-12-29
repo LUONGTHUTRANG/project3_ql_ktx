@@ -57,6 +57,7 @@ const AppContent: React.FC = () => {
               storedUser.role === 'manager' ? UserRole.MANAGER : UserRole.STUDENT,
         avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_wkdMTY3ip__Gzs3tu96a2GRmp3Ik2u1rdqZ2hiqUDyP62djiNT1LApfxVmhRa4MEZJyW_RnLDB4pA49FhehZBcEHjGTQoLNyZA8GecVOJPIi20iBp2Xui50TdC2irNwB5VH4NyiMN5biKg0rpENpURnlLd3Eoa9WrczJm2hdUn2ebmTEmoQuz5t09aLTpVsFD-Fuik2JBwr1jenPi83pqaJ1-Q7geecQuqGsOosLjLysZlu7i4jpeK7J4vbbMM7SnYBlGErJrrc',
         subtitle: storedUser.email || storedUser.buildingId || 'User',
+        mssv: storedUser.mssv,
       });
     }
     // Kết thúc quá trình kiểm tra auth
@@ -68,7 +69,7 @@ const AppContent: React.FC = () => {
     setError(null);
     try {
       const { user: userData } = await loginUser(username, password, role);
-      
+      console.log('Logged in user data:', userData);
       setUser({
         id: userData.id,
         name: userData.fullName || userData.username,
@@ -76,6 +77,7 @@ const AppContent: React.FC = () => {
               userData.role === 'manager' ? UserRole.MANAGER : UserRole.STUDENT,
         avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_wkdMTY3ip__Gzs3tu96a2GRmp3Ik2u1rdqZ2hiqUDyP62djiNT1LApfxVmhRa4MEZJyW_RnLDB4pA49FhehZBcEHjGTQoLNyZA8GecVOJPIi20iBp2Xui50TdC2irNwB5VH4NyiMN5biKg0rpENpURnlLd3Eoa9WrczJm2hdUn2ebmTEmoQuz5t09aLTpVsFD-Fuik2JBwr1jenPi83pqaJ1-Q7geecQuqGsOosLjLysZlu7i4jpeK7J4vbbMM7SnYBlGErJrrc',
         subtitle: userData.email || userData.buildingId || 'User',
+        mssv: userData.mssv,
       });
     } catch (err: any) {
       const errorMessage = err.message || 'Đăng nhập thất bại';
@@ -120,6 +122,15 @@ const AppContent: React.FC = () => {
           element={
             user && user.role === UserRole.STUDENT 
               ? <Profile /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/student/my-room" 
+          element={
+            user && user.role === UserRole.STUDENT 
+              ? <RoomDetail /> 
               : <Navigate to="/login" replace />
           } 
         />

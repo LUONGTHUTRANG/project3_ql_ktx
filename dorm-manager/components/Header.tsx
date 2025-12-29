@@ -4,7 +4,7 @@ import { User, UserRole } from '../types';
 import NotificationPopup from './NotificationPopup';
 import { Input } from 'antd';
 import { SearchOutlined } from "@ant-design/icons";
-import { getMyNotifications } from '../api';
+import { getUnreadNotificationCount } from '../api/notificationApi';
 
 interface HeaderProps {
   user: User;
@@ -24,10 +24,9 @@ const Header: React.FC<HeaderProps> = ({ user, logout, placeholder = "Tìm kiế
   useEffect(() => {
     const loadUnreadCount = async () => {
       try {
-        const response = await getMyNotifications(1, 100);
-        const data = response.data || [];
-        const unread = data.filter((notif: any) => !notif.is_read).length;
-        setUnreadCount(unread);
+        const response = await getUnreadNotificationCount();
+        const count = response?.count || response?.unread_count || 0;
+        setUnreadCount(count);
       } catch (err) {
         console.error('Failed to load unread count:', err);
       }

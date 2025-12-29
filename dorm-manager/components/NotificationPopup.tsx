@@ -105,7 +105,7 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
               <Spin size="small" />
             </div>
           ) : notifications.length === 0 ? (
-            <div className="py-10 text-center text-text-secondary text-sm">Không có thông báo nào</div>
+            <div className="py-4 text-center text-text-secondary text-sm">Không có thông báo nào</div>
           ) : (
             notifications.map((item) => {
               const typeInfo = getNotificationTypeInfo(item.type);

@@ -187,7 +187,7 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
         <div className="flex flex-col bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-800 overflow-hidden">
           
           {/* Header Section */}
-          <div className="p-6 border-b border-border-color dark:border-gray-800 bg-background-light dark:bg-surface-dark/50">
+          <div className="px-6 py-4 border-b border-border-color dark:border-gray-800 bg-background-light dark:bg-surface-dark/50">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-3">
               
               {/* Sender Info */}

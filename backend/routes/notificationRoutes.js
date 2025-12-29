@@ -9,6 +9,7 @@ import {
   getManagerSentNotifications,
   getNotificationById,
   deleteNotification,
+  getUnreadNotificationCount,
 } from "../controllers/notificationController.js";
 import { verifyToken, authorizeRoles } from "../middleware/authMiddleware.js";
 
@@ -47,6 +48,9 @@ router.post(
   upload.single("attachment"),
   createNotification
 );
+
+// Get unread notification count
+router.get("/my/unread-count", getUnreadNotificationCount);
 
 // Get my notifications
 router.get("/my", getMyNotifications);

@@ -51,6 +51,16 @@ export const getMyNotifications = async (page: number = 1, limit: number = 10, f
   }
 };
 
+export const getUnreadNotificationCount = async () => {
+  try {
+    const response = await api.get('/my/unread-count');
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching unread notification count:', error);
+    throw error;
+  }
+};
+
 export const getNotificationById = async (id: number | string) => {
   try {
     const response = await api.get(`/${id}`);

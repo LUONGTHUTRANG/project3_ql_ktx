@@ -1,12 +1,22 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { NavItem } from '../types';
+import { formatPrice } from '../utils/formatters';
+import {
+  getStudentById,
+  getStudentsByRoomId,
+  getInvoicesForStudent,
+  getAllSupportRequests,
+  getMyNotifications,
+  fetchRoomById
+} from '../api';
 
 export const STUDENT_NAV_ITEMS: NavItem[] = [
   { label: 'Trang chủ', icon: 'home', link: '/student/home' },
   { label: 'Thông tin cá nhân', icon: 'person', link: '/student/profile' },
+  { label: 'Phòng của tôi', icon: 'meeting_room', link: '/student/my-room' },
   { label: 'Đăng ký nội trú', icon: 'assignment', link: '/student/register' },
   { label: 'Thông tin tòa nhà & phòng', icon: 'apartment', link: '/student/buildings' },
   { label: 'Hóa đơn & Công nợ', icon: 'receipt_long', link: '/student/bills' },
@@ -14,11 +24,106 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
   { label: 'Thông báo', icon: 'notifications', link: '/notifications' },
 ];
 
+interface StudentData {
+  id: string;
+  full_name: string;
+  room_number?: string;
+  current_room_id?: string;
+}
+
+interface RoomData {
+  id: string;
+  room_number: string;
+  capacity?: number;
+  current_occupants?: number;
+}
+
+interface Invoice {
+  id: number | string;
+  amount?: number;
+  status?: string;
+  created_at?: string;
+  due_date?: string;
+}
+
+interface SupportRequest {
+  id: number | string;
+  title?: string;
+  status?: string;
+  created_at?: string;
+}
+
+interface Notification {
+  id: number | string;
+  title?: string;
+  content?: string;
+  created_at?: string;
+}
+
 const StudentDashboard: React.FC = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  
+  const [studentData, setStudentData] = useState<StudentData | null>(null);
+  const [roomData, setRoomData] = useState<RoomData | null>(null);
+  const [roommates, setRoommates] = useState<StudentData[]>([]);
+  const [latestInvoice, setLatestInvoice] = useState<Invoice | null>(null);
+  const [latestRequest, setLatestRequest] = useState<SupportRequest | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   if (!user) return null;
+
+  // Fetch student data
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch student profile
+        const studentResponse = await getStudentById(user.id);
+        const student = studentResponse || studentResponse;
+        setStudentData(student);
+
+        // Fetch room data if student has a room
+        if (student?.current_room_id) {
+          const roomResponse = await fetchRoomById(student.current_room_id);
+          const room = roomResponse || roomResponse;
+          setRoomData(room);
+
+          // Fetch roommates
+          const roommatesResponse = await getStudentsByRoomId(student.current_room_id);
+          const roommates = roommatesResponse || [];
+          setRoommates(Array.isArray(roommates) ? roommates.filter(r => r.id !== user.id) : []);
+        }
+
+        // Fetch latest invoice
+        const invoicesResponse = await getInvoicesForStudent(user.id);
+        const invoices = invoicesResponse || [];
+        if (Array.isArray(invoices) && invoices.length > 0) {
+          setLatestInvoice(invoices[0]);
+        }
+
+        // Fetch latest support request
+        const requestsResponse = await getAllSupportRequests(1, 1);
+        const requests = requestsResponse?.data || requestsResponse || [];
+        if (Array.isArray(requests) && requests.length > 0) {
+          setLatestRequest(requests[0]);
+        }
+
+        // Fetch notifications
+        const notificationsResponse = await getMyNotifications(1, 3);
+        const notifs = notificationsResponse?.data || notificationsResponse || [];
+        setNotifications(Array.isArray(notifs) ? notifs : []);
+      } catch (error) {
+        console.error('Error fetching student dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentData();
+  }, [user.id]);
 
   return (
     <DashboardLayout 
@@ -52,15 +157,28 @@ const StudentDashboard: React.FC = () => {
               <span className="material-symbols-outlined text-3xl">meeting_room</span>
             </div>
             <div className="flex flex-col">
-              <h3 className="text-text-main dark:text-white text-lg font-bold">Phòng của tôi (P.302 - Nhà B)</h3>
+              <h3 className="text-text-main dark:text-white text-lg font-bold">
+                {loading ? 'Đang tải...' : roomData?.room_number ? `Phòng của tôi (${roomData.room_number})` : 'Chưa có phòng'}
+              </h3>
               <div className="flex items-center gap-3 text-sm text-text-secondary dark:text-gray-400 mt-1">
-                <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[18px]">group</span> 4 thành viên</span>
-                <span className="h-1 w-1 rounded-full bg-border-color"></span>
-                <span className="text-green-600 font-medium">Đã đủ người</span>
+                {roomData && (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[18px]">group</span>
+                      {roommates.length + 1} thành viên
+                    </span>
+                    <span className="h-1 w-1 rounded-full bg-border-color"></span>
+                    <span className={roomData.capacity && roomData.current_occupants && roomData.current_occupants >= roomData.capacity ? 'text-green-600 font-medium' : 'text-orange-600 font-medium'}>
+                      {roomData.capacity && roomData.current_occupants && roomData.current_occupants >= roomData.capacity ? 'Đã đủ người' : 'Còn chỗ trống'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
-          <button className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors font-medium text-sm w-full md:w-auto">
+          <button className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors font-medium text-sm w-full md:w-auto"
+            onClick={() => navigate('/student/my-room')}
+          >
             <span className="material-symbols-outlined text-[20px]">list_alt</span>
             Xem danh sách thành viên
           </button>
@@ -76,26 +194,25 @@ const StudentDashboard: React.FC = () => {
               <h3 className="font-bold text-lg">Thông báo mới</h3>
             </div>
             <div className="flex-1 w-full md:w-auto grid grid-cols-1 md:grid-cols-2 gap-3 md:mx-6">
-              <div 
-                onClick={() => navigate('/notifications')}
-                className="flex items-center gap-3 bg-white/10 px-3 py-2 rounded-lg border border-white/10 hover:bg-white/20 transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-yellow-300 text-[20px]">warning</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">Cắt nước bảo trì tòa nhà B</p>
-                  <p className="text-xs text-blue-100">20/10 (08:00 - 17:00)</p>
-                </div>
-              </div>
-              <div 
-                onClick={() => navigate('/notifications')}
-                className="hidden md:flex items-center gap-3 bg-white/10 px-3 py-2 rounded-lg border border-white/10 hover:bg-white/20 transition-colors cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-green-300 text-[20px]">calendar_month</span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">Lịch thu tiền điện tháng 10</p>
-                  <p className="text-xs text-blue-100">Hạn chót: 15/10</p>
-                </div>
-              </div>
+              {loading ? (
+                <div className="text-sm text-blue-100">Đang tải thông báo...</div>
+              ) : notifications.length === 0 ? (
+                <div className="text-sm text-blue-100">Không có thông báo mới</div>
+              ) : (
+                notifications.slice(0, 2).map((notif, index) => (
+                  <div 
+                    key={notif.id || index}
+                    onClick={() => navigate('/notifications')}
+                    className="flex items-center gap-3 bg-white/10 px-3 py-2 rounded-lg border border-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-yellow-300 text-[20px]">notifications</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{notif.title || 'Thông báo'}</p>
+                      <p className="text-xs text-blue-100">{notif.created_at ? new Date(notif.created_at).toLocaleDateString('vi-VN') : 'Mới đây'}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
             <button 
               onClick={() => navigate('/notifications')}
@@ -117,16 +234,26 @@ const StudentDashboard: React.FC = () => {
                     <span className="material-symbols-outlined">payments</span>
                   </div>
                   <div>
-                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Hóa đơn tháng 10</p>
-                    <p className="text-text-main dark:text-white text-2xl font-bold mt-0.5">500.000 đ</p>
+                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Hóa đơn mới nhất</p>
+                    <p className="text-text-main dark:text-white text-2xl font-bold mt-0.5">
+                      {loading ? '...' : latestInvoice?.amount ? formatPrice(latestInvoice.amount) : 'N/A'}
+                    </p>
                   </div>
                 </div>
-                <span className="inline-flex items-center rounded-md bg-red-50 dark:bg-red-900/20 px-2.5 py-1 text-xs font-semibold text-red-700 dark:text-red-400 ring-1 ring-inset ring-red-600/10">Chưa thanh toán</span>
+                <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                  latestInvoice?.status === 'paid' 
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 ring-green-600/10' 
+                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 ring-red-600/10'
+                }`}>
+                  {latestInvoice?.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                </span>
               </div>
               <div className="flex flex-col gap-3 pt-4 border-t border-dashed border-border-color dark:border-gray-700">
                 <div className="flex justify-between text-sm">
                   <span className="text-text-secondary dark:text-gray-400 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">calendar_today</span> Hạn thanh toán:</span>
-                  <span className="font-medium text-text-main dark:text-white">15/10/2023</span>
+                  <span className="font-medium text-text-main dark:text-white">
+                    {latestInvoice?.due_date ? new Date(latestInvoice.due_date).toLocaleDateString('vi-VN') : 'N/A'}
+                  </span>
                 </div>
                 <button 
                   onClick={() => navigate('/student/bills')}
@@ -148,15 +275,27 @@ const StudentDashboard: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Yêu cầu sửa chữa</p>
-                    <p className="text-text-main dark:text-white text-xl font-bold mt-0.5">Sửa điều hòa</p>
+                    <p className="text-text-main dark:text-white text-xl font-bold mt-0.5">
+                      {loading ? '...' : latestRequest?.title || 'Không có yêu cầu'}
+                    </p>
                   </div>
                 </div>
-                <span className="inline-flex items-center rounded-md bg-yellow-50 dark:bg-yellow-900/20 px-2.5 py-1 text-xs font-semibold text-yellow-700 dark:text-yellow-400 ring-1 ring-inset ring-yellow-600/20">Đang xử lý</span>
+                <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                  latestRequest?.status === 'completed'
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 ring-green-600/10'
+                    : latestRequest?.status === 'in_progress'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 ring-blue-600/10'
+                    : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20'
+                }`}>
+                  {latestRequest?.status === 'completed' ? 'Hoàn thành' : latestRequest?.status === 'in_progress' ? 'Đang xử lý' : 'Chờ xử lý'}
+                </span>
               </div>
               <div className="flex flex-col gap-3 pt-4 border-t border-dashed border-border-color dark:border-gray-700">
                 <div className="flex justify-between text-sm">
                   <span className="text-text-secondary dark:text-gray-400 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">schedule</span> Ngày gửi:</span>
-                  <span className="font-medium text-text-main dark:text-white">02/10/2023</span>
+                  <span className="font-medium text-text-main dark:text-white">
+                    {latestRequest?.created_at ? new Date(latestRequest.created_at).toLocaleDateString('vi-VN') : 'N/A'}
+                  </span>
                 </div>
                 <button 
                   onClick={() => navigate('/student/requests')}

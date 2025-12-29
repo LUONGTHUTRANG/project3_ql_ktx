@@ -22,7 +22,7 @@ const Login: React.FC = () => {
         message: 'Lỗi đăng nhập',
         description: errorMsg,
         placement: 'topRight',
-        duration: 1,
+        duration: 2,
       });
       return;
     }
@@ -34,17 +34,17 @@ const Login: React.FC = () => {
         message: 'Đăng nhập thành công',
         description: 'Chào mừng bạn đến với hệ thống quản lý ký túc xá',
         placement: 'topRight',
-        duration: 1,
+        duration: 2,
       });
       // Navigate to appropriate dashboard after successful login
       navigate(selectedRole === UserRole.STUDENT ? '/student' : '/manager');
     } catch (err: any) {
-      const errorMsg = err.message || 'Đăng nhập thất bại. Vui lòng thử lại';
+      const errorMsg = err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại vai trò, tên đăng nhập và mật khẩu.';
       notification.error({
         message: 'Đăng nhập thất bại',
         description: errorMsg,
         placement: 'topRight',
-        duration: 1,
+        duration: 2,
       });
     }
   };

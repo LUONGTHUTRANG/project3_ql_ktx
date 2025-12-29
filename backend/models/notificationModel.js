@@ -161,6 +161,14 @@ const Notification = {
     );
     await db.query("DELETE FROM notifications WHERE id = ?", [id]);
   },
+
+  getUnreadNotificationCount: async (studentId) => {
+    const [result] = await db.query(
+          "SELECT COUNT(*) AS unreadCount FROM notification_recipients WHERE student_id = ? AND is_read = 0",
+          [studentId]
+        );
+    return result[0]?.unreadCount || 0;
+  }
 };
 
 export default Notification;

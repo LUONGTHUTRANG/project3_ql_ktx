@@ -141,15 +141,41 @@ export const createNotification = async (req, res) => {
 export const getMyNotifications = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const notifications = await Notification.getForStudent(studentId);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const type = req.query.type;
+    const offset = (page - 1) * limit;
+
+    // Get all notifications for the student
+    let allNotifications = await Notification.getForStudent(studentId);
+
+    // Filter by type if provided
+    if (type) {
+      allNotifications = allNotifications.filter(n => n.type === type);
+    }
+
+    // Get total count before pagination
+    const totalItems = allNotifications.length;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Apply pagination
+    const paginatedNotifications = allNotifications.slice(offset, offset + limit);
 
     // Map attachment path to full URL
-    const notificationsWithUrl = notifications.map((n) => ({
+    const notificationsWithUrl = paginatedNotifications.map((n) => ({
       ...n,
       attachment_url: getFileUrl(req, n.attachment_path),
     }));
 
-    res.json(notificationsWithUrl);
+    res.json({
+      data: notificationsWithUrl,
+      pagination: {
+        currentPage: page,
+        itemsPerPage: limit,
+        totalItems,
+        totalPages,
+      }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -202,10 +228,18 @@ export const getManagerSentNotifications = async (req, res) => {
 export const getNotificationById = async (req, res) => {
   try {
     const notificationId = req.params.id;
+    const studentId = req.user?.id; // Get current user ID if available
+    
     const notification = await Notification.getById(notificationId);
     if (!notification) {
       return res.status(404).json({ error: "Notification not found" });
     }
+
+    // Mark as read if user is a student
+    if (studentId && req.user?.role === 'student') {
+      await Notification.markAsRead(notificationId, studentId);
+    }
+
     const notificationWithUrl = {
       ...notification,
       attachment_url: getFileUrl(req, notification.attachment_path),
@@ -222,6 +256,19 @@ export const deleteNotification = async (req, res) => {
     const notificationId = req.params.id;
     await Notification.delete(notificationId);
     res.json({ message: "Notification deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+export const getUnreadNotificationCount = async (req, res) => {
+  try {
+    console.log("Getting unread notification count for user:", req.user.id);
+    const userId = req.user.id;
+    const result = await Notification.getUnreadNotificationCount(userId);
+    res.json({ count: result, unread_count: result });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

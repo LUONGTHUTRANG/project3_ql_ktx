@@ -18,10 +18,13 @@ const Settings: React.FC = () => {
     general: true
   });
   const [changePasswordModal, setChangePasswordModal] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [passwordForm] = Form.useForm();
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
 
   if (!user) return null;
+
+  console.log("Rendering Settings for user:", user);
 
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
   const navItems = isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS;
@@ -78,6 +81,15 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleLogoutClick = () => {
+    setLogoutModalVisible(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setLogoutModalVisible(false);
+    logout();
+  };
+
   return (
     <DashboardLayout 
       navItems={navItems.map(item => ({...item, isActive: item.label === 'Cài đặt'}))}
@@ -102,7 +114,9 @@ const Settings: React.FC = () => {
             ></div>
             <div className="flex flex-col justify-center flex-1 gap-1">
               <h2 className="text-text-main dark:text-white text-2xl font-bold leading-tight">{user.name}</h2>
-              <p className="text-text-secondary dark:text-gray-400 text-base font-medium">ID: {user.id}</p>
+              <p className="text-text-secondary dark:text-gray-400 text-base font-medium">
+                {isManager ? `ID: ${user.id}` : `MSSV: ${user.mssv || user.id}`}
+              </p>
               <p className="text-text-secondary dark:text-gray-400 text-sm">{user.subtitle}</p>
             </div>
             <div className="flex items-center self-center sm:self-start mt-2 sm:mt-0">
@@ -238,7 +252,7 @@ const Settings: React.FC = () => {
         {/* Bottom Actions */}
         <div className="flex flex-col items-center gap-6">
           <button 
-            onClick={logout}
+            onClick={handleLogoutClick}
             className="w-full sm:w-auto min-w-[240px] flex items-center justify-center gap-2 rounded-xl bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-bold py-4 px-8 transition-all active:scale-95"
           >
             <span className="material-symbols-outlined text-[22px]">logout</span>
@@ -332,6 +346,45 @@ const Settings: React.FC = () => {
               </div>
             </Form.Item>
           </Form>
+        </Modal>
+
+        {/* Logout Confirmation Modal */}
+        <Modal
+          title={
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 shrink-0 size-10">
+                <span className="material-symbols-outlined text-[20px]">logout</span>
+              </div>
+              <span className="text-base font-bold text-text-main dark:text-white">Xác nhận đăng xuất</span>
+            </div>
+          }
+          open={logoutModalVisible}
+          onCancel={() => setLogoutModalVisible(false)}
+          footer={null}
+          width={420}
+          centered
+          className="logout-confirmation-modal"
+        >
+          <div className="py-4">
+            <p className="text-text-main dark:text-white text-base font-medium mb-2">Bạn có chắc chắn muốn đăng xuất?</p>
+            <p className="text-text-secondary dark:text-gray-400 text-sm">Bạn sẽ được chuyển hướng đến trang đăng nhập và sẽ cần nhập lại thông tin đăng nhập của mình.</p>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setLogoutModalVisible(false)}
+                className="flex-1 h-10 rounded-lg border border-border-color dark:border-gray-600 text-text-main dark:text-white font-bold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogout}
+                className="flex-1 h-10 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition-colors"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
         </Modal>
       </div>
     </DashboardLayout>

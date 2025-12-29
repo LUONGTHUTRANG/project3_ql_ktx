@@ -96,7 +96,7 @@ export const login = async (req, res) => {
 
     if (!isMatch) {
       return res.status(401).json({
-        message: "Thông tin tài khoản chưa đúng. Vui lòng kiểm tra lại",
+        message: "Đăng nhập thất bại. Vui lòng kiểm tra lại vai trò, tên đăng nhập và mật khẩu.",
       });
     }
 
@@ -106,7 +106,8 @@ export const login = async (req, res) => {
       token,
       user: {
         id: user.id,
-        username: user.username || user.mssv,
+        username: user.username,
+        mssv: user.mssv,
         fullName: user.full_name,
         role: userRole,
         // Add other relevant fields

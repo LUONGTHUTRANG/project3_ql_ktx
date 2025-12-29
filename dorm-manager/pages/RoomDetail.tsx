@@ -2,14 +2,16 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import { STUDENT_NAV_ITEMS } from './StudentDashboard';
 import { AuthContext } from '../App';
 import Pagination from '../components/Pagination';
 import { Input, Spin, message } from 'antd';
 import { fetchRoomById } from '../api/roomApi';
-import { getStudentsByRoomId } from '../api/studentApi';
+import { getStudentsByRoomId, getStudentById } from '../api/studentApi';
 import { getServicePrices } from '../api/servicePriceApi';
 import { SearchOutlined } from "@ant-design/icons";
 import { formatPrice } from '../utils/formatters';
+import { UserRole } from '../types';
 
 interface Room {
   id: number;
@@ -69,15 +71,26 @@ const RoomDetail: React.FC = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        if (id) {
+        let roomId = id;
+        
+        // If no id param, fetch student's current room
+        if (!roomId && user.role === UserRole.STUDENT) {
+          const studentData = await getStudentById(user.id);
+          roomId = studentData?.current_room_id || studentData?.current_room_id;
+        }
+        
+        if (roomId) {
           const [roomData, studentsData, pricesData] = await Promise.all([
-            fetchRoomById(id),
-            getStudentsByRoomId(id),
+            fetchRoomById(roomId),
+            getStudentsByRoomId(roomId),
             getServicePrices()
           ]);
           setRoom(roomData);
           setStudents(Array.isArray(studentsData) ? studentsData : []);
           setServicePrices(Array.isArray(pricesData) ? pricesData : []);
+        } else if (user.role === UserRole.STUDENT) {
+          message.warning('Bạn chưa được phân phòng');
+          navigate('/student/home');
         }
       } catch (error: any) {
         message.error('Lỗi khi tải thông tin phòng');
@@ -87,7 +100,7 @@ const RoomDetail: React.FC = () => {
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, user.id, user.role, navigate]);
 
   // Filter students based on search
   const filteredStudents = students.filter(student => {
@@ -103,22 +116,29 @@ const RoomDetail: React.FC = () => {
     currentPage * itemsPerPage
   );
 
+  const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
+  const isStudent = user.role === UserRole.STUDENT;
+  const navItems = isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS;
+  const activeNavLink = isManager ? '/manager/rooms' : '/student/my-room';
+  const backLink = isManager ? '/manager/rooms' : '/student/home';
+  const sidebarTitle = isManager ? 'A1 Manager' : 'Dorm Manager';
+
   return (
     <DashboardLayout 
-      navItems={MANAGER_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/manager/rooms'}))}
+      navItems={navItems.map(item => ({...item, isActive: item.link === activeNavLink}))}
       searchPlaceholder="Tìm sinh viên trong phòng..."
       headerTitle="Thông tin Phòng"
-      sidebarTitle="A1 Manager"
+      sidebarTitle={sidebarTitle}
     >
-      <button
-            onClick={() => navigate('/manager/rooms')}
+      {isManager && (<button
+            onClick={() => navigate(backLink)}
             className="group flex items-center gap-2 mb-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
           >
             <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
               <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             </div>
             <span className="text-sm font-bold leading-normal">Quay lại danh sách</span>
-          </button>
+          </button>)}
       {isLoading ? (
         <div className="flex items-center justify-center p-12">
           <Spin size="large" tip="Đang tải dữ liệu..." />
@@ -137,7 +157,7 @@ const RoomDetail: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col max-w-[1200px] mx-auto gap-6 animate-in fade-in duration-500">
+        <div className="flex flex-col max-w-[1200px] mx-auto gap-6">
 
         {/* Page Header & Actions */}
         <div className="flex flex-col lg:flex-row justify-between gap-6 px-1 items-start lg:items-end border-b border-border-color dark:border-gray-700 pb-8">
@@ -156,7 +176,7 @@ const RoomDetail: React.FC = () => {
               </span>
             </div>
           </div>
-          <div className="flex gap-3 flex-wrap">
+          {isManager && <div className="flex gap-3 flex-wrap">
             <button className="flex items-center justify-center gap-2 rounded-xl h-11 px-5 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95">
               <span className="material-symbols-outlined text-[20px]">settings</span>
               Cấu hình
@@ -169,7 +189,7 @@ const RoomDetail: React.FC = () => {
               <span className="material-symbols-outlined text-[20px]">person_add</span>
               Thêm sinh viên
             </button>
-          </div>
+          </div>}
         </div>
 
         {/* Info Grid Cards */}
@@ -302,7 +322,7 @@ const RoomDetail: React.FC = () => {
               </span>
           
               <Input
-                placeholder="Tìm số phòng..."
+                placeholder="Tìm sinh viên..."
                 prefix={<SearchOutlined />}
                 className="w-full h-11 gap-3 pl-1 flex-1"
                 value={searchText}
@@ -323,7 +343,7 @@ const RoomDetail: React.FC = () => {
                     <th className="py-5 px-6 text-xs font-semibold uppercase tracking-widest text-text-secondary dark:text-gray-400 text-center">MSSV</th>
                     <th className="py-5 px-6 text-xs font-semibold uppercase tracking-widest text-text-secondary dark:text-gray-400">Thông tin liên hệ</th>
                     <th className="py-5 px-6 text-xs font-semibold uppercase tracking-widest text-text-secondary dark:text-gray-400">Tình trạng</th>
-                    <th className="py-5 px-6 text-xs font-semibold uppercase tracking-widest text-text-secondary dark:text-gray-400 text-right">Thao tác</th>
+                    {isManager && <th className="py-5 px-6 text-xs font-semibold uppercase tracking-widest text-text-secondary dark:text-gray-400 text-right">Thao tác</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-color dark:divide-gray-700">
@@ -361,7 +381,7 @@ const RoomDetail: React.FC = () => {
                           {student.student_status === 'STUDYING' ? 'Đang học' : 'Đã tốt nghiệp'}
                         </span>
                       </td>
-                      <td className="py-5 px-6 text-right">
+                      {isManager && <td className="py-5 px-6 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                           <button className="size-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-primary/10 hover:text-primary text-text-secondary dark:text-gray-400 transition-all" title="Xem hồ sơ">
                             <span className="material-symbols-outlined text-[20px]">visibility</span>
@@ -370,7 +390,7 @@ const RoomDetail: React.FC = () => {
                             <span className="material-symbols-outlined text-[20px]">logout</span>
                           </button>
                         </div>
-                      </td>
+                      </td>}
                     </tr>
                   ))}
                 </tbody>

@@ -41,10 +41,9 @@ const NotificationList: React.FC = () => {
           type: filterType || undefined,
         });
         
-        const data = response.data || [];
-        setNotifications(data);
-        setTotalItems(response.meta?.total || 0);
-        setTotalPages(response.meta?.totalPages || 0);
+        setNotifications(response.data || []);
+        setTotalItems(response.pagination?.totalItems || 0);
+        setTotalPages(response.pagination?.totalPages || 1);
       } catch (err: any) {
         console.error('Failed to load notifications:', err);
         setError(err.response?.data?.error || err.message || 'Lỗi khi tải thông báo');
