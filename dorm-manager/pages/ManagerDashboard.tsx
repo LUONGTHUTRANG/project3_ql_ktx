@@ -4,7 +4,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import { NavItem } from '../types';
 
 export const MANAGER_NAV_ITEMS: NavItem[] = [
-  { label: 'Tổng quan Tòa A1', icon: 'dashboard', link: '/manager' },
+  { label: 'Tổng quan Tòa A1', icon: 'dashboard', link: '/manager/home' },
   { label: 'Quản lý Phòng', icon: 'meeting_room', link: '/manager/rooms', isActive: true },
   { label: 'Quản lý Sinh viên', icon: 'school', link: '/manager/students' },
   { label: 'Yêu cầu hỗ trợ', icon: 'support_agent', link: '/manager/requests' },
@@ -18,7 +18,7 @@ const ManagerDashboard: React.FC = () => {
   return (
     <>
       <DashboardLayout
-        navItems={MANAGER_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/manager'}))}
+        navItems={MANAGER_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/manager/home'}))}
         searchPlaceholder="Tìm sinh viên, phòng tại Tòa A1..."
         headerTitle="Tòa nhà A1"
         headerSubtitle="Khu ký túc xá Đại học Quốc gia"

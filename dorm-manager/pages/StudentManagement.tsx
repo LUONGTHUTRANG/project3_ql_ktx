@@ -1,22 +1,29 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import Pagination from '../components/Pagination';
-import { Input, Select } from 'antd';
+import { Input, Select, Spin, message } from 'antd';
 import { SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import { AuthContext } from '../App';
 import { UserRole } from '../types';
+import { getAllStudents, getStudentsByBuildingId } from '../api/studentApi';
+import { fetchBuildings } from '../api/buildingApi';
 
 interface Student {
   id: number;
   mssv: string;
+  full_name: string;
+  room_number?: string;
+  building_name?: string;
+  student_status: string;
+  stay_status: string;
+  current_room_id?: number;
+}
+
+interface Building {
+  id: number;
   name: string;
-  building: string;
-  room: string;
-  status: 'active' | 'pending' | 'inactive' | 'disciplined';
-  statusLabel: string;
-  statusColor: string;
 }
 
 const StudentManagement: React.FC = () => {
@@ -27,53 +34,65 @@ const StudentManagement: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [selectedBuilding, setSelectedBuilding] = useState('');
   const [selectedRoom, setSelectedRoom] = useState('');
+  
+  const [students, setStudents] = useState<Student[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalStudents, setTotalStudents] = useState(0);
 
   // Check if user is admin
   const isAdmin = user?.role === UserRole.ADMIN;
 
-  // Mock data for 97 students
-  const allStudents: Student[] = Array.from({ length: 97 }, (_, i) => {
-    const buildings = ['Tòa A1', 'Tòa A2', 'Tòa B1', 'Tòa B2', 'Tòa C3'];
-    const rooms = ['P.101', 'P.102', 'P.201', 'P.305', 'P.402', 'P.505'];
-    const statuses = [
-      { status: 'active' as const, label: 'Đang ở', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
-      { status: 'pending' as const, label: 'Chờ duyệt', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' },
-      { status: 'inactive' as const, label: 'Đã trả phòng', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' },
-      { status: 'disciplined' as const, label: 'Kỷ luật', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' }
-    ];
-
-    const statusObj = statuses[i % statuses.length];
-    return {
-      id: i + 1,
-      mssv: `${20 + Math.floor(i / 10)}${String(Math.floor(Math.random() * 9) + 1).padStart(6, '0')}`,
-      name: ['Nguyễn Văn An', 'Trần Thị Bích', 'Lê Hoàng Nam', 'Phạm Thanh Tâm', 'Võ Quốc Hưng'][i % 5],
-      building: buildings[i % buildings.length],
-      room: rooms[i % rooms.length],
-      status: statusObj.status,
-      statusLabel: statusObj.label,
-      statusColor: statusObj.color
+  // Fetch buildings for filter
+  useEffect(() => {
+    const fetchBuildingsData = async () => {
+      try {
+        const data = await fetchBuildings();
+        setBuildings(Array.isArray(data) ? data : data.data || []);
+      } catch (error: any) {
+        console.error('Error fetching buildings:', error);
+      }
     };
-  });
+    fetchBuildingsData();
+  }, []);
+
+  // Fetch students
+  useEffect(() => {
+    const fetchStudentsData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getAllStudents(currentPage, itemsPerPage);
+        setStudents(response.data || []);
+        setTotalStudents(response.meta?.total || 0);
+      } catch (error: any) {
+        message.error('Lỗi khi tải danh sách sinh viên');
+        console.error('Error fetching students:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchStudentsData();
+  }, [currentPage, itemsPerPage]);
 
   // Filter students
-  const filteredStudents = allStudents.filter(student => {
+  const filteredStudents = students.filter(student => {
     const matchesSearch = !searchText || 
       student.mssv.toLowerCase().includes(searchText.toLowerCase()) ||
-      student.name.toLowerCase().includes(searchText.toLowerCase());
+      student.full_name.toLowerCase().includes(searchText.toLowerCase());
     
-    const matchesBuilding = !selectedBuilding || student.building === selectedBuilding;
-    const matchesRoom = !selectedRoom || student.room === selectedRoom;
+    const matchesBuilding = !selectedBuilding || student.building_name === selectedBuilding;
     
-    return matchesSearch && matchesBuilding && matchesRoom;
+    return matchesSearch && matchesBuilding;
   });
 
   const totalItems = filteredStudents.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  // Get current page items
+  // Get current page items (apply local pagination if needed)
   const currentItems = filteredStudents.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    0,
+    itemsPerPage
   );
 
   const handleReset = () => {
@@ -144,11 +163,7 @@ const StudentManagement: React.FC = () => {
                   className="w-full h-11"
                   options={[
                     { label: 'Tất cả tòa nhà', value: '' },
-                    { label: 'Tòa A1', value: 'Tòa A1' },
-                    { label: 'Tòa A2', value: 'Tòa A2' },
-                    { label: 'Tòa B1', value: 'Tòa B1' },
-                    { label: 'Tòa B2', value: 'Tòa B2' },
-                    { label: 'Tòa C3', value: 'Tòa C3' }
+                    ...buildings.map(b => ({ label: b.name, value: b.name }))
                   ]}
                 />
               </div>
@@ -162,15 +177,10 @@ const StudentManagement: React.FC = () => {
                     setSelectedRoom(value);
                     setCurrentPage(1);
                   }}
+                  disabled
                   className="w-full h-11"
                   options={[
-                    { label: 'Tất cả phòng', value: '' },
-                    { label: 'P.101', value: 'P.101' },
-                    { label: 'P.102', value: 'P.102' },
-                    { label: 'P.201', value: 'P.201' },
-                    { label: 'P.305', value: 'P.305' },
-                    { label: 'P.402', value: 'P.402' },
-                    { label: 'P.505', value: 'P.505' }
+                    { label: 'Tất cả phòng', value: '' }
                   ]}
                 />
               </div>
@@ -180,76 +190,93 @@ const StudentManagement: React.FC = () => {
 
         {/* Table Section */}
         <div className="bg-white dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border-color dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">STT</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">MSSV</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Họ và tên</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Tòa nhà</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Phòng</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-color dark:divide-gray-700">
-                {currentItems.map((student, index) => (
-                  <tr 
-                    key={student.id}
-                    onClick={() => handleRowClick(student.mssv)}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-400">
-                      {(currentPage - 1) * itemsPerPage + index + 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-text-main dark:text-white">{student.mssv}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-text-main dark:text-white">{student.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-text-secondary dark:text-gray-300">{student.building}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-text-secondary dark:text-gray-300">{student.room}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${student.statusColor}`}>
-                        {student.statusLabel}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 align-middle text-right">
-                      <button className="text-text-secondary dark:text-gray-500 group-hover:text-primary transition-colors">
-                        <span className="material-symbols-outlined">chevron_right</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {currentItems.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center text-text-secondary dark:text-gray-500">
-                      Không tìm thấy sinh viên nào.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <Spin size="large" tip="Đang tải dữ liệu..." />
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto flex-1">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border-color dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                      <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">STT</th>
+                      <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">MSSV</th>
+                      <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Họ và tên</th>
+                      <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Tòa nhà</th>
+                      <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Phòng</th>
+                      <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-color dark:divide-gray-700">
+                    {currentItems.map((student, index) => {
+                      const stayStatusMap: Record<string, { label: string; color: string }> = {
+                        'STAYING': { label: 'Đang ở', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+                        'NOT_STAYING': { label: 'Chưa ở', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' },
+                        'APPLIED': { label: 'Đã đăng ký', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' }
+                      };
+                      const statusInfo = stayStatusMap[student.stay_status] || { label: student.stay_status, color: 'bg-gray-100 text-gray-800' };
+                      
+                      return (
+                        <tr 
+                          key={student.id}
+                          onClick={() => handleRowClick(student.id)}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-400">
+                            {(currentPage - 1) * itemsPerPage + index + 1}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-text-main dark:text-white">{student.mssv}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-text-main dark:text-white">{student.full_name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-text-secondary dark:text-gray-300">{student.building_name || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-text-secondary dark:text-gray-300">{student.room_number || '-'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${statusInfo.color}`}>
+                              {statusInfo.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 align-middle text-right">
+                            <button className="text-text-secondary dark:text-gray-500 group-hover:text-primary transition-colors">
+                              <span className="material-symbols-outlined">chevron_right</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {currentItems.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-20 text-center text-text-secondary dark:text-gray-500">
+                          Không tìm thấy sinh viên nào.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+                  </div>
 
-          {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(val) => {
-              setItemsPerPage(val);
-              setCurrentPage(1);
-            }}
-            itemsPerPageOptions={[5, 10, 20, 50]}
-          />
+              {/* Pagination */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(totalStudents / itemsPerPage)}
+                totalItems={totalStudents}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(val) => {
+                  setItemsPerPage(val);
+                  setCurrentPage(1);
+                }}
+                itemsPerPageOptions={[5, 10, 20, 50]}
+              />
+            </>
+          )}
         </div>
       </div>
     </DashboardLayout>

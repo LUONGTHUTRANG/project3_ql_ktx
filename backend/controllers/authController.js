@@ -65,7 +65,7 @@ export const login = async (req, res) => {
       } else {
         // Check Manager
         const [managers] = await db.query(
-          "SELECT * FROM managers WHERE username = ?",
+        "SELECT * FROM managers WHERE username = ?",
           [username]
         );
         if (managers.length > 0) {
@@ -154,5 +154,80 @@ export const getMe = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Mật khẩu hiện tại và mật khẩu mới là bắt buộc",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        message: "Mật khẩu mới phải có ít nhất 8 ký tự",
+      });
+    }
+
+    let user = null;
+    let tableName = "";
+
+    // Get user from appropriate table
+    if (role === "admin") {
+      const [rows] = await db.query("SELECT * FROM admins WHERE id = ?", [id]);
+      if (rows.length > 0) {
+        user = rows[0];
+        tableName = "admins";
+      }
+    } else if (role === "manager") {
+      const [rows] = await db.query("SELECT * FROM managers WHERE id = ?", [
+        id,
+      ]);
+      if (rows.length > 0) {
+        user = rows[0];
+        tableName = "managers";
+      }
+    } else if (role === "student") {
+      const [rows] = await db.query("SELECT * FROM students WHERE id = ?", [
+        id,
+      ]);
+      if (rows.length > 0) {
+        user = rows[0];
+        tableName = "students";
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Mật khẩu hiện tại không chính xác",
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password in database
+    await db.query(`UPDATE ${tableName} SET password_hash = ? WHERE id = ?`, [
+      hashedPassword,
+      id,
+    ]);
+
+    res.json({
+      message: "Mật khẩu đã được cập nhật thành công",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi máy chủ" });
   }
 };

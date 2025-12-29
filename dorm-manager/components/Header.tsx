@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import NotificationPopup from './NotificationPopup';
 import { Input } from 'antd';
 import { SearchOutlined } from "@ant-design/icons";
+import { getMyNotifications } from '../api';
 
 interface HeaderProps {
   user: User;
@@ -16,7 +17,24 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ user, logout, placeholder = "Tìm kiếm...", title, subtitle }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
+
+  // Fetch unread notifications count
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      try {
+        const response = await getMyNotifications(1, 100);
+        const data = response.data || [];
+        const unread = data.filter((notif: any) => !notif.is_read).length;
+        setUnreadCount(unread);
+      } catch (err) {
+        console.error('Failed to load unread count:', err);
+      }
+    };
+
+    loadUnreadCount();
+  }, []);
 
   const handleProfileClick = () => {
     setIsDropdownOpen(false);
@@ -65,7 +83,9 @@ const Header: React.FC<HeaderProps> = ({ user, logout, placeholder = "Tìm kiế
             }`}
           >
             <span className={`material-symbols-outlined ${isNotificationsOpen ? 'fill' : ''}`}>notifications</span>
-            <span className="absolute top-1.5 right-2 size-2 rounded-full bg-red-500 border border-white dark:border-surface-dark"></span>
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-2 size-2 rounded-full bg-red-500 border border-white dark:border-surface-dark"></span>
+            )}
           </button>
           
           {isNotificationsOpen && (

@@ -1,84 +1,76 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
 import { UserRole } from '../types';
+import { Spin, message } from 'antd';
+import { getNotificationById } from '../api/notificationApi';
 
-type AttachedFile = {
-  id: string;
-  name: string;
-  size: string;
-  date: string;
-  type: 'pdf' | 'image' | 'document';
-};
+interface NotificationDetailProps {
+  isManager?: boolean;
+}
 
 type Notification = {
   id: string;
   title: string;
-  sender: string;
-  timestamp: string;
-  recipients: string;
+  sender?: string;
+  timestamp?: string;
+  recipients?: string;
   content: string;
-  attachments: AttachedFile[];
+  target_scope?: string;
+  created_at?: string;
+  sender_id?: string;
+  sender_role?: string;
+  attachment_path?: string;
+  attachment_url?: string;
 };
 
-// Mock notification data
-const mockNotifications: Record<string, Notification> = {
-  '1': {
-    id: '1',
-    title: 'Thông báo đóng tiền điện tháng 10',
-    sender: 'Ban Quản Lý Ký Túc Xá',
-    timestamp: '10:30 - 20/10/2023',
-    recipients: 'Toàn thể sinh viên Khu A',
-    content: `Thân gửi các bạn sinh viên,
-
-Ban quản lý ký túc xá xin thông báo về việc thanh toán tiền điện tháng 10/2023 cho các phòng thuộc khu vực tòa nhà A. Theo số liệu ghi nhận từ công tơ điện vào ngày 15/10/2023, chi tiết tiêu thụ điện năng của các phòng đã được tổng hợp đầy đủ.
-
-Thông tin chi tiết thanh toán:
-• Số tiền cần thanh toán trung bình: 350.000 VNĐ / phòng.
-• Hạn chót thanh toán: Trước 17:00 ngày 25/10/2023.
-• Hình thức thanh toán: Chuyển khoản qua App Dormitory Manager hoặc nộp trực tiếp tại Văn phòng BQL (Tầng 1, Nhà A).
-
-Đề nghị đại diện các phòng kiểm tra lại chỉ số điện và thực hiện thanh toán đúng hạn để tránh bị cắt điện sinh hoạt. Nếu có thắc mắc về chỉ số điện, vui lòng liên hệ ban quản lý tòa nhà trong giờ hành chính.
-
-Các trường hợp chậm thanh toán quá 3 ngày so với hạn chót sẽ bị xử lý theo quy định của ký túc xá.
-
-Trân trọng,
-Ban quản lý Ký túc xá.`,
-    attachments: [
-      {
-        id: '1',
-        name: 'Chi_tiet_tien_dien_T10.pdf',
-        size: '2.4 MB',
-        date: '20/10/2023',
-        type: 'pdf',
-      },
-      {
-        id: '2',
-        name: 'QR_Code_Thanh_Toan.png',
-        size: '540 KB',
-        date: '20/10/2023',
-        type: 'image',
-      },
-    ],
-  },
-};
-
-const NotificationDetail: React.FC = () => {
+const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = false }) => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const [notification, setNotification] = useState<Notification | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   if (!user) return null;
 
-  const isStudent = user.role === UserRole.STUDENT;
-  const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
-  const navItems = isStudent ? STUDENT_NAV_ITEMS : MANAGER_NAV_ITEMS;
+  useEffect(() => {
+    const loadNotification = async () => {
+      if (id) {
+        try {
+          const data = await getNotificationById(id);
+          setNotification(data);
+        } catch (error: any) {
+          message.error('Lỗi khi tải thông báo');
+          console.error('Error loading notification:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadNotification();
+  }, [id]);
+
+  const navItems = isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS;
   const sidebarTitle = isManager ? "A1 Manager" : undefined;
 
-  const notification = mockNotifications[id || '1'];
+  if (isLoading) {
+    return (
+      <DashboardLayout
+        navItems={navItems}
+        searchPlaceholder={isManager ? "Tìm sinh viên, phòng..." : "Tìm kiếm dịch vụ, thông báo..."}
+        headerTitle="Chi tiết Thông báo"
+        sidebarTitle={sidebarTitle}
+      >
+        <div className="flex items-center justify-center py-16">
+          <Spin tip="Đang tải dữ liệu..." />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!notification) {
     return (
@@ -94,6 +86,13 @@ const NotificationDetail: React.FC = () => {
       </DashboardLayout>
     );
   }
+
+  const getFileType = (filename: string): 'pdf' | 'image' | 'document' => {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    if (extension === 'pdf') return 'pdf';
+    if (['png', 'jpg', 'jpeg', 'gif'].includes(extension || '')) return 'image';
+    return 'document';
+  };
 
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -117,14 +116,16 @@ const NotificationDetail: React.FC = () => {
     }
   };
 
-  const handleDownload = (file: AttachedFile) => {
-    // Simulate download
-    alert(`Đang tải xuống: ${file.name}`);
+  const handleDownload = () => {
+    if (notification?.attachment_url) {
+      window.open(notification.attachment_url, '_blank');
+    }
   };
 
-  const handleView = (file: AttachedFile) => {
-    // Simulate file view
-    alert(`Xem: ${file.name}`);
+  const handleView = () => {
+    if (notification?.attachment_url) {
+      window.open(notification.attachment_url, '_blank');
+    }
   };
 
   const handlePrint = () => {
@@ -147,7 +148,7 @@ const NotificationDetail: React.FC = () => {
         {/* Header Section with Back Button and Actions */}
         <div className="flex items-center justify-between mb-2 gap-2">
           <button
-            onClick={() => navigate('/notifications')}
+            onClick={() => navigate(isManager ? '/manager/notifications' : '/notifications')}
             className="group flex items-center gap-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
           >
             <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
@@ -156,6 +157,15 @@ const NotificationDetail: React.FC = () => {
             <span className="text-sm font-bold leading-normal">Quay lại danh sách</span>
           </button>
           <div className="flex items-center gap-2">
+            {isManager && (
+              <button
+                onClick={() => navigate(`/manager/notifications/${id}/edit`)}
+                className="flex items-center justify-center size-9 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                title="Chỉnh sửa"
+              >
+                <span className="material-symbols-outlined text-[20px]">edit</span>
+              </button>
+            )}
             <button
               onClick={handlePrint}
               className="flex items-center justify-center size-9 rounded-lg text-text-secondary dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -224,47 +234,37 @@ const NotificationDetail: React.FC = () => {
           </div>
 
           {/* Attachments Section */}
-          {notification.attachments.length > 0 && (
+          {notification?.attachment_path && (
             <div className="p-6 border-t border-border-color dark:border-gray-800">
               <h3 className="text-xs font-bold text-text-secondary dark:text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">attachment</span>
-                Tệp đính kèm ({notification.attachments.length})
+                Tệp đính kèm
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {notification.attachments.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center p-3 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-surface-dark hover:shadow-md hover:border-primary/30 transition-all group"
+              <div className="flex items-center p-3 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-surface-dark hover:shadow-md hover:border-primary/30 transition-all group">
+                <div className={`flex items-center justify-center size-10 rounded ${getFileIconColor(getFileType(notification.attachment_path))} mr-3 shrink-0`}>
+                  <span className="material-symbols-outlined">{getFileIcon(getFileType(notification.attachment_path))}</span>
+                </div>
+                <div className="flex-1 min-w-0 mr-2">
+                  <p className="text-sm font-semibold text-text-main dark:text-gray-200 truncate group-hover:text-primary transition-colors">
+                    {notification.attachment_path.split('/').pop() || notification.attachment_path}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={handleView}
+                    className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    title="Xem"
                   >
-                    <div className={`flex items-center justify-center size-10 rounded ${getFileIconColor(file.type)} mr-3 shrink-0`}>
-                      <span className="material-symbols-outlined">{getFileIcon(file.type)}</span>
-                    </div>
-                    <div className="flex-1 min-w-0 mr-2">
-                      <p className="text-sm font-semibold text-text-main dark:text-gray-200 truncate group-hover:text-primary transition-colors">
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-text-secondary dark:text-gray-500">
-                        {file.size} • {file.date}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleView(file)}
-                        className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        title="Xem"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">visibility</span>
-                      </button>
-                      <button
-                        onClick={() => handleDownload(file)}
-                        className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        title="Tải xuống"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">download</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                    <span className="material-symbols-outlined text-[20px]">visibility</span>
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    title="Tải xuống"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">download</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

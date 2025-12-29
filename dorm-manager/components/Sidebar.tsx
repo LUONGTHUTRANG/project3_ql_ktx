@@ -13,7 +13,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Dorm
   const location = useLocation();
 
   const settingsLink = user.role === UserRole.STUDENT ? '/student/settings' : '/manager/settings';
-  const isSettingsActive = location.pathname === settingsLink;
+  const isSettingsActive = location.pathname.startsWith(settingsLink);
 
   return (
     <aside className="w-72 flex-shrink-0 bg-white dark:bg-surface-dark border-r border-border-color dark:border-gray-700 flex flex-col hidden md:flex z-20 h-full overflow-y-auto">
@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Dorm
         {/* Navigation */}
         <nav className="flex flex-col gap-2 flex-1">
           {navItems.map((item, index) => {
-            const isActive = location.pathname === item.link;
+            const isActive = location.pathname.startsWith(item.link || '');
             return (
               <Link 
                 key={index} 

@@ -10,6 +10,7 @@ import authRoutes from "./authRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
 import registrationRoutes from "./registrationRoutes.js";
 import monthlyUsageRoutes from "./monthlyUsageRoutes.js";
+import servicePriceRoutes from "./servicePriceRoutes.js";
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use("/support-requests", supportRequestRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/registrations", registrationRoutes);
 router.use("/monthly-usages", monthlyUsageRoutes);
+router.use("/service-prices", servicePriceRoutes);
 
 export default router;

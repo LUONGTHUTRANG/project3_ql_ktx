@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import {
   createNotification,
   getMyNotifications,
@@ -15,10 +16,16 @@ const router = express.Router();
 
 router.use(verifyToken);
 
+// Ensure uploads/notifications directory exists
+const notificationsDir = "uploads/notifications";
+if (!fs.existsSync(notificationsDir)) {
+  fs.mkdirSync(notificationsDir, { recursive: true });
+}
+
 // Configure Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/notifications/");
+    cb(null, notificationsDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -49,7 +56,7 @@ router.put("/:id/read", markAsRead);
 
 // Get sent notifications (Manager)
 router.get(
-  "/sent",
+  "/manager",
   authorizeRoles("manager", "admin"),
   getManagerSentNotifications
 );

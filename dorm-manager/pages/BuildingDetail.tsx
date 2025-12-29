@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Select, Spin, Modal, Input, Checkbox } from 'antd';
 import { App } from "antd";
+import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
 import Pagination from '../components/Pagination';
@@ -37,6 +38,7 @@ interface Room {
 const BuildingDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [building, setBuilding] = useState<Building | null>(null);
@@ -367,15 +369,17 @@ const BuildingDetail: React.FC = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            <button
-              onClick={handleCreateNewRoom}
-              disabled={editingRoomId !== null}
-              className="flex h-11 items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Tạo phòng mới"
-            >
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              <span className="hidden sm:inline">Tạo phòng mới</span>
-            </button>
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={handleCreateNewRoom}
+                disabled={editingRoomId !== null}
+                className="flex h-11 items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Tạo phòng mới"
+              >
+                <span className="material-symbols-outlined text-[20px]">add</span>
+                <span className="hidden sm:inline">Tạo phòng mới</span>
+              </button>
+            )}
             
               <Input
                 placeholder="Tìm số phòng..."
@@ -431,7 +435,9 @@ const BuildingDetail: React.FC = () => {
                   <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider text-center">Máy giặt</th>
                   <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Giá phòng / kỳ (VND)</th>
                   <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider text-right">Trạng thái</th>
-                  <th className="p-4 text-right text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Thao tác</th>
+                  {user?.role === 'ADMIN' && (
+                    <th className="p-4 text-right text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Thao tác</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-color dark:divide-gray-700">
@@ -524,26 +530,28 @@ const BuildingDetail: React.FC = () => {
                         className="w-32 h-9"
                       />
                     </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-1 sm:gap-2">
-                        <button
-                          onClick={handleSaveEdit}
-                          disabled={updatingRoomId === 0}
-                          className="p-1.5 rounded-lg text-text-secondary hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
-                          title="Lưu"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">save</span>
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          disabled={updatingRoomId === 0}
-                          className="p-1.5 rounded-lg text-text-secondary hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-                          title="Hủy"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">close</span>
-                        </button>
-                      </div>
-                    </td>
+                    {user?.role === 'ADMIN' && (
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-1 sm:gap-2">
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={updatingRoomId === 0}
+                            className="p-1.5 rounded-lg text-text-secondary hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
+                            title="Lưu"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">save</span>
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={updatingRoomId === 0}
+                            className="p-1.5 rounded-lg text-text-secondary hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                            title="Hủy"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">close</span>
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 )}
                 
@@ -689,48 +697,50 @@ const BuildingDetail: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-1 sm:gap-2">
-                          {editingRoomId === room.id ? (
-                            <>
-                              <button
-                                onClick={handleSaveEdit}
-                                disabled={updatingRoomId === room.id}
-                                className="p-1.5 rounded-lg text-text-secondary hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
-                                title="Lưu"
-                              >
-                                <span className="material-symbols-outlined text-[20px]">save</span>
-                              </button>
-                              <button
-                                onClick={handleCancelEdit}
-                                disabled={updatingRoomId === room.id}
-                                className="p-1.5 rounded-lg text-text-secondary hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-                                title="Hủy"
-                              >
-                                <span className="material-symbols-outlined text-[20px]">close</span>
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => handleEditRoom(room)}
-                                className="p-1.5 rounded-lg text-text-secondary hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                                title="Sửa thông tin"
-                              >
-                                <span className="material-symbols-outlined text-[20px]">edit_square</span>
-                              </button>
-                              <button onClick={() => handleDeleteRoom(room)} className="p-1.5 rounded-lg text-text-secondary hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Xóa phòng">
-                                <span className="material-symbols-outlined text-[20px]">delete</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+                      {user?.role === 'ADMIN' && (
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-1 sm:gap-2">
+                            {editingRoomId === room.id ? (
+                              <>
+                                <button
+                                  onClick={handleSaveEdit}
+                                  disabled={updatingRoomId === room.id}
+                                  className="p-1.5 rounded-lg text-text-secondary hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors disabled:opacity-50"
+                                  title="Lưu"
+                                >
+                                  <span className="material-symbols-outlined text-[20px]">save</span>
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  disabled={updatingRoomId === room.id}
+                                  className="p-1.5 rounded-lg text-text-secondary hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                                  title="Hủy"
+                                >
+                                  <span className="material-symbols-outlined text-[20px]">close</span>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleEditRoom(room)}
+                                  className="p-1.5 rounded-lg text-text-secondary hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                  title="Sửa thông tin"
+                                >
+                                  <span className="material-symbols-outlined text-[20px]">edit_square</span>
+                                </button>
+                                <button onClick={() => handleDeleteRoom(room)} className="p-1.5 rounded-lg text-text-secondary hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Xóa phòng">
+                                  <span className="material-symbols-outlined text-[20px]">delete</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-text-secondary dark:text-gray-400">
+                    <td colSpan={user?.role === 'ADMIN' ? 9 : 8} className="p-8 text-center text-text-secondary dark:text-gray-400">
                       Không tìm thấy phòng phù hợp với tiêu chí tìm kiếm
                     </td>
                   </tr>

@@ -1,39 +1,161 @@
-import React, { useContext, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import React, { useContext, useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Spin, message } from 'antd';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import { getInvoiceById } from '../api/invoiceApi';
+import { getMonthlyUsageById } from '../api/monthlyUsageApi';
 
 const InvoiceDetail: React.FC = () => {
   const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
   const { id } = useParams();
   const [isQrZoomed, setIsQrZoomed] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [invoice, setInvoice] = useState<any>(null);
+  const [monthlyUsage, setMonthlyUsage] = useState<any>(null);
 
   if (!user) return null;
 
-  // Mock data for the invoice
-  const invoice = {
-    id: id || 'INV-2023-10-001',
-    date: '01/10/2023',
-    deadline: '05/10/2023',
-    period: 'Tháng 10/2023',
-    status: 'unpaid',
-    studentName: user.name,
-    studentId: '',
-    email: 'nguyenvana@student.edu.vn',
-    room: 'Phòng 302',
-    building: 'Khu B - Tòa Nhà B',
-    items: [
-      { name: 'Tiền phòng tháng 10/2023', desc: 'Phí cố định hàng tháng', unit: '1 tháng', price: 250000 },
-      { name: 'Tiền điện', desc: 'Cũ: 3420 | Mới: 3480', unit: '60 kWh', price: 2500, total: 150000 },
-      { name: 'Tiền nước', desc: 'Cũ: 120 | Mới: 128', unit: '8 m³', price: 6000, total: 48000 },
-      { name: 'Phí vệ sinh môi trường', desc: '', unit: '1 tháng', price: 20000, total: 20000 },
-    ],
-    subtotal: 468000,
-    tax: 0,
-    total: 468000
+  useEffect(() => {
+    const fetchInvoiceData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch invoice data
+        if (id) {
+          const invoiceData = await getInvoiceById(id);
+          setInvoice(invoiceData);
+
+          // Fetch monthly usage data if usage_id exists in invoice
+          if (invoiceData.usage_id) {
+            try {
+              const usage = await getMonthlyUsageById(invoiceData.usage_id);
+              setMonthlyUsage(usage);
+            } catch (err) {
+              console.log('Monthly usage data not available');
+            }
+          }
+        }
+      } catch (error: any) {
+        message.error('Lỗi khi tải thông tin hóa đơn');
+        console.error('Error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInvoiceData();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout 
+        navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/bills'}))}
+        searchPlaceholder="Tìm kiếm..."
+        headerTitle="Chi tiết Hóa đơn"
+      >
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Spin size="large" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!invoice) {
+    return (
+      <DashboardLayout 
+        navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/bills'}))}
+        searchPlaceholder="Tìm kiếm..."
+        headerTitle="Chi tiết Hóa đơn"
+      >
+        <div className="text-center py-12">
+          <p className="text-text-secondary dark:text-gray-400">Không tìm thấy hóa đơn</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Format date function
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+    } catch {
+      return dateString;
+    }
   };
+
+  // Build invoice items based on invoice type
+  const buildInvoiceItems = () => {
+    const items: any[] = [];
+
+    // Handle based on invoice type
+    if (invoice.type === 'ROOM_FEE') {
+      // Room fee
+      if (invoice.amount) {
+        items.push({
+          name: 'Tiền phòng',
+          desc: `Kỳ học ${invoice.semester_id || ''}`,
+          unit: '1 kỳ',
+          price: invoice.amount,
+          total: invoice.amount,
+        });
+      }
+    } else if (invoice.type === 'UTILITY_FEE' && monthlyUsage) {
+      // Utility fees (electricity and water)
+      const electricityOld = monthlyUsage.electricity_old_index;
+      const electricityNew = monthlyUsage.electricity_new_index;
+      const electricityPrice = parseFloat(monthlyUsage.electricity_price);
+      const electricityUsage = electricityNew - electricityOld;
+      const electricityTotal = electricityUsage * electricityPrice;
+
+      const waterOld = monthlyUsage.water_old_index;
+      const waterNew = monthlyUsage.water_new_index;
+      const waterPrice = parseFloat(monthlyUsage.water_price);
+      const waterUsage = waterNew - waterOld;
+      const waterTotal = waterUsage * waterPrice;
+
+      // Electricity
+      if (electricityUsage > 0) {
+        items.push({
+          name: 'Tiền điện',
+          desc: `Cũ: ${electricityOld} | Mới: ${electricityNew}`,
+          unit: `${electricityUsage} kWh`,
+          price: electricityPrice,
+          total: electricityTotal,
+        });
+      }
+
+      // Water
+      if (waterUsage > 0) {
+        items.push({
+          name: 'Tiền nước',
+          desc: `Cũ: ${waterOld} | Mới: ${waterNew}`,
+          unit: `${waterUsage} m³`,
+          price: waterPrice,
+          total: waterTotal,
+        });
+      }
+    } else if (invoice.type === 'OTHER') {
+      // Other fees
+      if (invoice.amount) {
+        items.push({
+          name: invoice.description || 'Khoản phí khác',
+          desc: invoice.description || '',
+          unit: '1',
+          price: invoice.amount,
+          total: invoice.amount,
+        });
+      }
+    }
+
+    return items;
+  };
+
+  const invoiceItems = buildInvoiceItems();
+  const subtotal = invoiceItems.reduce((sum, item) => sum + (item.total || item.price), 0);
+  const total = subtotal;
 
   return (
     <DashboardLayout 
@@ -50,7 +172,7 @@ const InvoiceDetail: React.FC = () => {
             Hóa đơn
           </Link>
           <span className="material-symbols-outlined text-base text-text-secondary dark:text-gray-600">chevron_right</span>
-          <span className="text-text-main dark:text-white font-bold">Chi tiết #{invoice.id}</span>
+          <span className="text-text-main dark:text-white font-bold">Chi tiết #{invoice.invoice_code}</span>
         </div>
 
         {/* Layout Grid */}
@@ -78,8 +200,8 @@ const InvoiceDetail: React.FC = () => {
                 </div>
                 <div className="text-left md:text-right">
                   <h2 className="text-3xl font-black tracking-tight text-text-main dark:text-white mb-1">HÓA ĐƠN</h2>
-                  <p className="text-lg font-bold text-primary">#{invoice.id}</p>
-                  <p className="text-sm text-text-secondary dark:text-gray-400 mt-2 font-medium">Ngày lập: {invoice.date}</p>
+                  <p className="text-lg font-bold text-primary">#{invoice.invoice_code}</p>
+                  <p className="text-sm text-text-secondary dark:text-gray-400 mt-2 font-medium">Ngày lập: {formatDate(invoice.time_invoiced)}</p>
                 </div>
               </div>
 
@@ -88,9 +210,9 @@ const InvoiceDetail: React.FC = () => {
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500 mb-3">Thông tin Sinh viên</p>
                   <div className="flex flex-col gap-1">
-                    <p className="text-xl font-bold text-text-main dark:text-white">{invoice.studentName}</p>
-                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">MSSV: {invoice.studentId}</p>
-                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">{invoice.email}</p>
+                    <p className="text-xl font-bold text-text-main dark:text-white">{user.name}</p>
+                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">MSSV: {user.id}</p>
+                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">{user.email || 'N/A'}</p>
                   </div>
                 </div>
                 <div>
@@ -100,8 +222,8 @@ const InvoiceDetail: React.FC = () => {
                       <span className="material-symbols-outlined text-2xl">meeting_room</span>
                     </div>
                     <div>
-                      <p className="text-lg font-bold text-text-main dark:text-white">{invoice.room}</p>
-                      <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">{invoice.building}</p>
+                      <p className="text-lg font-bold text-text-main dark:text-white">Phòng {invoice.room_number || 'N/A'}</p>
+                      <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Tòa {invoice.building_name || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -120,7 +242,7 @@ const InvoiceDetail: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="text-text-main dark:text-white">
-                      {invoice.items.map((item, idx) => (
+                      {invoiceItems.map((item, idx) => (
                         <tr key={idx} className="border-b border-dashed border-border-color dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                           <td className="py-5 pr-4">
                             <p className="font-bold text-sm">{item.name}</p>
@@ -140,7 +262,7 @@ const InvoiceDetail: React.FC = () => {
               <div className="bg-gray-50 dark:bg-black/20 p-6 md:p-10 flex flex-col items-end gap-3">
                 <div className="flex justify-between w-full md:w-1/2 text-sm font-medium">
                   <span className="text-text-secondary dark:text-gray-400">Cộng tiền hàng:</span>
-                  <span className="text-text-main dark:text-white">{invoice.subtotal.toLocaleString()} đ</span>
+                  <span className="text-text-main dark:text-white">{subtotal.toLocaleString()} đ</span>
                 </div>
                 <div className="flex justify-between w-full md:w-1/2 text-sm font-medium">
                   <span className="text-text-secondary dark:text-gray-400">Thuế GTGT (0%):</span>
@@ -149,7 +271,7 @@ const InvoiceDetail: React.FC = () => {
                 <div className="w-full h-px bg-border-color dark:bg-gray-700 my-2 md:w-1/2"></div>
                 <div className="flex justify-between w-full md:w-1/2 items-end">
                   <span className="text-base font-black text-text-main dark:text-white">TỔNG CỘNG:</span>
-                  <span className="text-3xl font-black text-primary">{invoice.total.toLocaleString()} đ</span>
+                  <span className="text-3xl font-black text-primary">{total.toLocaleString()} đ</span>
                 </div>
               </div>
             </div>
@@ -162,7 +284,7 @@ const InvoiceDetail: React.FC = () => {
               <div>
                 <p className="text-sm font-black text-orange-800 dark:text-orange-300">Lưu ý quan trọng</p>
                 <p className="text-sm text-orange-700 dark:text-orange-400/90 mt-1 leading-relaxed font-medium">
-                  Vui lòng thanh toán trước ngày <strong>{invoice.deadline}</strong> để tránh bị tính phí phạt chậm thanh toán (2% trên tổng hóa đơn) và đảm bảo các quyền lợi lưu trú.
+                  Vui lòng thanh toán trước ngày <strong>{formatDate(invoice.due_date)}</strong> để tránh bị tính phí phạt chậm thanh toán (2% trên tổng hóa đơn) và đảm bảo các quyền lợi lưu trú.
                 </p>
               </div>
             </div>
@@ -175,19 +297,31 @@ const InvoiceDetail: React.FC = () => {
             <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-border-color dark:border-gray-700 shadow-sm">
               <h3 className="text-[11px] font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest mb-5">Trạng thái thanh toán</h3>
               <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-11 items-center justify-center gap-x-2 rounded-full bg-red-50 dark:bg-red-900/20 pl-4 pr-5 border border-red-100 dark:border-red-900/30 w-full">
-                  <div className="size-2.5 rounded-full bg-red-600 animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.5)]"></div>
-                  <p className="text-red-700 dark:text-red-400 text-sm font-black leading-normal">CHƯA THANH TOÁN</p>
+                <div className={`flex h-11 items-center justify-center gap-x-2 rounded-full pl-4 pr-5 border w-full ${
+                  invoice.status === 'PAID' 
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900/30' 
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30'
+                }`}>
+                  <div className={`size-2.5 rounded-full animate-pulse ${
+                    invoice.status === 'PAID' 
+                      ? 'bg-green-600 shadow-[0_0_8px_rgba(34,197,94,0.5)]' 
+                      : 'bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]'
+                  }`}></div>
+                  <p className={`text-sm font-black leading-normal ${
+                    invoice.status === 'PAID' 
+                      ? 'text-green-700 dark:text-green-400' 
+                      : 'text-red-700 dark:text-red-400'
+                  }`}>{invoice.status === 'PAID' ? 'ĐÃ THANH TOÁN' : 'CHƯA THANH TOÁN'}</p>
                 </div>
               </div>
               <div className="space-y-4 pt-4 border-t border-border-color dark:border-gray-700">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-medium text-text-secondary dark:text-gray-400">Hạn thanh toán:</span>
-                  <span className="text-sm font-bold text-red-600">{invoice.deadline}</span>
+                  <span className="text-sm font-bold text-red-600">{formatDate(invoice.due_date)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-medium text-text-secondary dark:text-gray-400">Kỳ thanh toán:</span>
-                  <span className="text-sm font-bold text-text-main dark:text-white">{invoice.period}</span>
+                  <span className="text-sm font-bold text-text-main dark:text-white">{invoice.usage_month}/{invoice.usage_year}</span>
                 </div>
               </div>
             </div>

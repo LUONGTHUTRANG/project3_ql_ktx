@@ -48,6 +48,14 @@ const MonthlyUsage = {
     return rows[0];
   },
 
+  getById: async (usageId) => {
+    const [rows] = await db.query(
+      `SELECT * FROM monthly_usages WHERE id = ?`,
+      [usageId]
+    );
+    return rows[0];
+  },
+
   create: async (data) => {
     const {
       room_id,

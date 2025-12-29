@@ -1,4 +1,5 @@
 import Notification from "../models/notificationModel.js";
+import db from "../config/db.js";
 
 // Helper to get full URL for local file
 const getFileUrl = (req, filename) => {
@@ -13,12 +14,10 @@ export const createNotification = async (req, res) => {
       title,
       content,
       target_scope,
+      target_value,
       type,
-      room_id,
-      building_id,
-      student_ids,
     } = req.body;
-    const sender_role = req.user.role === "manager" ? "MANAGER" : "ADMIN"; // Assuming role is lowercase in token
+    const sender_role = req.user.role === "manager" ? "MANAGER" : "ADMIN";
     const sender_id = req.user.id;
 
     let attachment_path = null;
@@ -33,70 +32,101 @@ export const createNotification = async (req, res) => {
       sender_role,
       sender_id,
       target_scope,
+      target_value,
       type: type || "ANNOUNCEMENT",
     });
 
     // Handle recipients based on scope
     let recipients = [];
-    let recipientType = "STUDENT";
 
-    if (target_scope === "INDIVIDUAL") {
-      recipientType = "STUDENT";
-      let ids = [];
-      if (Array.isArray(student_ids)) ids = student_ids;
-      else if (typeof student_ids === "string") {
+    if (target_scope === "INDIVIDUAL" && target_value) {
+      // Get individual student IDs
+      let studentIds = [];
+      if (Array.isArray(target_value)) studentIds = target_value;
+      else if (typeof target_value === "string") {
         try {
-          const parsed = JSON.parse(student_ids);
-          if (Array.isArray(parsed)) ids = parsed;
-          else ids = [parsed];
+          const parsed = JSON.parse(target_value);
+          if (Array.isArray(parsed)) studentIds = parsed;
+          else studentIds = [parsed];
         } catch (e) {
-          // If not json, maybe comma separated
-          ids = student_ids.split(",").map((id) => id.trim());
+          studentIds = target_value.split(",").map((id) => id.trim());
         }
-      } else if (student_ids) {
-        ids = [student_ids];
+      } else if (target_value) {
+        studentIds = [target_value];
       }
 
-      recipients = ids.map((id) => [notificationId, id]);
-    } else if (target_scope === "ROOM") {
-      recipientType = "ROOM";
-      let ids = [];
-      if (Array.isArray(room_id)) ids = room_id;
-      else if (typeof room_id === "string") {
+      recipients = studentIds.map((id) => [notificationId, id, null, null]);
+    } else if (target_scope === "ROOM" && target_value) {
+      // Get all students in the room(s)
+      let roomIds = [];
+      if (Array.isArray(target_value)) roomIds = target_value;
+      else if (typeof target_value === "string") {
         try {
-          const parsed = JSON.parse(room_id);
-          if (Array.isArray(parsed)) ids = parsed;
-          else ids = [parsed];
+          const parsed = JSON.parse(target_value);
+          if (Array.isArray(parsed)) roomIds = parsed;
+          else roomIds = [parsed];
         } catch (e) {
-          ids = room_id.split(",").map((id) => id.trim());
+          roomIds = target_value.split(",").map((id) => id.trim());
         }
-      } else if (room_id) {
-        ids = [room_id];
+      } else if (target_value) {
+        roomIds = [target_value];
       }
 
-      recipients = ids.map((id) => [notificationId, id]);
-    } else if (target_scope === "BUILDING") {
-      recipientType = "BUILDING";
-      let ids = [];
-      if (Array.isArray(building_id)) ids = building_id;
-      else if (typeof building_id === "string") {
+      // Query all students in these rooms
+      const [students] = await db.query(
+        `SELECT id FROM students WHERE current_room_id IN (${roomIds.map(() => "?").join(",")})`,
+        roomIds
+      );
+
+      recipients = students.map((student) => [
+        notificationId,
+        student.id,
+        null,
+        null,
+      ]);
+    } else if (target_scope === "BUILDING" && target_value) {
+      // Get all students in the building(s)
+      let buildingIds = [];
+      if (Array.isArray(target_value)) buildingIds = target_value;
+      else if (typeof target_value === "string") {
         try {
-          const parsed = JSON.parse(building_id);
-          if (Array.isArray(parsed)) ids = parsed;
-          else ids = [parsed];
+          const parsed = JSON.parse(target_value);
+          if (Array.isArray(parsed)) buildingIds = parsed;
+          else buildingIds = [parsed];
         } catch (e) {
-          ids = building_id.split(",").map((id) => id.trim());
+          buildingIds = target_value.split(",").map((id) => id.trim());
         }
-      } else if (building_id) {
-        ids = [building_id];
+      } else if (target_value) {
+        buildingIds = [target_value];
       }
 
-      recipients = ids.map((id) => [notificationId, id]);
+      // Query all students in these buildings
+      const [students] = await db.query(
+        `SELECT s.id FROM students s 
+         JOIN rooms r ON s.current_room_id = r.id 
+         WHERE r.building_id IN (${buildingIds.map(() => "?").join(",")})`,
+        buildingIds
+      );
+
+      recipients = students.map((student) => [
+        notificationId,
+        student.id,
+        null,
+        null,
+      ]);
+    } else if (target_scope === "ALL") {
+      // Get all students
+      const [students] = await db.query("SELECT id FROM students");
+      recipients = students.map((student) => [
+        notificationId,
+        student.id,
+        null,
+        null,
+      ]);
     }
-    // If ALL, we don't add recipients
 
     if (recipients.length > 0) {
-      await Notification.addRecipients(recipients, recipientType);
+      await Notification.addRecipients(recipients);
     }
 
     res
@@ -141,12 +171,28 @@ export const markAsRead = async (req, res) => {
 export const getManagerSentNotifications = async (req, res) => {
   try {
     const managerId = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
     const notifications = await Notification.getSentByManager(managerId);
-    const notificationsWithUrl = notifications.map((n) => ({
+    
+    // Handle pagination in controller
+    const paginatedNotifications = notifications.slice(offset, offset + limit);
+    const total = notifications.length;
+    
+    const notificationsWithUrl = paginatedNotifications.map((n) => ({
       ...n,
       attachment_url: getFileUrl(req, n.attachment_path),
     }));
-    res.json(notificationsWithUrl);
+    
+    res.json({
+      data: notificationsWithUrl,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

@@ -80,5 +80,18 @@ export const isAuthenticated = () => {
   return !!localStorage.getItem('token');
 };
 
+// Change password
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+  try {
+    const response = await api.post('/change-password', {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Thay đổi mật khẩu thất bại');
+  }
+};
+
 export default api;
 

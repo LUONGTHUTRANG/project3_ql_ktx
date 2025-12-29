@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
@@ -12,6 +13,8 @@ interface ProfileProps {
 
 const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
   const { user } = useContext(AuthContext);
+  const { id: studentIdFromUrl } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [studentData, setStudentData] = useState<StudentProfile | null>(null);
   const [formData, setFormData] = useState({
     phone: '',
@@ -24,14 +27,18 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
   const [showRemoveRoomModal, setShowRemoveRoomModal] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
+  // Determine which student ID to use
+  // If URL has student ID (manager viewing), use that; otherwise use logged-in user's ID
+  const studentId = studentIdFromUrl || user?.id;
+
   // Load dữ liệu sinh viên từ API
   useEffect(() => {
     const loadStudentData = async () => {
-      if (!user?.id) return;
+      if (!studentId) return;
       
       try {
         setIsLoading(true);
-        const data = await getStudentById(user.id);
+        const data = await getStudentById(studentId);
         setStudentData(data);
         setFormData({
           phone: data.phone_number || '',
@@ -52,7 +59,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
     };
 
     loadStudentData();
-  }, [user?.id]);
+  }, [studentId]);
 
   if (!user) return null;
 
@@ -90,6 +97,15 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
       searchPlaceholder="Tìm kiếm..."
       headerTitle={isManager ? "Thông tin sinh viên" : "Thông tin cá nhân"}
     >
+      {isManager && <button
+            onClick={() => navigate('/manager/students')}
+            className="group flex items-center gap-2 mb-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+          >
+            <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
+              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+            </div>
+            <span className="text-sm font-bold leading-normal">Quay lại danh sách</span>
+          </button>}
       <div className="max-w-[1200px] mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
           <>
         {/* Profile Header Card */}

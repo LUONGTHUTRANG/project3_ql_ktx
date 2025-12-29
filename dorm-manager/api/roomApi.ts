@@ -68,3 +68,8 @@ export const deleteRoom = async (id: number | string) => {
     throw error;
   }
 };
+
+/**
+ * Alias for fetchRooms for consistency
+ */
+export const getAllRooms = fetchRooms;

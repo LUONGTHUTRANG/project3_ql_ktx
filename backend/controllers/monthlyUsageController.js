@@ -3,6 +3,22 @@ import Invoice from "../models/invoiceModel.js";
 import Semester from "../models/semesterModel.js";
 import Room from "../models/roomModel.js";
 
+export const getMonthlyUsageById = async (req, res) => {
+  try {
+    const { usage_id } = req.params;
+    if (!usage_id) {
+      return res.status(400).json({ message: "Usage ID is required" });
+    }
+    const usage = await MonthlyUsage.getById(usage_id);
+    if (!usage) {
+      return res.status(404).json({ message: "Monthly usage not found" });
+    }
+    res.json(usage);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const getMonthlyUsages = async (req, res) => {
   try {
     console.log("getMonthlyUsages called with query:", req.query);

@@ -5,7 +5,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import { NavItem } from '../types';
 
 export const STUDENT_NAV_ITEMS: NavItem[] = [
-  { label: 'Trang chủ', icon: 'home', link: '/student' },
+  { label: 'Trang chủ', icon: 'home', link: '/student/home' },
   { label: 'Thông tin cá nhân', icon: 'person', link: '/student/profile' },
   { label: 'Đăng ký nội trú', icon: 'assignment', link: '/student/register' },
   { label: 'Thông tin tòa nhà & phòng', icon: 'apartment', link: '/student/buildings' },
@@ -22,7 +22,7 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <DashboardLayout 
-      navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student'}))}
+      navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/home'}))}
       searchPlaceholder="Tìm kiếm dịch vụ, thông báo..."
     >
       <div className="mx-auto max-w-6xl flex flex-col gap-6">

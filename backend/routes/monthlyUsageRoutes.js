@@ -6,8 +6,9 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-router.get("/", monthlyUsageController.getMonthlyUsages);
 router.get("/prices", monthlyUsageController.getServicePrices);
+router.get("/:usage_id", monthlyUsageController.getMonthlyUsageById);
+router.get("/", monthlyUsageController.getMonthlyUsages);
 router.post("/", monthlyUsageController.recordUsage);
 
 export default router;

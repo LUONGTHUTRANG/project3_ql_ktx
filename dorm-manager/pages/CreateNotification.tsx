@@ -1,10 +1,14 @@
-import React, { useContext, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Form, Input, Select, Button } from 'antd';
+import React, { useContext, useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Form, Input, Select, Button, Spin, message } from 'antd';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import { SearchOutlined } from "@ant-design/icons";
+import { createNotification, getNotificationById } from '../api/notificationApi';
+import { fetchBuildings } from '../api/buildingApi';
+import { fetchRooms } from '../api/roomApi';
+import { getAllStudents } from '../api/studentApi';
 
 type NotificationFormValues = {
   title: string;
@@ -13,21 +17,108 @@ type NotificationFormValues = {
   content: string;
 };
 
-type UploadedFile = {
-  name: string;
-  size: string;
-  file: File;
-};
+interface CreateNotificationProps {
+  mode?: 'create' | 'edit';
+}
 
-const CreateNotification: React.FC = () => {
+const CreateNotification: React.FC<CreateNotificationProps> = ({ mode = 'create' }) => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const [form] = Form.useForm<NotificationFormValues>();
   const [audience, setAudience] = useState<string>('');
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [filePreview, setFilePreview] = useState<string>('');
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [fileType, setFileType] = useState<'image' | 'document' | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [targetOptions, setTargetOptions] = useState<any[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(mode === 'edit' ? true : false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
+
+  // Load notification data when in edit mode
+  useEffect(() => {
+    const loadNotificationData = async () => {
+      if (mode === 'edit' && id) {
+        try {
+          const notification = await getNotificationById(id);
+          
+          // Map target_scope back to audience
+          const audienceMap: Record<string, string> = {
+            'ALL': 'all',
+            'BUILDING': 'building',
+            'ROOM': 'room',
+            'INDIVIDUAL': 'student'
+          };
+          
+          const mappedAudience = audienceMap[notification.target_scope] || '';
+          setAudience(mappedAudience);
+          
+          form.setFieldsValue({
+            title: notification.title,
+            audience: mappedAudience,
+            target: notification.target_value,
+            content: notification.content
+          });
+        } catch (error: any) {
+          message.error('Lỗi khi tải thông báo');
+          console.error('Error loading notification:', error);
+        } finally {
+          setPageLoading(false);
+        }
+      }
+    };
+
+    loadNotificationData();
+  }, [mode, id, form]);
+
+  // Load target options based on audience
+  useEffect(() => {
+    const loadTargetOptions = async () => {
+      if (!audience || audience === 'all') {
+        setTargetOptions([]);
+        return;
+      }
+
+      setOptionsLoading(true);
+      try {
+        if (audience === 'building') {
+          const response = await fetchBuildings();
+          const buildings = Array.isArray(response) ? response : response.data || [];
+          const options = buildings.map((building: any) => ({
+            value: building.id,
+            label: building.name
+          }));
+          setTargetOptions(options);
+        } else if (audience === 'room') {
+          const response = await fetchRooms();
+          const rooms = Array.isArray(response) ? response : response.data || [];
+          const options = rooms.map((room: any) => ({
+            value: room.id,
+            label: room.room_number
+          }));
+          setTargetOptions(options);
+        } else if (audience === 'student') {
+          const response = await getAllStudents(1, 1000);
+          const students = Array.isArray(response) ? response : response.data || [];
+          const options = students.map((student: any) => ({
+            value: student.id,
+            label: `${student.full_name} - MSSV: ${student.mssv}`
+          }));
+          setTargetOptions(options);
+        }
+      } catch (error: any) {
+        console.error('Error loading target options:', error);
+        message.error('Không thể tải danh sách đối tượng');
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+
+    loadTargetOptions();
+  }, [audience]);
 
   const isAllStudents = audience === 'all';
   const isBuildingScope = audience === 'building';
@@ -35,27 +126,7 @@ const CreateNotification: React.FC = () => {
   const isStudentScope = audience === 'student';
 
   const getTargetOptions = () => {
-    if (isBuildingScope) {
-      return [
-        { value: 'A1', label: 'Tòa A1' },
-        { value: 'A2', label: 'Tòa A2' },
-        { value: 'B1', label: 'Tòa B1' },
-      ];
-    } else if (isRoomScope) {
-      return [
-        { value: 'A101', label: 'Phòng A101' },
-        { value: 'A102', label: 'Phòng A102' },
-        { value: 'A201', label: 'Phòng A201' },
-        { value: 'B101', label: 'Phòng B101' },
-      ];
-    } else if (isStudentScope) {
-      return [
-        { value: 'student1', label: 'Nguyễn Văn A - MSSV: 123456' },
-        { value: 'student2', label: 'Trần Thị B - MSSV: 123457' },
-        { value: 'student3', label: 'Lê Văn C - MSSV: 123458' },
-      ];
-    }
-    return [];
+    return targetOptions;
   };
 
   const handleAudienceChange = (value: string) => {
@@ -72,92 +143,112 @@ const CreateNotification: React.FC = () => {
     return Math.round((bytes / Math.pow(k, i)) * 10) / 10 + ' ' + sizes[i];
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const newFiles: UploadedFile[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          alert(`Tệp ${file.name} vượt quá 10MB, vui lòng chọn tệp khác`);
-          continue;
-        }
-        newFiles.push({
-          name: file.name,
-          size: formatFileSize(file.size),
-          file: file,
-        });
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        message.error(`Tệp ${file.name} vượt quá 10MB, vui lòng chọn tệp khác`);
+        return;
       }
-      setUploadedFiles([...uploadedFiles, ...newFiles]);
+      
+      // Determine file type
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const isImageFile = ['png', 'jpg', 'jpeg'].includes(extension || '');
+      const isDocumentFile = ['pdf', 'doc', 'docx'].includes(extension || '');
+      
+      if (isImageFile) {
+        setFileType('image');
+        setFilePreview(URL.createObjectURL(file));
+      } else if (isDocumentFile) {
+        setFileType('document');
+        setFilePreview(file.name); // Store filename for document preview
+      }
+      
+      setFileToUpload(file);
     }
-    // Reset input so same file can be selected again
+    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const handleDeleteFile = (index: number) => {
-    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
-  };
-
-  const handleDropZone = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    const files = event.dataTransfer.files;
-    if (files) {
-      const newFiles: UploadedFile[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          alert(`Tệp ${file.name} vượt quá 10MB, vui lòng chọn tệp khác`);
-          continue;
-        }
-        newFiles.push({
-          name: file.name,
-          size: formatFileSize(file.size),
-          file: file,
-        });
-      }
-      setUploadedFiles([...uploadedFiles, ...newFiles]);
+  const removeFile = () => {
+    if (filePreview && fileType === 'image') {
+      URL.revokeObjectURL(filePreview);
     }
+    setFilePreview('');
+    setFileToUpload(null);
+    setFileType(null);
   };
 
-  const handleDropZoneClick = () => {
+  const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
 
   const handleSubmit = async (values: NotificationFormValues) => {
-    console.log('Form values:', values);
-    // Simulate API call
-    alert('Thông báo đã được gửi thành công!');
-    navigate('/notifications');
+    try {
+      setIsLoading(true);
+      
+      // Map audience to target_scope
+      const targetScopeMap: Record<string, string> = {
+        'all': 'ALL',
+        'building': 'BUILDING',
+        'room': 'ROOM',
+        'student': 'INDIVIDUAL'
+      };
+      
+      const notificationData = {
+        title: values.title,
+        content: values.content,
+        target_scope: targetScopeMap[values.audience] || 'ALL',
+        target_value: values.audience === 'all' ? null : values.target,
+        type: 'ANNOUNCEMENT',
+      };
+      
+      const response = await createNotification(notificationData, fileToUpload);
+      message.success('Thông báo đã được gửi thành công!');
+      navigate('/manager/notifications');
+    } catch (error: any) {
+      console.error('Error creating notification:', error);
+      message.error(error.response?.data?.message || 'Lỗi khi tạo thông báo. Vui lòng thử lại.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <DashboardLayout 
       navItems={MANAGER_NAV_ITEMS}
       searchPlaceholder="Tìm sinh viên, phòng tại Tòa A1..."
-      headerTitle="Tạo thông báo"
+      headerTitle={mode === 'edit' ? 'Chỉnh sửa thông báo' : 'Tạo thông báo'}
       sidebarTitle="A1 Manager"
     >
+      {pageLoading ? (
+        <div className="flex items-center justify-center h-96">
+          <Spin tip="Đang tải dữ liệu..." />
+        </div>
+      ) : (
       <div className="flex flex-col w-full mx-auto px-2 md:px-0">
         
         {/* Header Section */}
         <div className="flex flex-col gap-2 mb-8">
           <div className="flex items-center gap-2 mb-2">
             <button 
-              onClick={() => navigate('/notifications')}
+              onClick={() => navigate(mode === 'edit' ? `/manager/notifications` : '/manager/notifications')}
               className="flex items-center gap-1 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium"
             >
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
               Quay lại danh sách
             </button>
           </div>
-          <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">Tạo Thông báo Mới</h1>
-          <p className="text-text-secondary dark:text-gray-400 text-base font-normal leading-normal">Soạn thảo nội dung và gửi thông báo đến sinh viên, các tòa nhà hoặc phòng cụ thể.</p>
+          <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">
+            {mode === 'edit' ? 'Chỉnh sửa Thông báo' : 'Tạo Thông báo Mới'}
+          </h1>
+          <p className="text-text-secondary dark:text-gray-400 text-base font-normal leading-normal">
+            {mode === 'edit' ? 'Chỉnh sửa nội dung thông báo đã tạo.' : 'Soạn thảo nội dung và gửi thông báo đến sinh viên, các tòa nhà hoặc phòng cụ thể.'}
+          </p>
         </div>
 
         {/* Form Container */}
@@ -223,10 +314,11 @@ const CreateNotification: React.FC = () => {
                 ]}
               >
                 <Select
-                  placeholder={isAllStudents ? '--- Không cần chọn ---' : '--- Chọn đối tượng cụ thể ---'}
+                  placeholder={isAllStudents ? '--- Không cần chọn ---' : optionsLoading ? 'Đang tải...' : '--- Chọn đối tượng cụ thể ---'}
                   options={getTargetOptions()}
                   className='h-11 mb-1'
-                  disabled={isAllStudents}
+                  disabled={isAllStudents || optionsLoading}
+                  loading={optionsLoading}
                 />
               </Form.Item>
             </div>
@@ -249,77 +341,105 @@ const CreateNotification: React.FC = () => {
               />
             </Form.Item>
 
-            {/* File Upload (Mock) */}
-            <div className="flex flex-col gap-2 mb-6">
-              <label className="text-sm font-bold text-text-main dark:text-white">Đính kèm tệp/hình ảnh</label>
-              <input 
-                ref={fileInputRef}
-                type="file" 
-                multiple 
-                onChange={handleFileSelect}
-                className="!hidden"
-                accept=".png,.jpg,.jpeg,.pdf"
-              />
-              <div 
-                onClick={handleDropZoneClick}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDropZone}
-                className="mt-1 flex justify-center rounded-xl border-2 border-dashed border-border-color dark:border-gray-700 px-6 py-8 hover:bg-background-light dark:hover:bg-gray-800/30 hover:border-primary/50 transition-all cursor-pointer group"
-              >
-                <div className="text-center">
-                  <span className="material-symbols-outlined text-5xl text-[#94a3b8] dark:text-gray-600 group-hover:text-primary transition-colors mb-4">cloud_upload</span>
-                  <div className="flex flex-col sm:flex-row items-center justify-center text-sm leading-6 text-text-secondary dark:text-gray-400 gap-1">
-                    <span className="font-semibold text-primary hover:underline">Nhấn để tải lên</span>
-                    <span>hoặc kéo thả tệp vào đây</span>
-                  </div>
-                  <p className="text-xs leading-5 text-[#94a3b8] dark:text-gray-500 mt-2">PNG, JPG, PDF (Tối đa 10MB)</p>
-                </div>
-              </div>
+            {/* File Upload (Similar to CreateSupportRequest) */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-bold text-text-main dark:text-white">Đính kèm tệp/hình ảnh (nếu có)</label>
               
-              {/* Uploaded Files List */}
-              {uploadedFiles.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-background-light dark:bg-gray-800 border border-border-color dark:border-gray-700">
-                      <div className="flex items-center gap-3">
-                        <div className="size-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
-                          <span className="material-symbols-outlined">
-                            {file.name.toLowerCase().endsWith('.pdf') ? 'description' : 'image'}
-                          </span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-text-main dark:text-white line-clamp-1">{file.name}</span>
-                          <span className="text-xs text-text-secondary dark:text-gray-400">{file.size}</span>
-                        </div>
+              {fileType === 'document' ? (
+                // Full-width document preview
+                <div className="relative w-full">
+                  <div className="flex items-center justify-between px-4 py-2 rounded-lg bg-background-light dark:bg-gray-800 border border-border-color dark:border-gray-700">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="size-12 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                        <span className="material-symbols-outlined text-2xl">
+                          {filePreview.endsWith('.pdf') ? 'picture_as_pdf' : 'description'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-sm font-medium text-text-main dark:text-white truncate">{filePreview}</span>
+                        <span className="text-xs text-text-secondary dark:text-gray-400 mt-0.5">
+                          {fileToUpload ? formatFileSize(fileToUpload.size) : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={removeFile}
+                      className="ml-3 size-8 flex items-center justify-center text-text-secondary hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // Horizontal layout for image or empty state
+                <div className="flex flex-wrap gap-4 items-start w-full">
+                  {/* Image preview */}
+                  {fileType === 'image' && filePreview && (
+                    <div className="relative group shrink-0">
+                      <div className="size-24 md:size-32">
+                        <img src={filePreview} className="w-full h-full object-cover rounded-lg border border-border-color dark:border-gray-700" alt="File preview" />
                       </div>
                       <button 
-                        type="button" 
-                        onClick={() => handleDeleteFile(index)}
-                        className="size-8 flex items-center justify-center text-text-secondary hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+                        type="button"
+                        onClick={removeFile}
+                        className="absolute -top-2 -right-2 size-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors z-10"
                       >
-                        <span className="material-symbols-outlined text-[20px]">close</span>
+                        <span className="material-symbols-outlined text-[16px]">close</span>
                       </button>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Upload Box appears when no file */}
+                  {!filePreview && (
+                    <>
+                      <input 
+                        ref={fileInputRef}
+                        type="file" 
+                        className="!hidden" 
+                        accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                        name="attachment"
+                      />
+                      <div 
+                        onClick={triggerFileInput}
+                        className="size-24 md:size-32 rounded-xl border-2 border-dashed border-border-color dark:border-gray-700 flex flex-col items-center justify-center hover:bg-background-light dark:hover:bg-gray-800/30 hover:border-primary/50 transition-all cursor-pointer group shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-3xl text-[#94a3b8] dark:text-gray-600 group-hover:text-primary transition-colors">cloud_upload</span>
+                        <span className="text-[10px] font-bold text-text-secondary dark:text-gray-400 mt-1 uppercase tracking-tighter">Tải lên</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
+              <p className="text-[10px] text-[#94a3b8] dark:text-gray-500 mt-1 uppercase tracking-wider">PNG, JPG, PDF, DOC (Tối đa 10MB)</p>
             </div>
           </Form>
 
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 px-6 md:px-8 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-border-color dark:border-gray-800">
             <button 
-              onClick={() => navigate('/notifications')}
+              onClick={() => navigate(mode === 'edit' ? `/manager/notifications` : '/manager/notifications')}
               className="h-10 px-6 rounded-lg border border-border-color dark:border-gray-600 text-text-main dark:text-white font-bold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               Hủy
             </button>
             <button 
               onClick={() => form.submit()}
-              className="h-10 px-6 rounded-lg bg-primary text-white font-bold hover:bg-primary-hover shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+              disabled={isLoading}
+              className="h-10 px-6 rounded-lg bg-primary text-white font-bold hover:bg-primary-hover shadow-sm hover:shadow-md transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="material-symbols-outlined text-[20px]">send</span>
-              Gửi thông báo
+              {isLoading ? (
+                <>
+                  <Spin size="small" style={{ color: 'white' }} />
+                  Đang {mode === 'edit' ? 'cập nhật' : 'gửi'}...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">{mode === 'edit' ? 'save' : 'send'}</span>
+                  {mode === 'edit' ? 'Cập nhật thông báo' : 'Gửi thông báo'}
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -327,6 +447,7 @@ const CreateNotification: React.FC = () => {
         {/* Extra spacing at the bottom */}
         <div className="h-12"></div>
       </div>
+      )}
     </DashboardLayout>
   );
 };

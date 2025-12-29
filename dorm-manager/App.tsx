@@ -10,7 +10,6 @@ import CreateNotification from './pages/CreateNotification';
 import SupportRequests from './pages/SupportRequests';
 import CreateSupportRequest from './pages/CreateSupportRequest';
 import SupportRequestDetail from './pages/SupportRequestDetail';
-import EditSupportRequest from './pages/EditSupportRequest';
 import BuildingList from './pages/BuildingList';
 import BuildingDetail from './pages/BuildingDetail';
 import StudentRegistration from './pages/StudentRegistration';
@@ -105,10 +104,10 @@ const AppContent: React.FC = () => {
         </div>
       ) : (
         <Routes>
-          <Route path="/login" element={user ? <Navigate to={user.role === UserRole.STUDENT ? "/student" : "/manager"} replace /> : <Login />} />
+          <Route path="/login" element={user ? <Navigate to={user.role === UserRole.STUDENT ? "/student/home" : "/manager/home"} replace /> : <Login />} />
           
           <Route 
-            path="/student" 
+            path="/student/home" 
             element={
               user && user.role === UserRole.STUDENT 
                 ? <StudentDashboard /> 
@@ -183,7 +182,7 @@ const AppContent: React.FC = () => {
           path="/student/requests/:id/edit" 
           element={
             user && user.role === UserRole.STUDENT 
-              ? <EditSupportRequest /> 
+              ? <CreateSupportRequest /> 
               : <Navigate to="/login" replace />
           } 
         />
@@ -216,7 +215,7 @@ const AppContent: React.FC = () => {
         />
         
         <Route 
-          path="/manager" 
+          path="/manager/home" 
           element={
             user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
               ? <ManagerDashboard /> 
@@ -252,7 +251,7 @@ const AppContent: React.FC = () => {
         />
 
         <Route 
-          path="/manager/students/:mssv" 
+          path="/manager/students/:id" 
           element={
             user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
               ? <Profile isManager={true} /> 
@@ -292,6 +291,24 @@ const AppContent: React.FC = () => {
           element={
             user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
               ? <NotificationManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/manager/notifications/:id" 
+          element={
+            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+              ? <NotificationDetail isManager={true} /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/manager/notifications/:id/edit" 
+          element={
+            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+              ? <CreateNotification mode="edit" /> 
               : <Navigate to="/login" replace />
           } 
         />

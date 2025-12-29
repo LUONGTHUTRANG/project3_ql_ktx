@@ -1,13 +1,13 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Input, Select } from 'antd';
+import { Input, Select, Spin } from 'antd';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { UserRole } from '../types';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import Pagination from '../components/Pagination';
-
+import { getMyNotifications, getAllNotifications } from '../api';
 import { SearchOutlined } from "@ant-design/icons";
 
 const NotificationList: React.FC = () => {
@@ -15,30 +15,94 @@ const NotificationList: React.FC = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [filterType, setFilterType] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   if (!user) return null;
 
   const navItems = user.role === UserRole.STUDENT ? STUDENT_NAV_ITEMS : MANAGER_NAV_ITEMS;
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
 
-  // Mock data for 25 items
-  const allNotifications = Array.from({ length: 25 }, (_, i) => ({
-    id: (i + 1).toString(),
-    title: i % 2 === 0 ? `Thông báo đóng tiền điện tháng ${10 - (i % 10)}/2023` : `Lịch bảo trì thang máy khu ${String.fromCharCode(65 + (i % 4))}`,
-    description: i % 2 === 0 
-      ? `Vui lòng thanh toán số tiền 350.000 VNĐ trước ngày 15/${10 - (i % 10)}/2023...` 
-      : `Bảo trì thang máy từ 08:00 đến 11:00. Vui lòng sử dụng cầu thang bộ.`,
-    time: `${i + 1} giờ trước`,
-    isRead: i > 2,
-    type: i % 2 === 0 ? 'payments' : 'home_repair_service',
-    typeColor: i % 2 === 0 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400',
-    typeBg: i % 2 === 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-amber-50 dark:bg-amber-900/20'
-  }));
+  // Fetch notifications
+  useEffect(() => {
+    const loadNotifications = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // const fetchFunc = isManager ? getAllNotifications : getMyNotifications;
+        const response = await getMyNotifications(currentPage, itemsPerPage, {
+          type: filterType || undefined,
+        });
+        
+        const data = response.data || [];
+        setNotifications(data);
+        setTotalItems(response.meta?.total || 0);
+        setTotalPages(response.meta?.totalPages || 0);
+      } catch (err: any) {
+        console.error('Failed to load notifications:', err);
+        setError(err.response?.data?.error || err.message || 'Lỗi khi tải thông báo');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const totalItems = allNotifications.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  
-  const currentItems = allNotifications.slice(
+    loadNotifications();
+  }, [user, currentPage, itemsPerPage, filterType, isManager]);
+
+  const getNotificationTypeInfo = (type: string) => {
+    let typeIcon = 'notifications';
+    let typeColor = 'text-primary dark:text-primary';
+    let typeBg = 'bg-primary/10 dark:bg-primary/20';
+
+    if (type === 'ANNOUNCEMENT') {
+      typeIcon = 'notifications_active';
+      typeColor = 'text-blue-600 dark:text-blue-400';
+      typeBg = 'bg-blue-50 dark:bg-blue-900/20';
+    } else if (type === 'INVOICE' || type === 'PAYMENT') {
+      typeIcon = 'payments';
+      typeColor = 'text-red-600 dark:text-red-400';
+      typeBg = 'bg-red-50 dark:bg-red-900/20';
+    } else if (type === 'MAINTENANCE') {
+      typeIcon = 'home_repair_service';
+      typeColor = 'text-amber-600 dark:text-amber-400';
+      typeBg = 'bg-amber-50 dark:bg-amber-900/20';
+    } else if (type === 'ALERT') {
+      typeIcon = 'warning';
+      typeColor = 'text-orange-600 dark:text-orange-400';
+      typeBg = 'bg-orange-50 dark:bg-orange-900/20';
+    }
+
+    return { typeIcon, typeColor, typeBg };
+  };
+
+  const formatTime = (createdAt: string) => {
+    if (!createdAt) return '-';
+    const date = new Date(createdAt);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Vừa xong';
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    return date.toLocaleDateString('vi-VN');
+  };
+
+  const filteredNotifications = notifications.filter(notif => 
+    notif.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const currentItems = filteredNotifications.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -75,47 +139,66 @@ const NotificationList: React.FC = () => {
               placeholder="Tìm kiếm phòng, tòa nhà..."
               prefix={<SearchOutlined />}
               className={`w-full h-11 gap-3 pl-1 col-span-8`}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
             />
             
-            {/* <div> */}
-              <Select 
-                className="w-full h-11 col-span-4"
-                defaultValue=""
-                options={[
-                  { value: '', label: 'Tất cả loại tin' },
-                  { value: 'payments', label: 'Đóng phí' },
-                  { value: 'maintenance', label: 'Bảo trì' },
-                ]}
-                suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">filter_list</span>}
-              />
-            {/* </div> */}
+            <Select 
+              className="w-full h-11 col-span-4"
+              value={filterType}
+              onChange={(val) => {
+                setFilterType(val);
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: '', label: 'Tất cả loại tin' },
+                { value: 'ANNOUNCEMENT', label: 'Thông báo' },
+                { value: 'PAYMENT', label: 'Đóng phí' },
+                { value: 'MAINTENANCE', label: 'Bảo trì' },
+                { value: 'ALERT', label: 'Cảnh báo' },
+              ]}
+              suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">filter_list</span>}
+            />
           </div>
         </div>
 
         <div className="flex flex-col gap-3 flex-1">
-          {currentItems.map((item) => (
-            <div 
-              key={item.id} 
-              onClick={() => navigate(`/notifications/${item.id}`)}
-              className={`group flex flex-col md:flex-row gap-4 bg-white dark:bg-surface-dark p-4 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${item.isRead ? 'border-transparent' : 'border-primary'}`}
-            >
-              <div className="flex flex-1 gap-4 items-start">
-                <div className={`flex items-center justify-center rounded-full shrink-0 size-12 ${item.typeBg} ${item.typeColor}`}>
-                  <span className="material-symbols-outlined text-[24px]">{item.type}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <h3 className={`text-base leading-tight ${item.isRead ? 'font-medium text-text-main dark:text-gray-200' : 'font-bold text-text-main dark:text-white'}`}>{item.title}</h3>
-                  <p className="text-text-main dark:text-gray-300 text-sm leading-normal line-clamp-1">{item.description}</p>
-                  <p className="text-text-secondary dark:text-gray-500 text-xs font-medium mt-1">{item.time}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                {!item.isRead && <div className="size-2.5 rounded-full bg-primary" title="Chưa đọc"></div>}
-              </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Spin tip="Đang tải thông báo..." />
             </div>
-          ))}
-          {currentItems.length === 0 && (
+          ) : error ? (
+            <div className="py-20 text-center text-red-600">{error}</div>
+          ) : currentItems.length === 0 ? (
             <div className="py-20 text-center text-text-secondary">Không có thông báo nào.</div>
+          ) : (
+            currentItems.map((item) => {
+              const typeInfo = getNotificationTypeInfo(item.type);
+              return (
+                <div 
+                  key={item.id} 
+                  onClick={() => navigate(`/notifications/${item.id}`)}
+                  className={`group flex flex-col md:flex-row gap-4 bg-white dark:bg-surface-dark p-4 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${item.is_read ? 'border-transparent' : 'border-primary'}`}
+                >
+                  <div className="flex flex-1 gap-4 items-start">
+                    <div className={`flex items-center justify-center rounded-full shrink-0 size-12 ${typeInfo.typeBg} ${typeInfo.typeColor}`}>
+                      <span className="material-symbols-outlined text-[24px]">{typeInfo.typeIcon}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <h3 className={`text-base leading-tight ${item.is_read ? 'font-medium text-text-main dark:text-gray-200' : 'font-bold text-text-main dark:text-white'}`}>{item.title}</h3>
+                      <p className="text-text-main dark:text-gray-300 text-sm leading-normal line-clamp-1">{item.content}</p>
+                      <p className="text-text-secondary dark:text-gray-500 text-xs font-medium mt-1">{formatTime(item.created_at)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    {!item.is_read && <div className="size-2.5 rounded-full bg-primary" title="Chưa đọc"></div>}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 

@@ -1,16 +1,22 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Modal } from 'antd';
+import { Modal, Spin, message } from 'antd';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import Pagination from '../components/Pagination';
+import { getNotificationsByManager, deleteNotification } from '../api/notificationApi';
 
 type NotificationItem = {
-  id: string;
+  id: number;
   title: string;
-  recipient: string;
-  createdDate: string;
+  content?: string;
+  target_scope?: string;
+  created_at: string;
+  sender_id?: number;
+  sender_role?: string;
+  type?: string;
+  attachment_path?: string;
 };
 
 const NotificationManagement: React.FC = () => {
@@ -20,88 +26,51 @@ const NotificationManagement: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
 
   if (!user) return null;
 
-  // Mock data for notifications created by manager
-  const allNotifications: NotificationItem[] = [
-    {
-      id: '1',
-      title: 'Thông báo đóng tiền điện tháng 10',
-      recipient: 'Toàn thể sinh viên Khu A',
-      createdDate: '20/10/2023',
-    },
-    {
-      id: '2',
-      title: 'Lịch bảo trì thang máy',
-      recipient: 'Tòa B',
-      createdDate: '18/10/2023',
-    },
-    {
-      id: '3',
-      title: 'Thông báo tăng giá nước sinh hoạt',
-      recipient: 'Toàn thể sinh viên',
-      createdDate: '15/10/2023',
-    },
-    {
-      id: '4',
-      title: 'Chương trình vệ sinh môi trường chung',
-      recipient: 'Toàn thể sinh viên Khu A, Khu B',
-      createdDate: '12/10/2023',
-    },
-    {
-      id: '5',
-      title: 'Đăng ký phòng ở cho năm học mới',
-      recipient: 'Sinh viên năm 2',
-      createdDate: '10/10/2023',
-    },
-    {
-      id: '6',
-      title: 'Thông báo bảo trì đường ống nước',
-      recipient: 'Tòa A1, A2',
-      createdDate: '08/10/2023',
-    },
-    {
-      id: '7',
-      title: 'Quy định mới về giờ yên tĩnh',
-      recipient: 'Toàn thể sinh viên',
-      createdDate: '05/10/2023',
-    },
-    {
-      id: '8',
-      title: 'Lịch tổng vệ sinh ký túc xá',
-      recipient: 'Toàn thể sinh viên',
-      createdDate: '01/10/2023',
-    },
-    {
-      id: '9',
-      title: 'Thông báo cắt điện bảo trì',
-      recipient: 'Tòa C',
-      createdDate: '28/09/2023',
-    },
-    {
-      id: '10',
-      title: 'Kế hoạch sửa chữa các phòng',
-      recipient: 'Sinh viên Tòa A',
-      createdDate: '25/09/2023',
-    },
-  ];
+  // Map target_scope to Vietnamese labels
+  const getTargetScopeLabel = (scope?: string): string => {
+    const scopeMap: Record<string, string> = {
+      'ALL': 'Tất cả sinh viên',
+      'BUILDING': 'Tòa nhà',
+      'ROOM': 'Phòng',
+      'INDIVIDUAL': 'Sinh viên'
+    };
+    return scopeMap[scope || ''] || scope || 'N/A';
+  };
 
-  const totalItems = allNotifications.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  // Fetch notifications created by manager
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getNotificationsByManager(currentPage, itemsPerPage);
+        setNotifications(response.data || []);
+        setTotalItems(response.total || 0);
+      } catch (error: any) {
+        message.error('Lỗi khi tải danh sách thông báo');
+        console.error('Error fetching notifications:', error);
+        setNotifications([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const currentItems = allNotifications.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+    if (user?.id) {
+      fetchNotifications();
+    }
+  }, [user?.id, currentPage, itemsPerPage]);
 
   const handleView = (notification: NotificationItem) => {
-    navigate(`/notifications/${notification.id}`);
+    navigate(`/manager/notifications/${notification.id}`);
   };
 
   const handleEdit = (notification: NotificationItem) => {
-    alert(`Chỉnh sửa thông báo: ${notification.title}`);
-    // navigate(`/notifications/${notification.id}/edit`);
+    navigate(`/manager/notifications/${notification.id}/edit`);
   };
 
   const handleDeleteClick = (notification: NotificationItem) => {
@@ -109,13 +78,25 @@ const NotificationManagement: React.FC = () => {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (selectedNotification) {
-      alert(`Đã xóa thông báo: ${selectedNotification.title}`);
-      setDeleteModalOpen(false);
-      setSelectedNotification(null);
+      try {
+        await deleteNotification(selectedNotification.id);
+        message.success('Đã xóa thông báo thành công');
+        setDeleteModalOpen(false);
+        setSelectedNotification(null);
+        // Refresh notifications
+        const response = await getNotificationsByManager(currentPage, itemsPerPage);
+        setNotifications(response.data || []);
+        setTotalItems(response.total || 0);
+      } catch (error: any) {
+        message.error('Lỗi khi xóa thông báo');
+        console.error('Error deleting notification:', error);
+      }
     }
   };
+
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   return (
     <DashboardLayout
@@ -174,58 +155,72 @@ const NotificationManagement: React.FC = () => {
 
               {/* Table Body */}
               <tbody>
-                {currentItems.map((item, index) => (
-                  <tr
-                    key={item.id}
-                    className="border-b border-border-color dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
-                  >
-                    <td className="px-6 py-2">
-                      <span className="text-sm font-medium text-text-main dark:text-gray-300">
-                        {(currentPage - 1) * itemsPerPage + index + 1}
-                      </span>
-                    </td>
-                    <td className="px-6 py-2">
-                      <span className="text-sm font-medium text-text-main dark:text-gray-200 line-clamp-2">
-                        {item.title}
-                      </span>
-                    </td>
-                    <td className="px-6 py-2">
-                      <span className="text-sm text-text-secondary dark:text-gray-400 line-clamp-1">
-                        {item.recipient}
-                      </span>
-                    </td>
-                    <td className="px-6 py-2">
-                      <span className="text-sm text-text-secondary dark:text-gray-400">
-                        {item.createdDate}
-                      </span>
-                    </td>
-                    <td className="px-6 py-2">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleView(item)}
-                          className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                          title="Xem"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">visibility</span>
-                        </button>
-                        <button
-                          onClick={() => handleEdit(item)}
-                          className="p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(item)}
-                          className="p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                          title="Xóa"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
-                      </div>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center">
+                      <Spin tip="Đang tải dữ liệu..." />
                     </td>
                   </tr>
-                ))}
+                ) : notifications.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center">
+                      <span className="text-text-secondary dark:text-gray-400">Không có thông báo nào</span>
+                    </td>
+                  </tr>
+                ) : (
+                  notifications.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className="border-b border-border-color dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                    >
+                      <td className="px-6 py-2">
+                        <span className="text-sm font-medium text-text-main dark:text-gray-300">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </span>
+                      </td>
+                      <td className="px-6 py-2">
+                        <span className="text-sm font-medium text-text-main dark:text-gray-200 line-clamp-2">
+                          {item.title}
+                        </span>
+                      </td>
+                      <td className="px-6 py-2">
+                        <span className="text-sm text-text-secondary dark:text-gray-400 line-clamp-1">
+                          {getTargetScopeLabel(item.target_scope)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-2">
+                        <span className="text-sm text-text-secondary dark:text-gray-400">
+                          {new Date(item.created_at).toLocaleDateString('vi-VN')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-2">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleView(item)}
+                            className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            title="Xem"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">visibility</span>
+                          </button>
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                            title="Chỉnh sửa"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(item)}
+                            className="p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            title="Xóa"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -274,12 +269,12 @@ const NotificationManagement: React.FC = () => {
                   {selectedNotification.title}
                 </p>
                 <p className="text-xs text-text-secondary dark:text-gray-400 mt-1">
-                  Ngày tạo: {selectedNotification.createdDate}
+                  Ngày tạo: {new Date(selectedNotification.created_at).toLocaleDateString('vi-VN')}
                 </p>
               </div>
             )}
             <p className="text-sm text-red-600 dark:text-red-400 mt-3">
-              ⚠️ Hành động này không thể hoàn tác!
+              Hành động này không thể hoàn tác!
             </p>
           </div>
         </Modal>

@@ -1,13 +1,15 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Select, Modal, Form, Input } from 'antd';
+import { Select, Modal, Form, Input, App } from 'antd';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import { UserRole } from '../types';
+import { changePassword } from '../api/auth';
 
 const Settings: React.FC = () => {
+  const { notification } = App.useApp();
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState({
@@ -47,18 +49,30 @@ const Settings: React.FC = () => {
     try {
       // Validate new password matches confirmation
       if (values.newPassword !== values.confirmPassword) {
-        alert('Mật khẩu xác nhận không khớp!');
+        notification.error({
+          message: 'Lỗi xác thực',
+          description: 'Mật khẩu xác nhận không khớp!',
+          duration: 4.5,
+        });
         return;
       }
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call API to change password
+      await changePassword(values.currentPassword, values.newPassword);
       
-      alert('Thay đổi mật khẩu thành công!');
+      notification.success({
+        message: 'Thành công',
+        description: 'Mật khẩu của bạn đã được thay đổi thành công!',
+        duration: 4.5,
+      });
       setChangePasswordModal(false);
       passwordForm.resetFields();
-    } catch (error) {
-      alert('Lỗi khi thay đổi mật khẩu!');
+    } catch (error: any) {
+      notification.error({
+        message: 'Đổi mật khẩu thất bại',
+        description: error.message || 'Lỗi khi thay đổi mật khẩu!',
+        duration: 4.5,
+      });
     } finally {
       setIsLoadingPassword(false);
     }

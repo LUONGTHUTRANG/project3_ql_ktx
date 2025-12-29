@@ -1,53 +1,171 @@
 
-import React, { useContext, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useContext, useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../App';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import { createSupportRequest, getSupportRequestById, updateSupportRequestStatus } from '../api';
+import { message, Spin } from 'antd';
 
 const CreateSupportRequest: React.FC = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Determine if we're in edit mode
+  const isEditMode = !!id;
 
   // States
-  const [selectedCategory, setSelectedCategory] = useState<string>('elec');
+  const [selectedCategory, setSelectedCategory] = useState<string>('COMPLAINT');
   const [images, setImages] = useState<string[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(isEditMode);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      // Fix: Explicitly type 'file' as 'File' to resolve type error with URL.createObjectURL
-      const newImages = Array.from(files).map((file: File) => URL.createObjectURL(file));
+    const fileList = e.target.files;
+    if (fileList) {
+      const newFiles = Array.from(fileList);
+      const newImages = newFiles.map((file: File) => URL.createObjectURL(file));
       // Limit to 3 images as per requirement
-      setImages(prev => [...prev, ...newImages].slice(0, 3));
+      const combinedFiles = [...files, ...newFiles].slice(0, 3);
+      const combinedImages = [...images, ...newImages].slice(0, 3);
+      setFiles(combinedFiles);
+      setImages(combinedImages);
     }
   };
 
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
+    setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
 
+  // Load request data when in edit mode
+  useEffect(() => {
+    if (!isEditMode || !id) return;
+    
+    const loadRequest = async () => {
+      try {
+        setLoading(true);
+        const response = await getSupportRequestById(id);
+        const data = response.data || response;
+        
+        setSelectedCategory(data.type || 'COMPLAINT');
+        setTitle(data.title || '');
+        setDescription(data.content || '');
+        
+        // Load attachment if exists
+        if (data.attachment_url) {
+          setImages([data.attachment_url]);
+        }
+      } catch (err: any) {
+        console.error('Failed to load support request:', err);
+        message.error('Lỗi khi tải yêu cầu hỗ trợ');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadRequest();
+  }, [isEditMode, id]);
+
+  const handleSubmit = async () => {
+    // Validation
+    if (!title.trim()) {
+      message.error('Vui lòng nhập tiêu đề yêu cầu');
+      return;
+    }
+    if (!description.trim()) {
+      message.error('Vui lòng nhập mô tả chi tiết');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const payload = {
+        type: selectedCategory,
+        title: title.trim(),
+        content: description.trim(),
+      };
+
+      // Upload with first file if available
+      const fileToUpload = files.length > 0 ? files[0] : undefined;
+      
+      if (isEditMode && id) {
+        // Update existing request
+        await updateSupportRequestStatus(id, 'pending');
+        message.success('Yêu cầu hỗ trợ đã được cập nhật thành công!');
+      } else {
+        // Create new request
+        const response = await createSupportRequest(payload, fileToUpload);
+        message.success('Yêu cầu hỗ trợ đã được gửi thành công!');
+      }
+      
+      setTimeout(() => {
+        navigate('/student/requests');
+      }, 1500);
+    } catch (error: any) {
+      console.error('Error saving support request:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Lỗi khi gửi yêu cầu';
+      message.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!user) return null;
+
+  if (loading) {
+    return (
+      <DashboardLayout 
+        navItems={STUDENT_NAV_ITEMS}
+        searchPlaceholder="Tìm kiếm dịch vụ..."
+        headerTitle={isEditMode ? "Chỉnh sửa yêu cầu" : "Tạo yêu cầu mới"}
+      >
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Spin tip="Đang tải yêu cầu hỗ trợ..." />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout 
       navItems={STUDENT_NAV_ITEMS}
       searchPlaceholder="Tìm kiếm dịch vụ..."
-      headerTitle="Tạo yêu cầu mới"
+      headerTitle={isEditMode ? "Chỉnh sửa yêu cầu" : "Tạo yêu cầu mới"}
     >
       <div className="flex flex-col w-full mx-auto px-2 md:px-0">
         
         {/* Breadcrumbs & Title */}
         <div className="flex flex-col gap-2 mb-6">
-          <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-black leading-tight tracking-tight">Gửi yêu cầu hỗ trợ</h1>
-          <p className="text-text-secondary dark:text-gray-400 text-sm md:text-base">Mô tả sự cố bạn đang gặp phải để Ban quản lý hỗ trợ xử lý kịp thời.</p>
+          {isEditMode && (
+            <div className="flex items-center gap-2 mb-1">
+              <button 
+                onClick={() => navigate(`/student/requests/${id}`)}
+                className="flex items-center gap-1 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium"
+              >
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                Quay lại chi tiết
+              </button>
+            </div>
+          )}
+          <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-black leading-tight tracking-tight">
+            {isEditMode ? `Cập nhật yêu cầu #${id}` : 'Gửi yêu cầu hỗ trợ'}
+          </h1>
+          <p className="text-text-secondary dark:text-gray-400 text-sm md:text-base">
+            {isEditMode 
+              ? 'Bạn có thể thay đổi thông tin hoặc bổ sung thêm chi tiết cho yêu cầu đã gửi.' 
+              : 'Mô tả sự cố bạn đang gặp phải để Ban quản lý hỗ trợ xử lý kịp thời.'}
+          </p>
         </div>
 
         {/* Form Container */}
@@ -57,12 +175,11 @@ const CreateSupportRequest: React.FC = () => {
             {/* Category Selection */}
             <div className="flex flex-col gap-2">
               <label className="text-sm font-bold text-text-main dark:text-white">Loại sự cố <span className="text-red-500">*</span></label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
-                  { id: 'elec', label: 'Điện', icon: 'bolt', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/20' },
-                  { id: 'water', label: 'Nước', icon: 'water_drop', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                  { id: 'net', label: 'Internet', icon: 'wifi', color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-                  { id: 'other', label: 'Khác', icon: 'more_horiz', color: 'text-gray-600', bg: 'bg-gray-50 dark:bg-gray-700/50' },
+                  { id: 'COMPLAINT', label: 'Khiếu nại', icon: 'report_problem', color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
+                  { id: 'REPAIR', label: 'Sửa chữa', icon: 'construction', color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+                  { id: 'PROPOSAL', label: 'Đề xuất', icon: 'lightbulb', color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
                 ].map((cat) => (
                   <button 
                     key={cat.id} 
@@ -141,7 +258,7 @@ const CreateSupportRequest: React.FC = () => {
                       className="size-24 md:size-32 rounded-xl border-2 border-dashed border-border-color dark:border-gray-700 flex flex-col items-center justify-center hover:bg-background-light dark:hover:bg-gray-800/30 hover:border-primary/50 transition-all cursor-pointer group shrink-0"
                     >
                       <span className="material-symbols-outlined text-3xl text-[#94a3b8] dark:text-gray-600 group-hover:text-primary transition-colors">add_a_photo</span>
-                      <span className="text-[10px] font-bold text-text-secondary dark:text-gray-400 mt-1 uppercase tracking-tighter">Tải ảnh</span>
+                      <span className="text-[10px] font-bold text-text-secondary dark:text-gray-400 mt-1 uppercase tracking-tighter">{isEditMode ? 'Tải thêm' : 'Tải ảnh'}</span>
                     </div>
                   </>
                 )}
@@ -154,17 +271,28 @@ const CreateSupportRequest: React.FC = () => {
           {/* Footer Actions */}
           <div className="flex items-center justify-end gap-3 px-6 md:px-8 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-border-color dark:border-gray-800">
             <button 
-              onClick={() => navigate('/student/requests')}
-              className="h-10 px-6 rounded-lg border border-border-color dark:border-gray-600 text-text-main dark:text-white font-bold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              onClick={() => navigate(isEditMode ? `/student/requests/${id}` : '/student/requests')}
+              disabled={isSubmitting}
+              className="h-10 px-6 rounded-lg border border-border-color dark:border-gray-600 text-text-main dark:text-white font-bold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Hủy
             </button>
             <button 
-              onClick={() => navigate('/student/requests')}
-              className="h-10 px-8 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary-hover shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="h-10 px-8 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary-hover shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="material-symbols-outlined text-[20px]">send</span>
-              Gửi yêu cầu
+              {isSubmitting ? (
+                <>
+                  <Spin size="small" />
+                  {isEditMode ? 'Đang cập nhật...' : 'Đang gửi...'}
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">{isEditMode ? 'save' : 'send'}</span>
+                  {isEditMode ? 'Lưu thay đổi' : 'Gửi yêu cầu'}
+                </>
+              )}
             </button>
           </div>
         </div>

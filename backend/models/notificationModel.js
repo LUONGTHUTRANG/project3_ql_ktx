@@ -33,16 +33,14 @@ const Notification = {
     );
   },
 
-  addRecipients: async (values, type = "STUDENT") => {
+  addRecipients: async (values) => {
     if (!values || values.length === 0) return;
-    // values is array of [notification_id, id]
+    // values is array of [notification_id, student_id, null, null]
 
-    let columns = "(notification_id, student_id)";
-    if (type === "ROOM") columns = "(notification_id, room_id)";
-    if (type === "BUILDING") columns = "(notification_id, building_id)";
-
-    const placeholders = values.map(() => "(?, ?)").join(", ");
+    const columns = "(notification_id, student_id, room_id, building_id)";
+    const placeholders = values.map(() => "(?, ?, ?, ?)").join(", ");
     const flatValues = values.flat();
+    
     await db.query(
       `INSERT INTO notification_recipients ${columns} VALUES ${placeholders}`,
       flatValues

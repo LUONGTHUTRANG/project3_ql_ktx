@@ -130,7 +130,7 @@ const Login: React.FC = () => {
                     <input 
                       type="text" 
                       className="form-input block w-full rounded-lg border-border-color dark:border-gray-600 bg-white dark:bg-gray-800 pl-10 h-12 text-base text-text-main dark:text-white placeholder:text-text-secondary/60 focus:border-primary focus:ring-primary dark:focus:border-primary dark:focus:ring-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" 
-                      placeholder={selectedRole === UserRole.STUDENT ? "Ví dụ: 20240001" : "username/email"}
+                      placeholder={selectedRole === UserRole.STUDENT ? "Ví dụ: 20240001" : "Nhập username hoặc email của bạn"}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       disabled={loading}

@@ -18,7 +18,7 @@ export const API_ENDPOINTS = {
   SEMESTERS: `${API_BASE_URL}/semesters`,
   REGISTRATIONS: `${API_BASE_URL}/registrations`,
   NOTIFICATIONS: `${API_BASE_URL}/notifications`,
-  MONTHLY_USAGE: `${API_BASE_URL}/monthly-usage`,
+  MONTHLY_USAGE: `${API_BASE_URL}/monthly-usages`,
   SUPPORT_REQUESTS: `${API_BASE_URL}/support-requests`,
 };
 
