@@ -7,6 +7,7 @@ import { STUDENT_NAV_ITEMS } from './StudentDashboard';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import { UserRole } from '../types';
 import { changePassword } from '../api/auth';
+import { getAvatarUrl } from '../utils/avatarUtils';
 
 const Settings: React.FC = () => {
   const { notification } = App.useApp();
@@ -110,7 +111,7 @@ const Settings: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start text-center sm:text-left">
             <div 
               className="bg-center bg-no-repeat bg-cover rounded-full size-24 shrink-0 border-2 border-white dark:border-gray-600 shadow-md" 
-              style={{ backgroundImage: `url("${user.avatar}")` }}
+              style={{ backgroundImage: `url("${getAvatarUrl(user.avatar, user.name)}")` }}
             ></div>
             <div className="flex flex-col justify-center flex-1 gap-1">
               <h2 className="text-text-main dark:text-white text-2xl font-bold leading-tight">{user.name}</h2>

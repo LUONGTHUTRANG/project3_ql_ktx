@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate, useLocation, BrowserRouter } from 
 import Login from './pages/Login';
 import StudentDashboard from './pages/StudentDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
+import ManagerProfile from './pages/ManagerProfile';
 import NotificationList from './pages/NotificationList';
 import NotificationDetail from './pages/NotificationDetail';
 import NotificationManagement from './pages/NotificationManagement';
@@ -55,8 +56,8 @@ const AppContent: React.FC = () => {
         name: storedUser.fullName || storedUser.username,
         role: storedUser.role === 'student' ? UserRole.STUDENT : 
               storedUser.role === 'manager' ? UserRole.MANAGER : UserRole.STUDENT,
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_wkdMTY3ip__Gzs3tu96a2GRmp3Ik2u1rdqZ2hiqUDyP62djiNT1LApfxVmhRa4MEZJyW_RnLDB4pA49FhehZBcEHjGTQoLNyZA8GecVOJPIi20iBp2Xui50TdC2irNwB5VH4NyiMN5biKg0rpENpURnlLd3Eoa9WrczJm2hdUn2ebmTEmoQuz5t09aLTpVsFD-Fuik2JBwr1jenPi83pqaJ1-Q7geecQuqGsOosLjLysZlu7i4jpeK7J4vbbMM7SnYBlGErJrrc',
-        subtitle: storedUser.email || storedUser.buildingId || 'User',
+        avatar: storedUser.avatar,
+        subtitle: storedUser.email || 'User',
         mssv: storedUser.mssv,
       });
     }
@@ -76,7 +77,7 @@ const AppContent: React.FC = () => {
         role: userData.role === 'student' ? UserRole.STUDENT :
               userData.role === 'manager' ? UserRole.MANAGER : UserRole.STUDENT,
         avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_wkdMTY3ip__Gzs3tu96a2GRmp3Ik2u1rdqZ2hiqUDyP62djiNT1LApfxVmhRa4MEZJyW_RnLDB4pA49FhehZBcEHjGTQoLNyZA8GecVOJPIi20iBp2Xui50TdC2irNwB5VH4NyiMN5biKg0rpENpURnlLd3Eoa9WrczJm2hdUn2ebmTEmoQuz5t09aLTpVsFD-Fuik2JBwr1jenPi83pqaJ1-Q7geecQuqGsOosLjLysZlu7i4jpeK7J4vbbMM7SnYBlGErJrrc',
-        subtitle: userData.email || userData.buildingId || 'User',
+        subtitle: userData.email || 'User',
         mssv: userData.mssv,
       });
     } catch (err: any) {
@@ -266,6 +267,15 @@ const AppContent: React.FC = () => {
           element={
             user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
               ? <Profile isManager={true} /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/manager/profile" 
+          element={
+            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+              ? <ManagerProfile /> 
               : <Navigate to="/login" replace />
           } 
         />

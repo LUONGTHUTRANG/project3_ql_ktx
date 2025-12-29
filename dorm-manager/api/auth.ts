@@ -63,6 +63,16 @@ export const getCurrentUser = async () => {
   }
 };
 
+// Get contact info
+export const getContactInfo = async () => {
+  try {
+    const response = await api.get('/contact-info');
+    return response.data.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || 'Lấy thông tin liên lạc thất bại');
+  }
+};
+
 // Logout function
 export const logout = () => {
   localStorage.removeItem('token');

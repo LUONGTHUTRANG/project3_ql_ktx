@@ -16,6 +16,11 @@ router.get(
 router.get("/", authorizeRoles("admin"), managerController.getAllManagers);
 router.get("/:id", authorizeRoles("admin"), managerController.getManagerById);
 router.post("/", authorizeRoles("admin"), managerController.createManager);
+router.put(
+  "/:id/contact",
+  authorizeRoles("manager", "admin"),
+  managerController.updateManagerContact
+);
 router.put("/:id", authorizeRoles("admin"), managerController.updateManager);
 router.delete("/:id", authorizeRoles("admin"), managerController.deleteManager);
 

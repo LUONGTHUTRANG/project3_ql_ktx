@@ -58,6 +58,30 @@ const Student = {
     const [rows] = await db.query(query, [buildingId]);
     return rows;
   },
+
+  updateById: async (id, updateData) => {
+    const allowedFields = ['phone_number', 'email'];
+    const setClause = [];
+    const values = [];
+
+    // Build dynamic SET clause
+    for (const [key, value] of Object.entries(updateData)) {
+      if (allowedFields.includes(key)) {
+        setClause.push(`${key} = ?`);
+        values.push(value);
+      }
+    }
+
+    if (setClause.length === 0) {
+      throw new Error("Không có trường nào để cập nhật");
+    }
+
+    values.push(id);
+    const query = `UPDATE students SET ${setClause.join(', ')} WHERE id = ?`;
+    
+    const [result] = await db.query(query, values);
+    return result.affectedRows > 0;
+  },
 };
 
 export default Student;

@@ -72,3 +72,37 @@ export const deleteManager = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const updateManagerContact = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { phone_number, email } = req.body;
+
+    // Validate input
+    if (!phone_number && !email) {
+      return res.status(400).json({ error: "Cần cung cấp ít nhất một thông tin cần cập nhật" });
+    }
+
+    // Prepare update data - only update specified fields
+    const updateData = {};
+    if (phone_number) updateData.phone_number = phone_number;
+    if (email) updateData.email = email;
+
+    // Update manager
+    const result = await Manager.updateContact(id, updateData);
+    
+    if (!result) {
+      return res.status(404).json({ error: "Cán bộ quản lý không tồn tại" });
+    }
+
+    // Get updated manager data
+    const updatedManager = await Manager.getById(id);
+    res.json({
+      message: "Cập nhật thông tin liên lạc thành công",
+      data: updatedManager
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};

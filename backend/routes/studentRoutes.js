@@ -27,4 +27,10 @@ router.get(
   studentController.getStudentsByBuildingId
 );
 
+router.put(
+  "/:id/contact",
+  authorizeRoles("admin", "manager", "student"),
+  studentController.updateStudentContact
+);
+
 export default router;

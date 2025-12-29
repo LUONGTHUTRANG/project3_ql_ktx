@@ -87,3 +87,14 @@ export const getStudentsByBuildingId = async (buildingId: string): Promise<Stude
     throw error;
   }
 };
+
+// Cập nhật thông tin liên lạc sinh viên
+export const updateStudentContact = async (id: string, data: { phone_number?: string; email?: string }): Promise<StudentProfile> => {
+  try {
+    const response = await api.put(`/${id}/contact`, data);
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Lỗi khi cập nhật thông tin sinh viên:', error);
+    throw error;
+  }
+};

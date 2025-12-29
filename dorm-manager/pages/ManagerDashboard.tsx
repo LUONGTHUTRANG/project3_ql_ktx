@@ -11,6 +11,7 @@ import {
 
 export const MANAGER_NAV_ITEMS: NavItem[] = [
   { label: 'Tổng quan Tòa A1', icon: 'dashboard', link: '/manager/home' },
+  { label: 'Thông tin cá nhân', icon: 'person', link: '/manager/profile' },
   { label: 'Quản lý Phòng', icon: 'meeting_room', link: '/manager/rooms', isActive: true },
   { label: 'Quản lý Sinh viên', icon: 'school', link: '/manager/students' },
   { label: 'Yêu cầu hỗ trợ', icon: 'support_agent', link: '/manager/requests' },

@@ -35,7 +35,7 @@ export const login = async (req, res) => {
     } else if (role === "manager") {
       // Check Manager table first
       const [managers] = await db.query(
-        "SELECT * FROM managers WHERE username = ?",
+        "SELECT m.*, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.username = ?",
         [username]
       );
       if (managers.length > 0) {
@@ -65,7 +65,7 @@ export const login = async (req, res) => {
       } else {
         // Check Manager
         const [managers] = await db.query(
-        "SELECT * FROM managers WHERE username = ?",
+          "SELECT m.*, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.username = ?",
           [username]
         );
         if (managers.length > 0) {
@@ -102,6 +102,8 @@ export const login = async (req, res) => {
 
     const token = generateToken({ ...user, role: userRole });
 
+    console.log("check user", user);
+
     res.json({
       token,
       user: {
@@ -110,9 +112,7 @@ export const login = async (req, res) => {
         mssv: user.mssv,
         fullName: user.full_name,
         role: userRole,
-        // Add other relevant fields
         email: user.email,
-        buildingId: user.building_id, // For managers
         currentRoomId: user.current_room_id, // For students
       },
     });
@@ -129,13 +129,13 @@ export const getMe = async (req, res) => {
 
     if (role === "admin") {
       const [rows] = await db.query(
-        "SELECT id, username, full_name FROM admins WHERE id = ?",
+        "SELECT id, username, full_name, email, phone_number FROM admins WHERE id = ?",
         [id]
       );
       if (rows.length > 0) user = rows[0];
     } else if (role === "manager") {
       const [rows] = await db.query(
-        "SELECT id, username, email, full_name, building_id FROM managers WHERE id = ?",
+        "SELECT m.id, m.username, m.email, m.full_name, m.phone_number, m.building_id, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.id = ?",
         [id]
       );
       if (rows.length > 0) user = rows[0];
@@ -227,6 +227,58 @@ export const changePassword = async (req, res) => {
     res.json({
       message: "Mật khẩu đã được cập nhật thành công",
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+};
+export const getContactInfo = async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    let contactInfo = null;
+
+    if (role === "admin") {
+      const [rows] = await db.query(
+        "SELECT phone_number, email FROM admins WHERE id = ?",
+        [id]
+      );
+      if (rows.length > 0) {
+        contactInfo = {
+          phone_number: rows[0].phone_number,
+          email: rows[0].email,
+        };
+      }
+    } else if (role === "manager") {
+      const [rows] = await db.query(
+        "SELECT m.phone_number, m.email, m.building_id, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.id = ?",
+        [id]
+      );
+      if (rows.length > 0) {
+        contactInfo = {
+          phone_number: rows[0].phone_number,
+          email: rows[0].email,
+          building_id: rows[0].building_id,
+          building_name: rows[0].building_name,
+        };
+      }
+    } else if (role === "student") {
+      const [rows] = await db.query(
+        "SELECT phone_number, email FROM students WHERE id = ?",
+        [id]
+      );
+      if (rows.length > 0) {
+        contactInfo = {
+          phone_number: rows[0].phone_number,
+          email: rows[0].email,
+        };
+      }
+    }
+
+    if (!contactInfo) {
+      return res.status(404).json({ message: "Không tìm thấy thông tin liên lạc" });
+    }
+
+    res.json({ data: contactInfo });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Lỗi máy chủ" });

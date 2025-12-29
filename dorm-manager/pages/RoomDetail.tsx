@@ -165,7 +165,6 @@ const RoomDetail: React.FC = () => {
             <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Phòng {room.room_number} - Tầng {room.floor}</h1>
             <div className="flex flex-wrap items-center gap-4 text-text-secondary dark:text-gray-400 text-sm md:text-base font-medium">
               <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[20px] text-primary">layers</span> Tầng {room.floor}</span>
-              <span className="size-1.5 rounded-full bg-border-color"></span>
               <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black border uppercase tracking-widest ${
                 room.status === 'AVAILABLE' 
                   ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-100 dark:border-green-800' 
@@ -349,15 +348,15 @@ const RoomDetail: React.FC = () => {
                 <tbody className="divide-y divide-border-color dark:divide-gray-700">
                   {paginatedStudents.map((student, index) => (
                     <tr key={index} className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                      <td className="py-5 px-6">
+                      <td className="py-5 px-6 font-bold">
                         <div className="flex items-center gap-4">
                           <div className="flex flex-col">
-                            <span className="font-black text-md text-text-main dark:text-white group-hover:text-primary transition-colors">{student.full_name}</span>
+                            <span className="text-md text-text-main dark:text-white group-hover:text-primary transition-colors">{student.full_name}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-5 px-6 text-center">
-                        <span className="text-md font-black text-text-main dark:text-gray-300">
+                      <td className="font-bold py-5 px-6 text-center">
+                        <span className="text-md text-text-main dark:text-gray-300">
                           {student.mssv}
                         </span>
                       </td>

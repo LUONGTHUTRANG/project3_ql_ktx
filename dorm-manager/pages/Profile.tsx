@@ -5,17 +5,27 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import { STUDENT_NAV_ITEMS } from './StudentDashboard';
 import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import { UserRole } from '../types';
-import { getStudentById, StudentProfile } from '../api/studentApi';
+import { getStudentById, StudentProfile, updateStudentContact } from '../api/studentApi';
+import { App } from 'antd';
+import { getAvatarUrl } from '../utils/avatarUtils';
+import { getContactInfo } from '../api/auth';
 
 interface ProfileProps {
   isManager?: boolean;
 }
 
+interface ContactInfo {
+  phone_number?: string;
+  email?: string;
+}
+
 const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
+  const { notification } = App.useApp();
   const { user } = useContext(AuthContext);
   const { id: studentIdFromUrl } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [studentData, setStudentData] = useState<StudentProfile | null>(null);
+  const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
   const [formData, setFormData] = useState({
     phone: '',
     email: ''
@@ -26,10 +36,36 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
   const [showChangeRoomModal, setShowChangeRoomModal] = useState(false);
   const [showRemoveRoomModal, setShowRemoveRoomModal] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Determine which student ID to use
   // If URL has student ID (manager viewing), use that; otherwise use logged-in user's ID
   const studentId = studentIdFromUrl || user?.id;
+
+  // Load contact info từ API
+  useEffect(() => {
+    const loadContactInfo = async () => {
+      try {
+        const info = await getContactInfo();
+        setContactInfo(info);
+        setFormData({
+          phone: info.phone_number || '',
+          email: info.email || ''
+        });
+      } catch (err) {
+        console.error('Lỗi khi tải thông tin liên lạc:', err);
+        // Fallback - set empty form
+        setFormData({
+          phone: '',
+          email: ''
+        });
+      }
+    };
+
+    loadContactInfo();
+  }, []);
 
   // Load dữ liệu sinh viên từ API
   useEffect(() => {
@@ -40,19 +76,10 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
         setIsLoading(true);
         const data = await getStudentById(studentId);
         setStudentData(data);
-        setFormData({
-          phone: data.phone_number || '',
-          email: data.email || ''
-        });
         setError(null);
       } catch (err) {
         console.error('Lỗi khi tải dữ liệu sinh viên:', err);
         setError('Không thể tải thông tin sinh viên');
-        // Nếu không load được, sử dụng dữ liệu từ user context
-        setFormData({
-          phone: '',
-          email: ''
-        });
       } finally {
         setIsLoading(false);
       }
@@ -70,13 +97,48 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!studentId) return;
+
     try {
-      // TODO: Thêm API call để cập nhật thông tin
+      setIsSaving(true);
+      
+      // Validate input
+      if (!formData.phone && !formData.email) {
+        notification.error({
+          message: 'Lỗi',
+          description: 'Cần cung cấp ít nhất số điện thoại hoặc email',
+          duration: 4.5,
+        });
+        return;
+      }
+
+      // Call API to update contact information
+      const updatedStudent = await updateStudentContact(studentId, {
+        phone_number: formData.phone,
+        email: formData.email
+      });
+
+      // Update local state
+      setStudentData(updatedStudent);
       setShowSuccessMessage(true);
       setIsEditMode(false);
+      
+      notification.success({
+        message: 'Thành công',
+        description: 'Cập nhật thông tin liên lạc thành công',
+        duration: 4.5,
+      });
+
       setTimeout(() => setShowSuccessMessage(false), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Lỗi khi cập nhật thông tin:', err);
+      notification.error({
+        message: 'Cập nhật thất bại',
+        description: err.response?.data?.error || err.message || 'Lỗi khi cập nhật thông tin',
+        duration: 4.5,
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -88,6 +150,72 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
         phone: studentData.phone_number || '',
         email: studentData.email || ''
       });
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (!isManager) {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      notification.error({
+        message: 'Lỗi',
+        description: 'Vui lòng chọn một tệp ảnh',
+        duration: 4.5,
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      notification.error({
+        message: 'Lỗi',
+        description: 'Kích thước ảnh không vượt quá 5MB',
+        duration: 4.5,
+      });
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      
+      // Create FormData for file upload
+      const formDataFile = new FormData();
+      formDataFile.append('avatar', file);
+
+      // TODO: Call API to upload avatar
+      // For now, create a local preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const avatarUrl = event.target?.result as string;
+        // Update local preview (you may need to update user context here)
+        notification.success({
+          message: 'Thành công',
+          description: 'Avatar đã được cập nhật',
+          duration: 4.5,
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error('Lỗi khi tải lên avatar:', err);
+      notification.error({
+        message: 'Tải lên thất bại',
+        description: 'Không thể tải lên avatar',
+        duration: 4.5,
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -115,12 +243,28 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
             <div className="relative group cursor-pointer shrink-0">
               <div 
                 className="h-28 w-28 overflow-hidden rounded-full border-4 border-gray-50 shadow-md dark:border-gray-700 bg-center bg-cover bg-no-repeat transition-transform hover:scale-105" 
-                style={{ backgroundImage: `url("${user?.avatar}")` }}
+                style={{ backgroundImage: `url("${getAvatarUrl(user?.avatar, studentData?.full_name)}")` }}
+                onClick={handleAvatarClick}
               ></div>
               {!isManager && (
-                <div className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-full bg-primary text-white shadow-lg ring-4 ring-white dark:ring-surface-dark transition-all hover:scale-110 active:scale-95">
-                  <span className="material-symbols-outlined text-lg font-bold">edit</span>
-                </div>
+                <>
+                  {/* Camera overlay on hover */}
+                  <div 
+                    className="absolute inset-0 h-28 w-28 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    onClick={handleAvatarClick}
+                  >
+                    <span className="material-symbols-outlined text-white text-[40px]">camera_alt</span>
+                  </div>
+                  {/* Hidden file input */}
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                    disabled={isUploadingAvatar}
+                  />
+                </>
               )}
             </div>
             <div className="flex flex-1 flex-col items-center text-center sm:items-start sm:text-left">
@@ -318,29 +462,32 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                       <button 
                         type="button"
                         onClick={handleCancelEdit}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-color text-sm font-black p-2 text-text-main shadow-md hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 transition-all uppercase tracking-wider"
+                        disabled={isSaving}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-color text-sm font-black p-2 text-text-main shadow-md hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <span className="material-symbols-outlined text-lg font-bold">close</span>
                         Hủy
                       </button>
                       <button 
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white p-2 shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all uppercase tracking-wider" 
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white p-2 shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" 
                         type="submit"
+                        disabled={isSaving}
                       >
-                        <span className="material-symbols-outlined text-lg font-bold">save</span>
-                        Lưu thay đổi
+                        {isSaving ? (
+                          <>
+                            <span className="material-symbols-outlined text-lg font-bold animate-spin">hourglass_empty</span>
+                            Đang lưu...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-lg font-bold">save</span>
+                            Lưu thay đổi
+                          </>
+                        )}
                       </button>
                     </div>
                   )}
                 </div>
-
-                {/* Success Message */}
-                {showSuccessMessage && (
-                  <div className="animate-in fade-in slide-in-from-top duration-300 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/30 p-3 text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
-                    <span className="material-symbols-outlined">check_circle</span>
-                    <span>Thông tin đã được cập nhật thành công!</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>

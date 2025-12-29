@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { User, NavItem, UserRole } from '../types';
 import { Modal } from 'antd';
+import { getAvatarUrl } from '../utils/avatarUtils';
 
 interface SidebarProps {
   user: User;
@@ -41,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Dorm
         <div className="flex items-center gap-3 rounded-xl bg-background-light dark:bg-gray-800 p-3">
           <div 
             className="bg-center bg-no-repeat bg-cover rounded-full size-12 border-2 border-white dark:border-gray-600 shadow-sm" 
-            style={{ backgroundImage: `url("${user.avatar}")` }}
+            style={{ backgroundImage: `url("${getAvatarUrl(user.avatar, user.name)}")` }}
           ></div>
           <div className="flex flex-col min-w-0">
             <h1 className="text-text-main dark:text-white text-sm font-bold leading-tight truncate">{user.name}</h1>

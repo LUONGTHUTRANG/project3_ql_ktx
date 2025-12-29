@@ -5,6 +5,7 @@ import NotificationPopup from './NotificationPopup';
 import { Input } from 'antd';
 import { SearchOutlined } from "@ant-design/icons";
 import { getUnreadNotificationCount } from '../api/notificationApi';
+import { getAvatarUrl } from '../utils/avatarUtils';
 
 interface HeaderProps {
   user: User;
@@ -105,7 +106,7 @@ const Header: React.FC<HeaderProps> = ({ user, logout, placeholder = "Tìm kiế
           >
             <div 
               className="bg-center bg-no-repeat bg-cover rounded-full size-8" 
-              style={{ backgroundImage: `url("${user.avatar}")` }}
+              style={{ backgroundImage: `url("${getAvatarUrl(user.avatar, user.name)}")` }}
             ></div>
             <span className="hidden sm:block text-sm font-medium text-text-main dark:text-white">Tài khoản</span>
             <span className="material-symbols-outlined text-text-secondary dark:text-gray-400 text-[20px]">expand_more</span>
