@@ -16,9 +16,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/login" replace />;
   }
 
-  // If user role is not in allowed roles, redirect to login
+  // If user role is not in allowed roles, redirect to appropriate home page
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/login" replace />;
+    const homeRoute = 
+      user.role === UserRole.ADMIN ? '/admin/home' :
+      user.role === UserRole.MANAGER ? '/manager/home' :
+      '/student/home';
+    return <Navigate to={homeRoute} replace />;
   }
 
   // User is authenticated and has correct role, render children

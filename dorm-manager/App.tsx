@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import StudentDashboard from './pages/StudentDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import ManagerProfile from './pages/ManagerProfile';
+import AdminDashboard from './pages/AdminDashboard';
 import NotificationList from './pages/NotificationList';
 import NotificationDetail from './pages/NotificationDetail';
 import NotificationManagement from './pages/NotificationManagement';
@@ -55,6 +56,7 @@ const AppContent: React.FC = () => {
         id: storedUser.id,
         name: storedUser.fullName || storedUser.username,
         role: storedUser.role === 'student' ? UserRole.STUDENT : 
+              storedUser.role === 'admin' ? UserRole.ADMIN :
               storedUser.role === 'manager' ? UserRole.MANAGER : UserRole.STUDENT,
         avatar: storedUser.avatar,
         subtitle: storedUser.email || 'User',
@@ -75,8 +77,9 @@ const AppContent: React.FC = () => {
         id: userData.id,
         name: userData.fullName || userData.username,
         role: userData.role === 'student' ? UserRole.STUDENT :
+              userData.role === 'admin' ? UserRole.ADMIN :
               userData.role === 'manager' ? UserRole.MANAGER : UserRole.STUDENT,
-        avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_wkdMTY3ip__Gzs3tu96a2GRmp3Ik2u1rdqZ2hiqUDyP62djiNT1LApfxVmhRa4MEZJyW_RnLDB4pA49FhehZBcEHjGTQoLNyZA8GecVOJPIi20iBp2Xui50TdC2irNwB5VH4NyiMN5biKg0rpENpURnlLd3Eoa9WrczJm2hdUn2ebmTEmoQuz5t09aLTpVsFD-Fuik2JBwr1jenPi83pqaJ1-Q7geecQuqGsOosLjLysZlu7i4jpeK7J4vbbMM7SnYBlGErJrrc',
+        avatar: userData.avatar,
         subtitle: userData.email || 'User',
         mssv: userData.mssv,
       });
@@ -107,7 +110,7 @@ const AppContent: React.FC = () => {
         </div>
       ) : (
         <Routes>
-          <Route path="/login" element={user ? <Navigate to={user.role === UserRole.STUDENT ? "/student/home" : "/manager/home"} replace /> : <Login />} />
+          <Route path="/login" element={user ? <Navigate to={user.role === UserRole.STUDENT ? "/student/home" : user.role === UserRole.ADMIN ? "/admin/home" : "/manager/home"} replace /> : <Login />} />
           
           <Route 
             path="/student/home" 
@@ -229,7 +232,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/home" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <ManagerDashboard /> 
               : <Navigate to="/login" replace />
           } 
@@ -238,7 +241,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/rooms" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <RoomManagement /> 
               : <Navigate to="/login" replace />
           } 
@@ -247,7 +250,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/rooms/:id" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <RoomDetail /> 
               : <Navigate to="/login" replace />
           } 
@@ -256,7 +259,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/students" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <StudentManagement /> 
               : <Navigate to="/login" replace />
           } 
@@ -265,7 +268,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/students/:id" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <Profile isManager={true} /> 
               : <Navigate to="/login" replace />
           } 
@@ -274,7 +277,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/profile" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <ManagerProfile /> 
               : <Navigate to="/login" replace />
           } 
@@ -283,7 +286,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/settings" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <Settings /> 
               : <Navigate to="/login" replace />
           } 
@@ -292,7 +295,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/requests" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <SupportRequests /> 
               : <Navigate to="/login" replace />
           } 
@@ -301,7 +304,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/requests/:id" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <SupportRequestDetail /> 
               : <Navigate to="/login" replace />
           } 
@@ -310,7 +313,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/notifications" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <NotificationManagement /> 
               : <Navigate to="/login" replace />
           } 
@@ -319,7 +322,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/notifications/:id" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <NotificationDetail isManager={true} /> 
               : <Navigate to="/login" replace />
           } 
@@ -328,7 +331,7 @@ const AppContent: React.FC = () => {
         <Route 
           path="/manager/notifications/:id/edit" 
           element={
-            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+            user && user.role === UserRole.MANAGER
               ? <CreateNotification mode="edit" /> 
               : <Navigate to="/login" replace />
           } 
@@ -353,6 +356,142 @@ const AppContent: React.FC = () => {
           element={
             user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
               ? <CreateNotification /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        {/* Admin Routes */}
+        <Route 
+          path="/admin/home" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <AdminDashboard /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/profile" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <ManagerProfile /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/buildings" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <BuildingList /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/buildings/:id" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <BuildingDetail /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/rooms" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <RoomManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/rooms/:id" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <RoomDetail /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/students" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <StudentManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/students/:id" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <Profile isManager={true} /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/requests" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <SupportRequests /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/requests/:id" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <SupportRequestDetail /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/notifications" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <NotificationManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/notifications/:id" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <NotificationDetail isManager={true} /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/notifications/:id/edit" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <CreateNotification mode="edit" /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/notifications/create" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <CreateNotification /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/settings" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <Settings /> 
               : <Navigate to="/login" replace />
           } 
         />
