@@ -1,23 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { NavItem } from '../types';
+import React, { useEffect, useState, useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
+import { AuthContext } from '../App';
 import { 
   getAllStudents, 
   getAllRooms, 
   getAllSupportRequests, 
   fetchBuildings 
 } from '../api';
-
-export const ADMIN_NAV_ITEMS: NavItem[] = [
-  { label: 'Tổng quan', icon: 'dashboard', link: '/admin/home' },
-  { label: 'Tòa nhà', icon: 'apartment', link: '/admin/buildings' },
-  { label: 'Phòng', icon: 'meeting_room', link: '/admin/rooms' },
-  { label: 'Sinh viên', icon: 'school', link: '/admin/students' },
-  { label: 'Yêu cầu hỗ trợ', icon: 'support_agent', link: '/admin/requests' },
-  { label: 'Thông báo', icon: 'notifications', link: '/admin/notifications' },
-  { label: 'Cài đặt', icon: 'settings', link: '/admin/settings' },
-];
 
 interface DashboardStats {
   totalStudents: number;
@@ -184,11 +174,9 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <DashboardLayout
-      navItems={ADMIN_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/admin/home'}))}
+    <RoleBasedLayout
       searchPlaceholder="Tìm sinh viên, phòng..."
       headerTitle="Trang chủ"
-      sidebarTitle="Quản lý KTX"
     >
       <div className="flex flex-col gap-8">
         {/* Stats Grid */}
@@ -426,7 +414,7 @@ const AdminDashboard: React.FC = () => {
         <span className="material-symbols-outlined">add</span>
         <span className="font-bold pr-1">Tạo mới</span>
       </button>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

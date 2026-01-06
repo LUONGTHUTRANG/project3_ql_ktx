@@ -1,8 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { Select, Spin } from 'antd';
 import Pagination from '../components/Pagination';
 import { getInvoicesForStudent, getAllInvoices, getAllSemesters } from '../api';
@@ -165,8 +164,7 @@ const BillsAndPayments: React.FC = () => {
   };
 
   return (
-    <DashboardLayout 
-      navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/bills'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm hóa đơn..."
       headerTitle="Hóa đơn & Thanh toán"
     >
@@ -335,7 +333,7 @@ const BillsAndPayments: React.FC = () => {
           </p>
         </div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

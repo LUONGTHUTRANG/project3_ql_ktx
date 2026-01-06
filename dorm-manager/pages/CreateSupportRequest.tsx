@@ -1,9 +1,7 @@
-
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { createSupportRequest, getSupportRequestById, updateSupportRequestStatus } from '../api';
 import { message, Spin } from 'antd';
 
@@ -125,21 +123,19 @@ const CreateSupportRequest: React.FC = () => {
 
   if (loading) {
     return (
-      <DashboardLayout 
-        navItems={STUDENT_NAV_ITEMS}
+      <RoleBasedLayout 
         searchPlaceholder="Tìm kiếm dịch vụ..."
         headerTitle={isEditMode ? "Chỉnh sửa yêu cầu" : "Tạo yêu cầu mới"}
       >
         <div className="flex items-center justify-center min-h-[400px]">
           <Spin tip="Đang tải yêu cầu hỗ trợ..." />
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
   return (
-    <DashboardLayout 
-      navItems={STUDENT_NAV_ITEMS}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm dịch vụ..."
       headerTitle={isEditMode ? "Chỉnh sửa yêu cầu" : "Tạo yêu cầu mới"}
     >
@@ -297,7 +293,7 @@ const CreateSupportRequest: React.FC = () => {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

@@ -2,8 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Spin, message } from 'antd';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
 import { getNotificationsByManager, deleteNotification } from '../api/notificationApi';
 
@@ -99,14 +98,9 @@ const NotificationManagement: React.FC = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   return (
-    <DashboardLayout
-      navItems={MANAGER_NAV_ITEMS.map(item => ({
-        ...item,
-        isActive: item.label === 'Quản lý Thông báo'
-      }))}
+    <RoleBasedLayout
       searchPlaceholder="Tìm thông báo..."
       headerTitle="Quản lý Thông báo"
-      sidebarTitle="A1 Manager"
     >
       <div className="flex flex-col w-full mx-auto">
         {/* Header Section */}
@@ -279,7 +273,7 @@ const NotificationManagement: React.FC = () => {
           </div>
         </Modal>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

@@ -1,9 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
 import { getSupportRequestById, updateSupportRequestStatus } from '../api';
 import { message, Spin } from 'antd';
@@ -137,29 +135,27 @@ const SupportRequestDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <DashboardLayout 
-        navItems={isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS}
+      <RoleBasedLayout 
         searchPlaceholder="Tìm kiếm..."
         headerTitle="Chi tiết yêu cầu"
       >
         <div className="flex items-center justify-center min-h-[400px]">
           <Spin tip="Đang tải yêu cầu hỗ trợ..." />
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
   if (error || !requestData) {
     return (
-      <DashboardLayout 
-        navItems={isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS}
+      <RoleBasedLayout 
         searchPlaceholder="Tìm kiếm..."
         headerTitle="Chi tiết yêu cầu"
       >
         <div className="flex items-center justify-center min-h-[400px] text-red-600">
           {error || 'Không tìm thấy yêu cầu'}
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
@@ -169,8 +165,7 @@ const SupportRequestDetail: React.FC = () => {
   const createdTime = requestData.created_at ? new Date(requestData.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
-    <DashboardLayout 
-      navItems={isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm..."
       headerTitle="Chi tiết yêu cầu"
     >
@@ -422,7 +417,7 @@ const SupportRequestDetail: React.FC = () => {
           />
         </div>
       )}
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

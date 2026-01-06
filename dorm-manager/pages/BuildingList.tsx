@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Select, Spin, message } from 'antd';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
 import { Input } from 'antd';
 import { SearchOutlined } from "@ant-design/icons";
+import { AuthContext } from '../App';
 import { fetchBuildings, fetchRooms } from '../api';
 
 interface Building {
@@ -130,8 +130,7 @@ const BuildingList: React.FC = () => {
   };
 
   return (
-    <DashboardLayout 
-      navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === location.pathname}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm tòa nhà..."
       headerTitle="Khám phá Tòa nhà"
     >
@@ -268,7 +267,7 @@ const BuildingList: React.FC = () => {
             </>
           )}
         </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

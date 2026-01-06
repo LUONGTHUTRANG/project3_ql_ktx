@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
 import { Input, Select, Spin, message } from 'antd';
 import { SearchOutlined, DownloadOutlined } from '@ant-design/icons';
@@ -107,8 +106,7 @@ const StudentManagement: React.FC = () => {
   };
 
   return (
-    <DashboardLayout
-      navItems={MANAGER_NAV_ITEMS.map(item => ({...item, isActive: item.label === 'Quản lý Sinh viên'}))}
+    <RoleBasedLayout
       searchPlaceholder="Tìm kiếm sinh viên..."
       headerTitle="Quản lý Sinh viên"
     >
@@ -279,7 +277,7 @@ const StudentManagement: React.FC = () => {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

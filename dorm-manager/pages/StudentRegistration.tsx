@@ -1,7 +1,6 @@
 import React, { useContext, useState, useRef } from 'react';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { Select, Switch } from 'antd';
 
 type RegistrationStatus = 'upcoming' | 'open' | 'closed';
@@ -74,8 +73,7 @@ const StudentRegistration: React.FC = () => {
   };
 
   return (
-    <DashboardLayout 
-      navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/register'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm..."
       headerTitle="Đăng ký Nội trú"
     >
@@ -747,7 +745,7 @@ const StudentRegistration: React.FC = () => {
           </p>
         </div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

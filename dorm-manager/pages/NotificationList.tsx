@@ -2,10 +2,8 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input, Select, Spin } from 'antd';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
 import Pagination from '../components/Pagination';
 import { getMyNotifications, getAllNotifications } from '../api';
 import { SearchOutlined } from "@ant-design/icons";
@@ -25,7 +23,6 @@ const NotificationList: React.FC = () => {
 
   if (!user) return null;
 
-  const navItems = user.role === UserRole.STUDENT ? STUDENT_NAV_ITEMS : MANAGER_NAV_ITEMS;
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
 
   // Fetch notifications
@@ -107,11 +104,9 @@ const NotificationList: React.FC = () => {
   );
 
   return (
-    <DashboardLayout 
-      navItems={navItems}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm dịch vụ, thông báo..."
       headerTitle="Thông báo"
-      sidebarTitle={isManager ? "A1 Manager" : undefined}
     >
       <div className="layout-container flex h-full grow flex-col w-full mx-auto">
         <div className="flex flex-wrap justify-between items-end gap-4 mb-8">
@@ -215,7 +210,7 @@ const NotificationList: React.FC = () => {
           />
         </div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

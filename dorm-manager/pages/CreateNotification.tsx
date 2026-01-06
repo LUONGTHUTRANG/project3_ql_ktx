@@ -2,8 +2,7 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Form, Input, Select, Button, Spin, message } from 'antd';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { SearchOutlined } from "@ant-design/icons";
 import { createNotification, getNotificationById } from '../api/notificationApi';
 import { fetchBuildings } from '../api/buildingApi';
@@ -219,11 +218,9 @@ const CreateNotification: React.FC<CreateNotificationProps> = ({ mode = 'create'
   };
 
   return (
-    <DashboardLayout 
-      navItems={MANAGER_NAV_ITEMS}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm sinh viên, phòng tại Tòa A1..."
       headerTitle={mode === 'edit' ? 'Chỉnh sửa thông báo' : 'Tạo thông báo'}
-      sidebarTitle="A1 Manager"
     >
       {pageLoading ? (
         <div className="flex items-center justify-center h-96">
@@ -448,7 +445,7 @@ const CreateNotification: React.FC<CreateNotificationProps> = ({ mode = 'create'
         <div className="h-12"></div>
       </div>
       )}
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

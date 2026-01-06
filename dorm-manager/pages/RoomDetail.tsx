@@ -1,8 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { AuthContext } from '../App';
 import Pagination from '../components/Pagination';
 import { Input, Spin, message } from 'antd';
@@ -118,17 +116,12 @@ const RoomDetail: React.FC = () => {
 
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
   const isStudent = user.role === UserRole.STUDENT;
-  const navItems = isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS;
-  const activeNavLink = isManager ? '/manager/rooms' : '/student/my-room';
   const backLink = isManager ? '/manager/rooms' : '/student/home';
-  const sidebarTitle = isManager ? 'A1 Manager' : 'Dorm Manager';
 
   return (
-    <DashboardLayout 
-      navItems={navItems.map(item => ({...item, isActive: item.link === activeNavLink}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm sinh viên trong phòng..."
       headerTitle="Thông tin Phòng"
-      sidebarTitle={sidebarTitle}
     >
       {isManager && (<button
             onClick={() => navigate(backLink)}
@@ -408,7 +401,7 @@ const RoomDetail: React.FC = () => {
         </div>
       </div>
       )}
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

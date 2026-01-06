@@ -1,9 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
 import { Spin, message } from 'antd';
 import { getNotificationById } from '../api/notificationApi';
@@ -54,36 +52,29 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
     loadNotification();
   }, [id]);
 
-  const navItems = isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS;
-  const sidebarTitle = isManager ? "A1 Manager" : undefined;
-
   if (isLoading) {
     return (
-      <DashboardLayout
-        navItems={navItems}
+      <RoleBasedLayout
         searchPlaceholder={isManager ? "Tìm sinh viên, phòng..." : "Tìm kiếm dịch vụ, thông báo..."}
         headerTitle="Chi tiết Thông báo"
-        sidebarTitle={sidebarTitle}
       >
         <div className="flex items-center justify-center py-16">
           <Spin tip="Đang tải dữ liệu..." />
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
   if (!notification) {
     return (
-      <DashboardLayout
-        navItems={navItems}
+      <RoleBasedLayout
         searchPlaceholder={isManager ? "Tìm sinh viên, phòng..." : "Tìm kiếm dịch vụ, thông báo..."}
         headerTitle="Chi tiết Thông báo"
-        sidebarTitle={sidebarTitle}
       >
         <div className="flex items-center justify-center py-16">
           <p className="text-text-secondary dark:text-gray-400">Thông báo không tồn tại</p>
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
@@ -137,11 +128,9 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
   };
 
   return (
-    <DashboardLayout
-      navItems={navItems}
+    <RoleBasedLayout
       searchPlaceholder={isManager ? "Tìm sinh viên, phòng..." : "Tìm kiếm dịch vụ, thông báo..."}
       headerTitle="Chi tiết Thông báo"
-      sidebarTitle={sidebarTitle}
     >
       <div className="flex flex-col w-full mx-auto px-2 md:px-0">
         
@@ -270,7 +259,7 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

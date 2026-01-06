@@ -1,8 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
 import { Input, Spin } from 'antd';
 import { SearchOutlined } from "@ant-design/icons";
@@ -138,8 +136,7 @@ const SupportRequests: React.FC = () => {
   };
 
   return (
-    <DashboardLayout 
-      navItems={isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm yêu cầu, dịch vụ..."
       headerTitle="Yêu cầu hỗ trợ"
     >
@@ -308,7 +305,7 @@ const SupportRequests: React.FC = () => {
           />
         </div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

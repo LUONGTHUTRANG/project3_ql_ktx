@@ -2,8 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Spin, message } from 'antd';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { getInvoiceById } from '../api/invoiceApi';
 import { getMonthlyUsageById } from '../api/monthlyUsageApi';
 
@@ -49,29 +48,27 @@ const InvoiceDetail: React.FC = () => {
 
   if (isLoading) {
     return (
-      <DashboardLayout 
-        navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/bills'}))}
+      <RoleBasedLayout 
         searchPlaceholder="Tìm kiếm..."
         headerTitle="Chi tiết Hóa đơn"
       >
         <div className="flex items-center justify-center min-h-[400px]">
           <Spin size="large" />
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
   if (!invoice) {
     return (
-      <DashboardLayout 
-        navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/bills'}))}
+      <RoleBasedLayout 
         searchPlaceholder="Tìm kiếm..."
         headerTitle="Chi tiết Hóa đơn"
       >
         <div className="text-center py-12">
           <p className="text-text-secondary dark:text-gray-400">Không tìm thấy hóa đơn</p>
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
@@ -158,8 +155,7 @@ const InvoiceDetail: React.FC = () => {
   const total = subtotal;
 
   return (
-    <DashboardLayout 
-      navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/bills'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm..."
       headerTitle="Chi tiết Hóa đơn"
     >
@@ -424,7 +420,7 @@ const InvoiceDetail: React.FC = () => {
           </div>
         </div>
       )}
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

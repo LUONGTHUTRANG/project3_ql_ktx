@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import RoomTable, { Room } from '../components/RoomTable';
 import { AuthContext } from '../App';
 import { getAllRooms, updateRoom, deleteRoom } from '../api/roomApi';
@@ -95,11 +94,9 @@ const RoomManagement: React.FC = () => {
   const occupiedPercent = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
   return (
-    <DashboardLayout 
-      navItems={MANAGER_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/manager/rooms'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm phòng, sinh viên..."
       headerTitle="Quản lý Phòng"
-      sidebarTitle="A1 Manager"
     >
       <div className="flex flex-col gap-6 animate-in fade-in duration-500">
         
@@ -195,7 +192,7 @@ const RoomManagement: React.FC = () => {
           showEditDelete={false}
         />
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

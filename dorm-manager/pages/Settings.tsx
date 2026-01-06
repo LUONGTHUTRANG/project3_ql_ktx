@@ -2,9 +2,7 @@ import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Select, Modal, Form, Input, App } from 'antd';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
 import { changePassword } from '../api/auth';
 import { getAvatarUrl } from '../utils/avatarUtils';
@@ -28,7 +26,6 @@ const Settings: React.FC = () => {
   console.log("Rendering Settings for user:", user);
 
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
-  const navItems = isManager ? MANAGER_NAV_ITEMS : STUDENT_NAV_ITEMS;
 
   const toggleNotification = (key: keyof typeof notifications) => {
     setNotifications(prev => ({
@@ -92,11 +89,9 @@ const Settings: React.FC = () => {
   };
 
   return (
-    <DashboardLayout 
-      navItems={navItems.map(item => ({...item, isActive: item.label === 'Cài đặt'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm cài đặt..."
       headerTitle="Cài đặt"
-      sidebarTitle={isManager ? "A1 Manager" : "Dorm Manager"}
     >
       <div className="flex flex-col w-full mx-auto animate-in fade-in duration-500">
         
@@ -388,7 +383,7 @@ const Settings: React.FC = () => {
           </div>
         </Modal>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

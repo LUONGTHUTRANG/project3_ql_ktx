@@ -1,8 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { NavItem } from '../types';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { formatPrice } from '../utils/formatters';
 import {
   getStudentById,
@@ -12,17 +11,6 @@ import {
   getMyNotifications,
   fetchRoomById
 } from '../api';
-
-export const STUDENT_NAV_ITEMS: NavItem[] = [
-  { label: 'Trang chủ', icon: 'home', link: '/student/home' },
-  { label: 'Thông tin cá nhân', icon: 'person', link: '/student/profile' },
-  { label: 'Phòng của tôi', icon: 'meeting_room', link: '/student/my-room' },
-  { label: 'Đăng ký nội trú', icon: 'assignment', link: '/student/register' },
-  { label: 'Thông tin tòa nhà & phòng', icon: 'apartment', link: '/student/buildings' },
-  { label: 'Hóa đơn & Công nợ', icon: 'receipt_long', link: '/student/bills' },
-  { label: 'Yêu cầu hỗ trợ', icon: 'support_agent', link: '/student/requests' },
-  { label: 'Thông báo', icon: 'notifications', link: '/notifications' },
-];
 
 interface StudentData {
   id: string;
@@ -126,9 +114,9 @@ const StudentDashboard: React.FC = () => {
   }, [user.id]);
 
   return (
-    <DashboardLayout 
-      navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/home'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm dịch vụ, thông báo..."
+      headerTitle="Trang chủ"
     >
       <div className="mx-auto max-w-6xl flex flex-col gap-6">
         
@@ -377,7 +365,7 @@ const StudentDashboard: React.FC = () => {
         
         <div className="h-10"></div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

@@ -1,22 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { NavItem } from '../types';
+import React, { useEffect, useState, useContext } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
+import { AuthContext } from '../App';
 import { 
   getAllStudents, 
   getAllRooms, 
   getAllSupportRequests, 
   getMyNotifications 
 } from '../api';
-
-export const MANAGER_NAV_ITEMS: NavItem[] = [
-  { label: 'Tổng quan Tòa A1', icon: 'dashboard', link: '/manager/home' },
-  { label: 'Thông tin cá nhân', icon: 'person', link: '/manager/profile' },
-  { label: 'Quản lý Phòng', icon: 'meeting_room', link: '/manager/rooms', isActive: true },
-  { label: 'Quản lý Sinh viên', icon: 'school', link: '/manager/students' },
-  { label: 'Yêu cầu hỗ trợ', icon: 'support_agent', link: '/manager/requests' },
-  { label: 'Quản lý Thông báo', icon: 'notifications', link: '/manager/notifications' },
-];
 
 interface DashboardStats {
   totalStudents: number;
@@ -144,14 +135,11 @@ const ManagerDashboard: React.FC = () => {
   }, []);
 
   return (
-    <>
-      <DashboardLayout
-        navItems={MANAGER_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/manager/home'}))}
-        searchPlaceholder="Tìm sinh viên, phòng tại Tòa A1..."
-        headerTitle="Tòa nhà A1"
-        headerSubtitle="Khu ký túc xá Đại học Quốc gia"
-        sidebarTitle="A1 Manager"
-      >
+    <RoleBasedLayout
+      searchPlaceholder="Tìm sinh viên, phòng tại Tòa A1..."
+      headerTitle="Tòa nhà A1"
+      headerSubtitle="Khu ký túc xá Đại học Quốc gia"
+    >
         <div className="flex flex-col gap-8">
           {/* Stats Grid */}
           {error && (
@@ -419,8 +407,7 @@ const ManagerDashboard: React.FC = () => {
           <span className="material-symbols-outlined">add</span>
           <span className="font-bold pr-1">Ghi nhận sự cố</span>
         </button>
-      </DashboardLayout>
-    </>
+      </RoleBasedLayout>
   );
 };
 

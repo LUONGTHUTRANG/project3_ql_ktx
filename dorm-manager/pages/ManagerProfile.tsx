@@ -1,8 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
 import { App } from 'antd';
 import { getAvatarUrl } from '../utils/avatarUtils';
@@ -177,11 +176,9 @@ const ManagerProfile: React.FC<ManagerProfileProps> = ({ isAdmin = false }) => {
   };
 
   return (
-    <DashboardLayout 
-      navItems={MANAGER_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/manager/profile'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm..."
       headerTitle="Hồ sơ cá nhân"
-      sidebarTitle="A1 Manager"
     >
       <div className="max-w-[1200px] mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
         {/* Profile Header Card */}
@@ -418,7 +415,7 @@ const ManagerProfile: React.FC<ManagerProfileProps> = ({ isAdmin = false }) => {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

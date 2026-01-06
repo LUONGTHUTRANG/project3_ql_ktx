@@ -3,8 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Select, Spin, Modal, Input, Checkbox } from 'antd';
 import { App } from "antd";
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
 import { SearchOutlined } from "@ant-design/icons";
 import { fetchBuildingById, fetchRooms, deleteRoom, updateRoom, createRoom } from '../api';
@@ -88,22 +87,20 @@ const BuildingDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <DashboardLayout 
-        navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/buildings'}))}
+      <RoleBasedLayout 
         searchPlaceholder="Tìm kiếm..."
         headerTitle="Chi tiết Tòa nhà"
       >
         <div className="flex items-center justify-center p-12">
           <Spin size="large" tip="Đang tải dữ liệu..." />
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
   if (error || !building) {
     return (
-      <DashboardLayout 
-        navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/buildings'}))}
+      <RoleBasedLayout 
         searchPlaceholder="Tìm kiếm..."
         headerTitle="Chi tiết Tòa nhà"
       >
@@ -120,7 +117,7 @@ const BuildingDetail: React.FC = () => {
             </button>
           </div>
         </div>
-      </DashboardLayout>
+      </RoleBasedLayout>
     );
   }
 
@@ -283,8 +280,7 @@ const BuildingDetail: React.FC = () => {
   };
 
   return (
-    <DashboardLayout 
-      navItems={STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/buildings'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm..."
       headerTitle="Chi tiết Tòa nhà"
     >
@@ -778,7 +774,7 @@ const BuildingDetail: React.FC = () => {
         <p>Bạn có chắc chắn muốn xóa phòng <strong>{roomToDelete?.room_number}</strong>?</p>
         <p className="text-red-500 text-sm">Hành động này không thể hoàn tác.</p>
       </Modal>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 

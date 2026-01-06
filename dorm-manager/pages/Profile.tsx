@@ -1,9 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { STUDENT_NAV_ITEMS } from './StudentDashboard';
-import { MANAGER_NAV_ITEMS } from './ManagerDashboard';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
 import { getStudentById, StudentProfile, updateStudentContact } from '../api/studentApi';
 import { App } from 'antd';
@@ -220,8 +218,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
   };
 
   return (
-    <DashboardLayout 
-      navItems={isManager ? MANAGER_NAV_ITEMS.map(item => ({...item, isActive: false})) : STUDENT_NAV_ITEMS.map(item => ({...item, isActive: item.link === '/student/profile'}))}
+    <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm..."
       headerTitle={isManager ? "Thông tin sinh viên" : "Thông tin cá nhân"}
     >
@@ -596,7 +593,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
         )}
           </>
       </div>
-    </DashboardLayout>
+    </RoleBasedLayout>
   );
 };
 
