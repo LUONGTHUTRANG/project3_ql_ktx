@@ -74,7 +74,9 @@ export const createNotification = async (req, res) => {
 
       // Query all students in these rooms
       const [students] = await db.query(
-        `SELECT id FROM students WHERE current_room_id IN (${roomIds.map(() => "?").join(",")})`,
+        `SELECT DISTINCT s.id FROM students s
+         JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
+         WHERE sr.room_id IN (${roomIds.map(() => "?").join(",")})`,
         roomIds
       );
 
@@ -102,8 +104,9 @@ export const createNotification = async (req, res) => {
 
       // Query all students in these buildings
       const [students] = await db.query(
-        `SELECT s.id FROM students s 
-         JOIN rooms r ON s.current_room_id = r.id 
+        `SELECT DISTINCT s.id FROM students s 
+         JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
+         JOIN rooms r ON sr.room_id = r.id 
          WHERE r.building_id IN (${buildingIds.map(() => "?").join(",")})`,
         buildingIds
       );

@@ -35,7 +35,7 @@ export const login = async (req, res) => {
     } else if (role === "manager") {
       // Check Manager table first
       const [managers] = await db.query(
-        "SELECT m.*, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.username = ?",
+        "SELECT m.*, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.email = ?",
         [username]
       );
       if (managers.length > 0) {
@@ -113,7 +113,7 @@ export const login = async (req, res) => {
         fullName: user.full_name,
         role: userRole,
         email: user.email,
-        currentRoomId: user.current_room_id, // For students
+        currentRoomId: user.room_id, // For students, from stay_records
       },
     });
   } catch (error) {
@@ -141,7 +141,7 @@ export const getMe = async (req, res) => {
       if (rows.length > 0) user = rows[0];
     } else if (role === "student") {
       const [rows] = await db.query(
-        "SELECT id, mssv, full_name, email, gender, class_name, current_room_id FROM students WHERE id = ?",
+        "SELECT s.id, s.mssv, s.full_name, s.email, s.gender, s.class_name, sr.room_id FROM students s LEFT JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE' WHERE s.id = ?",
         [id]
       );
       if (rows.length > 0) user = rows[0];

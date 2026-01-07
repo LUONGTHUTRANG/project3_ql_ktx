@@ -17,6 +17,8 @@ import BuildingDetail from './pages/BuildingDetail';
 import StudentRegistration from './pages/StudentRegistration';
 import BillsAndPayments from './pages/BillsAndPayments';
 import InvoiceDetail from './pages/InvoiceDetail';
+import InvoiceManagementAdmin from './pages/InvoiceManagementAdmin';
+import RecordUtilityMetersPage from './pages/RecordUtilityMetersPage';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import RoomManagement from './pages/RoomManagement';
@@ -293,6 +295,24 @@ const AppContent: React.FC = () => {
         />
 
         <Route 
+          path="/manager/invoices" 
+          element={
+            user && user.role === UserRole.MANAGER
+              ? <InvoiceManagementAdmin /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/record-utility-meters" 
+          element={
+            user && (user.role === UserRole.ADMIN || user.role === UserRole.MANAGER)
+              ? <RecordUtilityMetersPage /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
           path="/manager/requests" 
           element={
             user && user.role === UserRole.MANAGER
@@ -492,6 +512,15 @@ const AppContent: React.FC = () => {
           element={
             user && user.role === UserRole.ADMIN
               ? <Settings /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/invoices" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <InvoiceManagementAdmin /> 
               : <Navigate to="/login" replace />
           } 
         />

@@ -50,14 +50,15 @@ const Notification = {
   getForStudent: async (studentId) => {
     // Get student's room and building info
     const [studentInfo] = await db.query(
-      `SELECT s.current_room_id, r.building_id 
+      `SELECT sr.room_id, r.building_id 
        FROM students s 
-       LEFT JOIN rooms r ON s.current_room_id = r.id 
+       LEFT JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
+       LEFT JOIN rooms r ON sr.room_id = r.id 
        WHERE s.id = ?`,
       [studentId]
     );
 
-    const roomId = studentInfo[0]?.current_room_id;
+    const roomId = studentInfo[0]?.room_id;
     const buildingId = studentInfo[0]?.building_id;
 
     const query = `

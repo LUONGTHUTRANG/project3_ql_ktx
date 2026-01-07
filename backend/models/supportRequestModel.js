@@ -22,7 +22,8 @@ const SupportRequest = {
       SELECT sr.*, s.full_name as student_name, s.mssv, r.room_number, b.name as building_name
       FROM support_requests sr
       JOIN students s ON sr.student_id = s.id
-      LEFT JOIN rooms r ON s.current_room_id = r.id
+      LEFT JOIN stay_records sr_stay ON s.id = sr_stay.student_id AND sr_stay.status = 'ACTIVE'
+      LEFT JOIN rooms r ON sr_stay.room_id = r.id
       LEFT JOIN buildings b ON r.building_id = b.id
     `;
     const params = [];
@@ -45,7 +46,7 @@ const SupportRequest = {
       // Filter by manager's building
       // We need to check if the student's room belongs to the manager's building
       whereClauses.push(
-        "r.building_id = (SELECT building_id FROM managers WHERE id = ?)"
+        "b.id = (SELECT building_id FROM managers WHERE id = ?)"
       );
       params.push(filters.userId);
     }
@@ -67,7 +68,8 @@ const SupportRequest = {
       SELECT COUNT(*) as count 
       FROM support_requests sr
       JOIN students s ON sr.student_id = s.id
-      LEFT JOIN rooms r ON s.current_room_id = r.id
+      LEFT JOIN stay_records sr_stay ON s.id = sr_stay.student_id AND sr_stay.status = 'ACTIVE'
+      LEFT JOIN rooms r ON sr_stay.room_id = r.id
     `;
     const params = [];
     const whereClauses = [];
@@ -107,7 +109,8 @@ const SupportRequest = {
              m.full_name as manager_name
       FROM support_requests sr
       JOIN students s ON sr.student_id = s.id
-      LEFT JOIN rooms r ON s.current_room_id = r.id
+      LEFT JOIN stay_records sr_stay ON s.id = sr_stay.student_id AND sr_stay.status = 'ACTIVE'
+      LEFT JOIN rooms r ON sr_stay.room_id = r.id
       LEFT JOIN buildings b ON r.building_id = b.id
       LEFT JOIN managers m ON sr.processed_by_manager_id = m.id
       WHERE sr.id = ?

@@ -12,7 +12,7 @@ export const getAllInvoices = async (req, res) => {
       if (!student) {
         return res.status(404).json({ message: "Student not found" });
       }
-      const roomId = student.current_room_id;
+      const roomId = student.room_id;
       console.log("Student's current room ID:", roomId);
       invoices = await Invoice.getForStudentApp(student_id, roomId);
     } else {

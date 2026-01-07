@@ -46,3 +46,15 @@ export const deleteBuilding = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+/**
+ * Get building occupancy statistics
+ * Returns occupancy rate for each building
+ */
+export const getBuildingOccupancyStats = async (req, res) => {
+  try {
+    const stats = await Building.getOccupancyStats();
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

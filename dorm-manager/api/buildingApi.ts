@@ -68,3 +68,16 @@ export const deleteBuilding = async (id: number | string) => {
     throw error;
   }
 };
+/**
+ * Fetch building occupancy statistics
+ * Returns occupancy rate for each building
+ */
+export const fetchBuildingOccupancyStats = async () => {
+  try {
+    const response = await axios.get(`${BASE_URL}/occupancy/stats`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching building occupancy stats:', error);
+    throw error;
+  }
+};

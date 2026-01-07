@@ -122,12 +122,6 @@ const StudentManagement: React.FC = () => {
               <span className="material-symbols-outlined text-[20px]">download</span>
               <span className="truncate">Xuất Excel</span>
             </button>
-            {isAdmin && (
-              <button className="flex cursor-pointer items-center justify-center gap-2 h-10 px-4 bg-primary hover:bg-primary-hover text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-95">
-                <span className="material-symbols-outlined text-[20px]">add</span>
-                <span className="truncate">Thêm sinh viên</span>
-              </button>
-            )}
           </div>
         </div>
 

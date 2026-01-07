@@ -8,6 +8,7 @@ import {
   getAllSupportRequests, 
   fetchBuildings 
 } from '../api';
+import { fetchBuildingOccupancyStats } from '../api/buildingApi';
 
 interface DashboardStats {
   totalStudents: number;
@@ -90,43 +91,61 @@ const AdminDashboard: React.FC = () => {
 
         setSupportRequests(Array.isArray(requests) ? requests.slice(0, 3) : []);
 
-        // Fetch buildings and calculate occupancy rates
+        // Fetch building occupancy statistics from dedicated endpoint
         try {
-          const buildingsResponse = await fetchBuildings();
-          const buildings = Array.isArray(buildingsResponse) 
-            ? buildingsResponse 
-            : (buildingsResponse?.data || buildingsResponse || []);
+          const occupancyResponse = await fetchBuildingOccupancyStats();
+          const occupancyData = Array.isArray(occupancyResponse) 
+            ? occupancyResponse 
+            : (occupancyResponse?.data || []);
 
-          // Calculate occupancy rate for each building
-          const buildingOccupancyData = buildings
-            .map((building: any) => {
-              const buildingRooms = Array.isArray(rooms)
-                ? rooms.filter((r: any) => r.building_id === building.id || r.building_name === building.name)
-                : [];
-              
-              const totalCapacity = buildingRooms.reduce((sum: number, room: any) => {
-                return sum + (room.capacity || room.max_capacity || 0);
-              }, 0);
-
-              const totalOccupants = buildingRooms.reduce((sum: number, room: any) => {
-                return sum + (room.current_occupants || room.occupants || 0);
-              }, 0);
-
-              const occupancyRate = totalCapacity > 0 
-                ? Math.round((totalOccupants / totalCapacity) * 100)
-                : 0;
-
-              return {
-                building: building.name || building.building_name || `Building ${building.id}`,
-                occupancyRate: occupancyRate,
-              };
-            })
+          // Transform occupancy data to match BuildingOccupancy interface
+          const buildingOccupancyData = occupancyData
+            .map((building: any) => ({
+              building: building.name || `Building ${building.id}`,
+              occupancyRate: building.occupancy_rate || 0,
+            }))
             .sort((a: any, b: any) => b.occupancyRate - a.occupancyRate);
 
           setBuildingOccupancy(buildingOccupancyData.length > 0 ? buildingOccupancyData : []);
-        } catch (buildingErr) {
-          console.error('Error fetching buildings:', buildingErr);
-          setBuildingOccupancy([]);
+        } catch (occupancyErr) {
+          console.error('Error fetching building occupancy stats:', occupancyErr);
+          // Fallback: calculate from rooms and buildings if API fails
+          try {
+            const buildingsResponse = await fetchBuildings();
+            const buildings = Array.isArray(buildingsResponse) 
+              ? buildingsResponse 
+              : (buildingsResponse?.data || []);
+
+            const buildingOccupancyData = buildings
+              .map((building: any) => {
+                const buildingRooms = Array.isArray(rooms)
+                  ? rooms.filter((r: any) => r.building_id === building.id)
+                  : [];
+                
+                const totalCapacity = buildingRooms.reduce((sum: number, room: any) => {
+                  return sum + (room.max_capacity || 0);
+                }, 0);
+
+                const totalOccupants = buildingRooms.reduce((sum: number, room: any) => {
+                  return sum + (room.current_occupants || 0);
+                }, 0);
+
+                const occupancyRate = totalCapacity > 0 
+                  ? Math.round((totalOccupants / totalCapacity) * 100)
+                  : 0;
+
+                return {
+                  building: building.name || `Building ${building.id}`,
+                  occupancyRate: occupancyRate,
+                };
+              })
+              .sort((a: any, b: any) => b.occupancyRate - a.occupancyRate);
+
+            setBuildingOccupancy(buildingOccupancyData);
+          } catch (fallbackErr) {
+            console.error('Error in fallback building occupancy calculation:', fallbackErr);
+            setBuildingOccupancy([]);
+          }
         }
 
         // Update stats
@@ -277,7 +296,7 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Tác vụ nhanh</h3>
             <div className="flex flex-col gap-3">
-              <button 
+              {/* <button 
                 onClick={() => navigate('/admin/students')}
                 className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
               >
@@ -288,7 +307,7 @@ const AdminDashboard: React.FC = () => {
                   <p className="text-sm font-bold text-slate-900 dark:text-white">Thêm sinh viên mới</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Đăng ký hồ sơ và xếp phòng</p>
                 </div>
-              </button>
+              </button> */}
               <button 
                 onClick={() => navigate('/admin/notifications')}
                 className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"

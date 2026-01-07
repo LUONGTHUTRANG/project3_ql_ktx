@@ -3,10 +3,12 @@ import db from "../config/db.js";
 const Student = {
   getAll: async (limit = 20, offset = 0) => {
     const query = `
-      SELECT s.id, s.mssv, s.full_name, s.email, s.phone_number, s.gender, s.class_name, s.student_status, s.stay_status, s.current_room_id,
+      SELECT s.id, s.mssv, s.full_name, s.email, s.phone_number, s.gender, s.class_name, s.student_status,
+             sr.status as stay_status, sr.room_id as current_room_id,
              r.room_number, b.name as building_name
       FROM students s
-      LEFT JOIN rooms r ON s.current_room_id = r.id
+      LEFT JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
+      LEFT JOIN rooms r ON sr.room_id = r.id
       LEFT JOIN buildings b ON r.building_id = b.id
       WHERE s.student_status = 'STUDYING'
       LIMIT ? OFFSET ?
@@ -22,10 +24,12 @@ const Student = {
 
   getById: async (id) => {
     const query = `
-      SELECT s.id, s.mssv, s.full_name, s.email, s.phone_number, s.gender, s.class_name, s.student_status, s.stay_status, s.current_room_id,
+      SELECT s.id, s.mssv, s.full_name, s.email, s.phone_number, s.gender, s.class_name, s.student_status,
+             sr.status as stay_status, sr.room_id as current_room_id,
              r.room_number, b.name as building_name
       FROM students s
-      LEFT JOIN rooms r ON s.current_room_id = r.id
+      LEFT JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
+      LEFT JOIN rooms r ON sr.room_id = r.id
       LEFT JOIN buildings b ON r.building_id = b.id
       WHERE s.id = ?
     `;
@@ -35,12 +39,14 @@ const Student = {
 
   getByRoomId: async (roomId) => {
     const query = `
-      SELECT s.id, s.mssv, s.full_name, s.email, s.phone_number, s.gender, s.class_name, s.student_status, s.stay_status, s.current_room_id,
+      SELECT s.id, s.mssv, s.full_name, s.email, s.phone_number, s.gender, s.class_name, s.student_status,
+             sr.status as stay_status, sr.room_id as current_room_id,
              r.room_number, b.name as building_name
       FROM students s
-      LEFT JOIN rooms r ON s.current_room_id = r.id
+      LEFT JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
+      LEFT JOIN rooms r ON sr.room_id = r.id
       LEFT JOIN buildings b ON r.building_id = b.id
-      WHERE s.current_room_id = ?
+      WHERE sr.room_id = ?
     `;
     const [rows] = await db.query(query, [roomId]);
     return rows;
@@ -48,10 +54,12 @@ const Student = {
 
   getByBuildingId: async (buildingId) => {
     const query = `
-      SELECT s.id, s.mssv, s.full_name, s.email, s.phone_number, s.gender, s.class_name, s.student_status, s.stay_status, s.current_room_id,
+      SELECT s.id, s.mssv, s.full_name, s.email, s.phone_number, s.gender, s.class_name, s.student_status,
+             sr.status as stay_status, sr.room_id as current_room_id,
              r.room_number, b.name as building_name
       FROM students s
-      JOIN rooms r ON s.current_room_id = r.id
+      JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
+      JOIN rooms r ON sr.room_id = r.id
       JOIN buildings b ON r.building_id = b.id
       WHERE r.building_id = ?
     `;
