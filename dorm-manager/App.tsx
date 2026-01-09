@@ -24,6 +24,9 @@ import Profile from './pages/Profile';
 import RoomManagement from './pages/RoomManagement';
 import RoomDetail from './pages/RoomDetail';
 import StudentManagement from './pages/StudentManagement';
+import ServicePriceManagement from './pages/ServicePriceManagement';
+import SemesterManagement from './pages/SemesterManagement';
+import ManagerManagement from './pages/ManagerManagement';
 import { User, UserRole } from './types';
 import { loginUser, logout as logoutUser, getStoredUser } from './api/auth';
 
@@ -449,6 +452,31 @@ const AppContent: React.FC = () => {
           element={
             user && user.role === UserRole.ADMIN
               ? <Profile isManager={true} /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route           path="/admin/managers" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <ManagerManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route           path="/admin/service-prices" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <ServicePriceManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/admin/semesters" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <SemesterManagement /> 
               : <Navigate to="/login" replace />
           } 
         />

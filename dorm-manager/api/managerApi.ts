@@ -37,6 +37,50 @@ export interface ManagerProfile {
   building_name?: string;
 }
 
+// Lấy tất cả cán bộ quản lý
+export const getAllManagers = async (): Promise<ManagerProfile[]> => {
+  try {
+    const response = await api.get('/');
+    return response.data;
+  } catch (error: any) {
+    console.error('Lỗi khi lấy danh sách cán bộ:', error);
+    throw error;
+  }
+};
+
+// Tạo cán bộ quản lý mới
+export const createManager = async (data: Partial<ManagerProfile>): Promise<ManagerProfile> => {
+  try {
+    const response = await api.post('/', data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Lỗi khi tạo cán bộ:', error);
+    throw error;
+  }
+};
+
+// Cập nhật cán bộ quản lý
+export const updateManager = async (id: string, data: Partial<ManagerProfile>): Promise<ManagerProfile> => {
+  try {
+    const response = await api.put(`/${id}`, data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Lỗi khi cập nhật cán bộ:', error);
+    throw error;
+  }
+};
+
+// Xóa cán bộ quản lý
+export const deleteManager = async (id: string): Promise<any> => {
+  try {
+    const response = await api.delete(`/${id}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Lỗi khi xóa cán bộ:', error);
+    throw error;
+  }
+};
+
 // Cập nhật thông tin liên lạc của cán bộ quản lý
 export const updateManagerContact = async (id: string, data: { phone_number?: string; email?: string }): Promise<ManagerProfile> => {
   try {

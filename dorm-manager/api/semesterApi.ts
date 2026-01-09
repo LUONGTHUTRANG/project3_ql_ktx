@@ -52,3 +52,40 @@ export const getSemesterById = async (id: number | string) => {
     throw error;
   }
 };
+export const createSemester = async (data: Partial<Semester>): Promise<Semester> => {
+  try {
+    const response = await api.post('/', data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error creating semester:', error);
+    throw error;
+  }
+};
+
+export const updateSemester = async (id: number | string, data: Partial<Semester>): Promise<Semester> => {
+  try {
+    const response = await api.put(`/${id}`, data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating semester:', error);
+    throw error;
+  }
+};
+
+export const deleteSemester = async (id: number | string): Promise<any> => {
+  try {
+    const response = await api.delete(`/${id}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error deleting semester:', error);
+    throw error;
+  }
+};
+
+export default {
+  getAllSemesters,
+  getSemesterById,
+  createSemester,
+  updateSemester,
+  deleteSemester,
+};

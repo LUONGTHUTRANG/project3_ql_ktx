@@ -2,18 +2,28 @@ import db from "../config/db.js";
 
 const Manager = {
   getAll: async () => {
-    const [rows] = await db.query("SELECT * FROM managers");
+    const [rows] = await db.query(
+      `SELECT m.*, b.name as building_name
+       FROM managers m
+       LEFT JOIN buildings b ON m.building_id = b.id
+      `
+    );
     return rows;
   },
 
   getById: async (id) => {
-    const [rows] = await db.query("SELECT * FROM managers WHERE id = ?", [id]);
+    const [rows] = await db.query(
+      `SELECT m.*, b.name as building_name
+       FROM managers m
+       LEFT JOIN buildings b ON m.building_id = b.id
+       WHERE m.id = ?`,
+      [id]
+    );
     return rows[0];
   },
 
   create: async (data) => {
     const {
-      username,
       email,
       password_hash,
       full_name,
@@ -23,9 +33,8 @@ const Manager = {
       fcm_token,
     } = data;
     const [result] = await db.query(
-      "INSERT INTO managers (username, email, password_hash, full_name, phone_number, is_first_login, building_id, fcm_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO managers (email, password_hash, full_name, phone_number, is_first_login, building_id, fcm_token) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
-        username,
         email,
         password_hash,
         full_name,
@@ -39,30 +48,30 @@ const Manager = {
   },
 
   update: async (id, data) => {
-    const {
-      username,
-      email,
-      password_hash,
-      full_name,
-      phone_number,
-      is_first_login,
-      building_id,
-      fcm_token,
-    } = data;
-    await db.query(
-      "UPDATE managers SET username = ?, email = ?, password_hash = ?, full_name = ?, phone_number = ?, is_first_login = ?, building_id = ?, fcm_token = ? WHERE id = ?",
-      [
-        username,
-        email,
-        password_hash,
-        full_name,
-        phone_number,
-        is_first_login,
-        building_id,
-        fcm_token,
-        id,
-      ]
-    );
+    const allowedFields = ['email', 'full_name', 'phone_number', 'building_id'];
+    const setClause = [];
+    const values = [];
+
+    // Build dynamic SET clause
+    for (const [key, value] of Object.entries(data)) {
+      if (allowedFields.includes(key)) {
+        setClause.push(`${key} = ?`);
+        values.push(value);
+      }
+    }
+
+    if (setClause.length === 0) {
+      throw new Error("Không có trường nào để cập nhật");
+    }
+
+    values.push(id);
+    const query = `UPDATE managers SET ${setClause.join(', ')} WHERE id = ?`;
+    
+    const [result] = await db.query(query, values);
+    if (result.affectedRows === 0) {
+      throw new Error("Cán bộ quản lý không tồn tại");
+    }
+    
     return { id, ...data };
   },
 
