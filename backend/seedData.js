@@ -180,7 +180,7 @@ const seed = async () => {
     // 6. Seed Students
     console.log("Seeding Students...");
     await db.query("DELETE FROM students");
-    
+
     const students = [
       [
         "20225001",
@@ -233,7 +233,7 @@ const seed = async () => {
         "STUDYING",
       ],
     ];
-    
+
     await db.query(
       "INSERT INTO students (mssv, password_hash, full_name, email, phone_number, gender, class_name, student_status) VALUES ?",
       [students]
@@ -248,7 +248,7 @@ const seed = async () => {
     // 7. Seed Stay Records (Students staying in rooms)
     console.log("Seeding Stay Records...");
     await db.query("DELETE FROM stay_records");
-    
+
     // Get active semester
     const [semesters] = await db.query(
       "SELECT id, start_date FROM semesters WHERE is_active = 1 LIMIT 1"
@@ -269,6 +269,11 @@ const seed = async () => {
       "INSERT INTO stay_records (student_id, room_id, semester_id, start_date, end_date, status) VALUES ?",
       [stayRecords]
     );
+
+    // 7.5 Clear Registrations (for demo - students will register fresh)
+    console.log("Clearing Registrations for fresh demo...");
+    await db.query("DELETE FROM registrations");
+    console.log("Registrations cleared - students can now register fresh!");
 
     // 8. Seed Service Prices
     console.log("Seeding Service Prices...");
@@ -393,7 +398,7 @@ const seed = async () => {
         room.id,
         null, // student_id is null for utility
         null, // usage_id is NULL (chưa ghi chỉ số)
-        null, // amount is NULL (không thể tính được vì chưa ghi chỉ số)
+        0, // amount is 0 (chưa có dữ liệu vì chưa ghi chỉ số)
         `Tiền điện nước tháng ${currentMonth}/${currentYear} phòng ${room.room_number} (chưa ghi chỉ số)`,
         "UNPAID",
         new Date(now.getFullYear(), now.getMonth() + 1, 10),
