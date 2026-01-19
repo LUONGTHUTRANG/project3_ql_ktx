@@ -5,6 +5,7 @@ import { Select, Switch, message } from 'antd';
 import { createRegistration } from '../api/registrationApi';
 import { fetchBuildings } from '../api/buildingApi';
 import { getAllSemesters, Semester } from '../api/semesterApi';
+import { getCurrentStay, CurrentStayInfo } from '../api/studentApi';
 
 type RegistrationStatus = 'upcoming' | 'open' | 'closed';
 type ActiveTab = 'regular' | 'special' | 'extension';
@@ -56,6 +57,10 @@ const StudentRegistration: React.FC = () => {
   const [priorityDescription, setPriorityDescription] = useState<string>('');
   const [extensionReason, setExtensionReason] = useState<string>('');
 
+  // Current stay info for renewal
+  const [currentStayInfo, setCurrentStayInfo] = useState<CurrentStayInfo | null>(null);
+  const [loadingCurrentStay, setLoadingCurrentStay] = useState(false);
+
   // Fetch buildings and semester on mount
   useEffect(() => {
     const loadInitialData = async () => {
@@ -70,12 +75,42 @@ const StudentRegistration: React.FC = () => {
         if (active) {
           setActiveSemester(active);
         }
+
+        // Fetch current stay info for renewal tab
+        await loadCurrentStay();
       } catch (error) {
         console.error('Error loading initial data:', error);
       }
     };
     loadInitialData();
   }, []);
+
+  // Load current stay info
+  const loadCurrentStay = async () => {
+    setLoadingCurrentStay(true);
+    try {
+      const response = await getCurrentStay();
+      if (response.hasCurrentStay && response.data) {
+        setHasCurrentStay(true);
+        setCurrentStayInfo(response.data);
+      } else {
+        setHasCurrentStay(false);
+        setCurrentStayInfo(null);
+      }
+    } catch (error) {
+      console.error('Error loading current stay:', error);
+      setHasCurrentStay(false);
+      setCurrentStayInfo(null);
+    } finally {
+      setLoadingCurrentStay(false);
+    }
+  };
+
+  // Format date helper
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('vi-VN');
+  };
 
   if (!user) return null;
 
@@ -159,11 +194,21 @@ const StudentRegistration: React.FC = () => {
         }
       }
 
+      // For renewal, use current room's building if available
+      const buildingIdToSend = activeTab === 'extension' && currentStayInfo
+        ? currentStayInfo.building_id
+        : selectedBuildingId;
+
+      const roomIdToSend = activeTab === 'extension' && currentStayInfo
+        ? currentStayInfo.room_id
+        : null;
+
       // Call API
       const result = await createRegistration({
         student_id: user.id,
         registration_type: registrationType,
-        desired_building_id: selectedBuildingId,
+        desired_building_id: buildingIdToSend,
+        desired_room_id: roomIdToSend,
         priority_category: priorityCat,
         priority_description: priorityDesc,
         evidence: evidenceFile,
@@ -661,7 +706,13 @@ const StudentRegistration: React.FC = () => {
 
               {activeTab === 'extension' && (
                 /* EXTENSION TAB CONTENT */
-                hasCurrentStay ? (
+                loadingCurrentStay ? (
+                  /* LOADING STATE */
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+                    <p className="text-text-secondary dark:text-gray-400">Đang tải thông tin chỗ ở...</p>
+                  </div>
+                ) : hasCurrentStay && currentStayInfo ? (
                   /* CASE: HAS CURRENT STAY - Show Form */
                   <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-top-4 duration-500">
                     {/* Section 1: Current Info */}
@@ -675,21 +726,48 @@ const StudentRegistration: React.FC = () => {
                           <span className="text-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Phòng hiện tại</span>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="material-symbols-outlined text-text-secondary dark:text-gray-500" style={{ fontSize: '20px' }}>meeting_room</span>
-                            <span className="text-text-main dark:text-white text-base font-bold">P.302 - Nhà B</span>
+                            <span className="text-text-main dark:text-white text-base font-bold">
+                              {currentStayInfo.room_number} - {currentStayInfo.building_name}
+                            </span>
                           </div>
                         </div>
                         <div className="flex flex-col gap-1 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-border-color dark:border-gray-700">
                           <span className="text-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Kỳ học hiện tại</span>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="material-symbols-outlined text-text-secondary dark:text-gray-500" style={{ fontSize: '20px' }}>school</span>
-                            <span className="text-text-main dark:text-white text-base font-medium">Học kỳ II / 2023-2024</span>
+                            <span className="text-text-main dark:text-white text-base font-medium">
+                              Học kỳ {currentStayInfo.term} / {currentStayInfo.academic_year}
+                            </span>
                           </div>
                         </div>
                         <div className="flex flex-col gap-1 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-border-color dark:border-gray-700">
-                          <span className="text-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Hết hạn hợp đồng</span>
+                          <span className="text-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Thời gian đã ở</span>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="material-symbols-outlined text-red-500" style={{ fontSize: '20px' }}>event_busy</span>
-                            <span className="text-text-main dark:text-white text-base font-bold">30/06/2024</span>
+                            <span className="material-symbols-outlined text-green-500" style={{ fontSize: '20px' }}>schedule</span>
+                            <span className="text-text-main dark:text-white text-base font-bold">
+                              {currentStayInfo.months_stayed > 0
+                                ? `${currentStayInfo.months_stayed} tháng ${currentStayInfo.days_stayed % 30} ngày`
+                                : `${currentStayInfo.days_stayed} ngày`
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Additional Info Row */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                          <span className="text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider">Ngày vào ở</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400" style={{ fontSize: '20px' }}>event_available</span>
+                            <span className="text-text-main dark:text-white text-base font-bold">{formatDate(currentStayInfo.start_date)}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+                          <span className="text-amber-600 dark:text-amber-400 text-xs font-bold uppercase tracking-wider">Kết thúc học kỳ</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="material-symbols-outlined text-amber-600 dark:text-amber-400" style={{ fontSize: '20px' }}>event_busy</span>
+                            <span className="text-text-main dark:text-white text-base font-bold">{formatDate(currentStayInfo.semester_end)}</span>
                           </div>
                         </div>
                       </div>
@@ -699,33 +777,25 @@ const StudentRegistration: React.FC = () => {
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-3 border-b border-dashed border-border-color dark:border-gray-700 pb-3">
                         <span className="material-symbols-outlined text-primary text-2xl font-bold bg-primary/10 rounded-full p-1">calendar_month</span>
-                        <h2 className="text-text-main dark:text-white text-xl font-bold">Thời gian gia hạn dự kiến</h2>
+                        <h2 className="text-text-main dark:text-white text-xl font-bold">Yêu cầu gia hạn</h2>
                       </div>
-                      <div className="flex flex-col gap-4 p-5 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800">
+                      <div className="flex flex-col gap-4 p-5 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800">
                         <div className="flex items-start gap-4">
                           <div className="mt-0.5">
-                            <span className="material-symbols-outlined text-primary" style={{ fontSize: '28px' }}>date_range</span>
+                            <span className="material-symbols-outlined text-green-600" style={{ fontSize: '28px' }}>autorenew</span>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-text-secondary dark:text-blue-300 text-xs font-bold uppercase tracking-wide">Kỳ tiếp theo</span>
-                            <span className="text-text-main dark:text-white text-lg font-bold text-primary dark:text-blue-400">Học kỳ I / 2024-2025</span>
+                            <span className="text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wide">Tiếp tục ở tại</span>
+                            <span className="text-text-main dark:text-white text-lg font-bold text-green-700 dark:text-green-400">
+                              {currentStayInfo.room_number} - {currentStayInfo.building_name}
+                            </span>
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 ml-0 sm:ml-[44px] border-t border-blue-200 dark:border-blue-800/50 pt-4 border-dashed">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-text-secondary dark:text-gray-400 text-xs font-medium">Ngày bắt đầu dự kiến</span>
-                            <div className="flex items-center gap-2">
-                              <span className="material-symbols-outlined text-green-600 dark:text-green-400" style={{ fontSize: '20px' }}>event_available</span>
-                              <span className="text-text-main dark:text-white text-sm font-bold">15/08/2024</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-text-secondary dark:text-gray-400 text-xs font-medium">Ngày kết thúc dự kiến</span>
-                            <div className="flex items-center gap-2">
-                              <span className="material-symbols-outlined text-red-500 dark:text-red-400" style={{ fontSize: '20px' }}>event_busy</span>
-                              <span className="text-text-main dark:text-white text-sm font-bold">15/01/2025</span>
-                            </div>
-                          </div>
+                        <div className="ml-0 sm:ml-[44px] border-t border-green-200 dark:border-green-800/50 pt-4 border-dashed">
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Bạn đang yêu cầu gia hạn chỗ ở tại phòng <strong>{currentStayInfo.room_number}</strong> ({currentStayInfo.building_name})
+                            cho học kỳ tiếp theo. Giá phòng: <strong>{new Intl.NumberFormat('vi-VN').format(currentStayInfo.price_per_semester)} VNĐ/kỳ</strong>
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -814,11 +884,12 @@ const StudentRegistration: React.FC = () => {
                         Đăng ký mới ngay
                       </button>
                       <button
-                        onClick={() => setHasCurrentStay(true)}
-                        className="flex items-center justify-center gap-2 px-8 h-12 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                        onClick={() => loadCurrentStay()}
+                        disabled={loadingCurrentStay}
+                        className="flex items-center justify-center gap-2 px-8 h-12 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all disabled:opacity-50"
                       >
-                        <span className="material-symbols-outlined">refresh</span>
-                        Thử lại
+                        <span className={`material-symbols-outlined ${loadingCurrentStay ? 'animate-spin' : ''}`}>refresh</span>
+                        {loadingCurrentStay ? 'Đang tải...' : 'Thử lại'}
                       </button>
                     </div>
                   </div>

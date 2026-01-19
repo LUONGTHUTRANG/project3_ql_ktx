@@ -33,4 +33,12 @@ router.put(
   studentController.updateStudentContact
 );
 
+// Get current stay for the logged-in student (for renewal)
+router.get(
+  "/me/current-stay",
+  authorizeRoles("student"),
+  studentController.getCurrentStay
+);
+
 export default router;
+
