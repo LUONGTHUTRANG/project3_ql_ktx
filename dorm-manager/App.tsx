@@ -18,6 +18,7 @@ import StudentRegistration from './pages/StudentRegistration';
 import BillsAndPayments from './pages/BillsAndPayments';
 import InvoiceDetail from './pages/InvoiceDetail';
 import InvoiceManagement from './pages/InvoiceManagement';
+import CreateInvoicePage from './pages/CreateInvoicePage';
 import RecordUtilityMetersPage from './pages/RecordUtilityMetersPage';
 import RoomFeeInvoiceDetail from './pages/RoomFeeInvoiceDetail';
 import UtilityFeeInvoiceDetail from './pages/UtilityFeeInvoiceDetail';
@@ -299,8 +300,15 @@ const AppContent: React.FC = () => {
           } 
         />
 
-        <Route 
-          path="/manager/invoices/room-fee" 
+        <Route           path="/manager/invoices/create" 
+          element={
+            user && user.role === UserRole.MANAGER
+              ? <CreateInvoicePage /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route           path="/manager/invoices/room-fee" 
           element={
             user && user.role === UserRole.MANAGER
               ? <InvoiceManagement /> 
@@ -539,8 +547,15 @@ const AppContent: React.FC = () => {
           } 
         />
 
-        <Route 
-          path="/admin/notifications" 
+        <Route           path="/admin/invoices/create" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <CreateInvoicePage /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route           path="/admin/notifications" 
           element={
             user && user.role === UserRole.ADMIN
               ? <NotificationManagement /> 

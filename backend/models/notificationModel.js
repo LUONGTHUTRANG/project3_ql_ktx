@@ -34,17 +34,36 @@ const Notification = {
   },
 
   addRecipients: async (values) => {
-    if (!values || values.length === 0) return;
-    // values is array of [notification_id, student_id, null, null]
-
-    const columns = "(notification_id, student_id, room_id, building_id)";
-    const placeholders = values.map(() => "(?, ?, ?, ?)").join(", ");
-    const flatValues = values.flat();
+    if (!values || values.length === 0) {
+      console.log("addRecipients: No recipient values to add");
+      return;
+    }
     
-    await db.query(
-      `INSERT INTO notification_recipients ${columns} VALUES ${placeholders}`,
-      flatValues
-    );
+    console.log(`addRecipients: Adding ${values.length} recipients to notification_recipients table`);
+    console.log(`addRecipients: Sample value structure:`, values[0]);
+    
+    try {
+      // Build the INSERT query properly
+      const columns = "(notification_id, student_id, room_id, building_id)";
+      const placeholders = values.map(() => "(?, ?, ?, ?)").join(", ");
+      const flatValues = values.flat();
+      
+      const sql = `INSERT INTO notification_recipients ${columns} VALUES ${placeholders}`;
+      console.log("addRecipients: SQL Query:", sql);
+      console.log("addRecipients: Flat values array:", flatValues);
+      console.log("addRecipients: Flat values length:", flatValues.length);
+      
+      const result = await db.query(sql, flatValues);
+      
+      console.log(`addRecipients: Result affectedRows:`, result[0]?.affectedRows);
+      console.log(`addRecipients: Successfully inserted ${result[0]?.affectedRows || values.length} recipient rows`);
+      
+      return result;
+    } catch (error) {
+      console.error("addRecipients: ERROR during INSERT", error.message);
+      console.error("addRecipients: Full error:", error);
+      throw error;
+    }
   },
 
   getForStudent: async (studentId) => {

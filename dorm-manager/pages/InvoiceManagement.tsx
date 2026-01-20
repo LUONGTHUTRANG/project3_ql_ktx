@@ -251,12 +251,12 @@ const InvoiceManagement: React.FC = () => {
           </div>
           <div className="flex gap-3">
             <button 
-              onClick={() => navigate('/record-utility-meters')}
-              className="inline-flex items-center justify-center gap-2 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-text-main dark:text-gray-200 font-medium py-2.5 px-5 rounded-lg shadow-sm transition-all active:scale-95">
-              <span className="material-symbols-outlined text-[20px]">edit_note</span>
-              <span>Ghi điện nước</span>
-            </button>
-            <button className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white font-medium py-2.5 px-5 rounded-lg shadow-sm transition-all active:scale-95">
+              onClick={() => {
+                const path = user?.role === 'admin' ? '/admin/invoices/create' : '/manager/invoices/create';
+                navigate(path);
+              }}
+              className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white font-medium py-2.5 px-5 rounded-lg shadow-sm transition-all active:scale-95"
+            >
               <span className="material-symbols-outlined text-[20px]">add</span>
               <span>Tạo hóa đơn</span>
             </button>

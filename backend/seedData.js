@@ -265,11 +265,11 @@ const seed = async () => {
 
     // Create stay records for students using actual student IDs
     const stayRecords = [
-      [studentIds[0], 15, activeSemesterId, semesterStartDate, null, 'ACTIVE'],
-      [studentIds[1], 15, activeSemesterId, semesterStartDate, null, 'ACTIVE'],
+      [studentIds[0], 1, activeSemesterId, semesterStartDate, null, 'ACTIVE'],
+      [studentIds[1], 1, activeSemesterId, semesterStartDate, null, 'ACTIVE'],
       [studentIds[2], 20, activeSemesterId, semesterStartDate, null, 'ACTIVE'],
       [studentIds[3], 26, activeSemesterId, semesterStartDate, null, 'ACTIVE'],
-      [studentIds[4], 49, activeSemesterId, semesterStartDate, null, 'ACTIVE'],
+      [studentIds[4], 39, activeSemesterId, semesterStartDate, null, 'ACTIVE'],
     ];
 
     await db.query(

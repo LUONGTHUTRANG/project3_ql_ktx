@@ -56,31 +56,32 @@ const UtilityFeeInvoiceTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [publishLoading, setPublishLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [unrecordedCount, setUnrecordedCount] = useState(0);
+
+  // Load cycles function (extracted for reuse)
+  const loadCycles = async () => {
+    try {
+      const data = await getUtilityInvoiceCycles();
+      const sortedCycles = (data || []).sort((a: Cycle, b: Cycle) => {
+        const dateA = new Date(a.year, a.month - 1);
+        const dateB = new Date(b.year, b.month - 1);
+        return dateB.getTime() - dateA.getTime();
+      });
+      setCycles(sortedCycles);
+      
+      // Set default to latest cycle
+      if (sortedCycles.length > 0) {
+        setSelectedCycleId(sortedCycles[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to load cycles:', err);
+      message.error('Không thể tải danh sách kỳ');
+    }
+  };
 
   // Load cycles on mount
   useEffect(() => {
-    const loadCycles = async () => {
-      try {
-        const data = await getUtilityInvoiceCycles();
-        const sortedCycles = (data || []).sort((a: Cycle, b: Cycle) => {
-          const dateA = new Date(a.year, a.month - 1);
-          const dateB = new Date(b.year, b.month - 1);
-          return dateB.getTime() - dateA.getTime();
-        });
-        setCycles(sortedCycles);
-        
-        // Set default to latest cycle
-        if (sortedCycles.length > 0) {
-          setSelectedCycleId(sortedCycles[0].id);
-        }
-      } catch (err) {
-        console.error('Failed to load cycles:', err);
-        message.error('Không thể tải danh sách kỳ');
-      }
-    };
-
     loadCycles();
   }, []);
 
@@ -116,7 +117,11 @@ const UtilityFeeInvoiceTab: React.FC = () => {
   }, [invoices]);
 
   const handleRecordMeters = () => {
-    navigate(`/admin/record-utility-meters`);
+    navigate(`/record-utility-meters`);
+  };
+
+  const handleEditMeters = (roomId: number, cycleId: number) => {
+    navigate(`/record-utility-meters?mode=edit&roomId=${roomId}&cycleId=${cycleId}`);
   };
 
   const handlePublishCycle = async () => {
@@ -130,12 +135,14 @@ const UtilityFeeInvoiceTab: React.FC = () => {
       content: `Bạn có chắc chắn muốn phát hành hóa đơn điện nước cho tháng ${cycles.find(c => c.id === selectedCycleId)?.month}/${cycles.find(c => c.id === selectedCycleId)?.year}?`,
       okText: 'Phát hành',
       cancelText: 'Hủy',
-      okButtonProps: { danger: true },
+      okButtonProps: { style: { background: '#059669', borderColor: '#059669' } },
       onOk: async () => {
         try {
           setPublishLoading(true);
           await publishUtilityInvoiceCycle(selectedCycleId!);
           message.success('Phát hành hóa đơn thành công');
+          // Reload cycles to update status display
+          await loadCycles();
           // Reload invoices
           const buildingId = user?.managed_building_id || user?.building_id;
           const data = await getUtilityInvoicesByCycle(selectedCycleId!, buildingId);
@@ -150,6 +157,19 @@ const UtilityFeeInvoiceTab: React.FC = () => {
     });
   };
   // Map invoice to row display
+  const getStatusLabel = (status: string): string => {
+    switch (status) {
+      case 'DRAFT':
+        return 'Nháp';
+      case 'READY':
+        return 'Sẵn sàng';
+      case 'PUBLISHED':
+        return 'Đã phát hành';
+      default:
+        return status;
+    }
+  };
+
   const mapInvoiceToRow = (inv: Invoice): InvoiceRow => {
     const status = inv.status || 'DRAFT';
     let statusLabel = 'Chưa xác định';
@@ -212,7 +232,7 @@ const UtilityFeeInvoiceTab: React.FC = () => {
             className="w-full h-11"
             options={cycles.map((cycle) => ({
               value: cycle.id,
-              label: `Tháng ${cycle.month}/${cycle.year} - ${cycle.status}`,
+              label: `Tháng ${cycle.month}/${cycle.year} - ${getStatusLabel(cycle.status)}`,
             }))}
           />
         </div>
@@ -223,8 +243,8 @@ const UtilityFeeInvoiceTab: React.FC = () => {
             {/* Record Meters Button - 1 part */}
             <button
               onClick={handleRecordMeters}
-              disabled={loading || !selectedCycleId}
-              className="flex-1 h-11 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              disabled={loading || !selectedCycleId || (selectedCycleId && cycles.find(c => c.id === selectedCycleId)?.status === 'PUBLISHED')}
+              className={`flex-1 h-11 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 disabled:pointer-events-none transition-colors font-medium text-sm`}
             >
               <span className="material-symbols-outlined">edit</span>
               Ghi chỉ số
@@ -233,8 +253,8 @@ const UtilityFeeInvoiceTab: React.FC = () => {
             {/* Publish Button - 1 part */}
             <button
               onClick={handlePublishCycle}
-              disabled={loading || publishLoading || !selectedCycleId || unrecordedCount > 0}
-              className="flex-1 flex h-11 items-center justify-center gap-2 py-2 px-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              disabled={loading || publishLoading || !selectedCycleId || unrecordedCount > 0 || (selectedCycleId && cycles.find(c => c.id === selectedCycleId)?.status === 'PUBLISHED')}
+              className="flex-1 flex h-11 items-center justify-center gap-2 py-2 px-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 disabled:pointer-events-none transition-colors font-medium text-sm"
             >
               <span className="material-symbols-outlined">publish</span>
               {publishLoading ? 'Đang phát hành...' : 'Phát hành'}
@@ -243,14 +263,34 @@ const UtilityFeeInvoiceTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Unrecorded Count Block - 2 parts */}
-          <div className="flex-[2] flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2">
-            <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">warning</span>
-            <div className="flex flex-col">
-              <span className="text-xs text-amber-700 dark:text-amber-300">Chưa ghi chỉ số</span>
-              <span className="text-lg font-bold text-amber-700 dark:text-amber-300">{unrecordedCount}</span>
-            </div>
+      {/* Unrecorded Count / Completion Block */}
+      {unrecordedCount > 0 ? (
+        <div className="flex-[2] flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2">
+          <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">warning</span>
+          <div className="flex flex-col">
+            <span className="text-xs text-amber-700 dark:text-amber-300">Chưa ghi chỉ số</span>
+            <span className="text-lg font-bold text-amber-700 dark:text-amber-300">{unrecordedCount}</span>
           </div>
+        </div>
+      ) : selectedCycleId && cycles.find(c => c.id === selectedCycleId)?.status === 'PUBLISHED' ? (
+        <div className="flex-[2] flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2">
+          <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">check_circle</span>
+          <div className="flex flex-col">
+            <span className="text-sm text-blue-700 dark:text-blue-300">
+              Tất cả hóa đơn điện nước cho tháng {selectedCycleId && cycles.find(c => c.id === selectedCycleId) ? `${cycles.find(c => c.id === selectedCycleId)?.month}/${cycles.find(c => c.id === selectedCycleId)?.year}` : ''} đã được phát hành
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-[2] flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg px-4 py-2">
+          <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">check_circle</span>
+          <div className="flex flex-col">
+            <span className="text-sm text-emerald-700 dark:text-emerald-300">
+              Tất cả các phòng đã được ghi chỉ số, nhấn nút phát hành để xác nhận hoàn thành hóa đơn điện nước cho tháng {selectedCycleId && cycles.find(c => c.id === selectedCycleId) ? `${cycles.find(c => c.id === selectedCycleId)?.month}/${cycles.find(c => c.id === selectedCycleId)?.year}` : ''}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Invoices Table Section */}
       <div className="bg-white dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
@@ -307,12 +347,14 @@ const UtilityFeeInvoiceTab: React.FC = () => {
                           {invoice.statusLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button 
-                          onClick={() => navigate(`/invoice/utility-fee/detail/${invoice.id}`)}
-                          className="text-text-secondary dark:text-gray-500 group-hover:text-primary transition-colors"
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => handleEditMeters(invoice.original.room_id, selectedCycleId!)}
+                          disabled={loading || !selectedCycleId || (selectedCycleId && cycles.find(c => c.id === selectedCycleId)?.status === 'PUBLISHED')}
+                          className="p-1.5 rounded-lg text-text-secondary hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:pointer-events-none transition-colors"
+                          title="Chỉnh sửa"
                         >
-                          <span className="material-symbols-outlined">chevron_right</span>
+                          <span className="material-symbols-outlined text-[20px]">edit_square</span>
                         </button>
                       </td>
                     </tr>

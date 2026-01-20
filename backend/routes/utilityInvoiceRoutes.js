@@ -24,6 +24,7 @@ router.get("/cycles/:cycleId", utilityInvoiceController.getCycleById);
 router.get("/cycles/:cycleId/invoices", utilityInvoiceController.getInvoicesByCycle);
 router.get("/cycles/:cycleId/invoices/status/:status", utilityInvoiceController.getInvoicesByStatus);
 router.post("/cycles/:cycleId/publish", utilityInvoiceController.publishCycle);
+router.post("/cycles/:cycleId/record-readings", utilityInvoiceController.recordBulkReadings);
 
 // Invoice routes
 router.get("/:invoiceId", utilityInvoiceController.getInvoiceById);

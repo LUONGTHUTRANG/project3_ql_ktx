@@ -54,15 +54,16 @@ const Invoice = {
       invoice_code,
       invoice_category,
       total_amount,
-      status = "DRAFT",
+      status = "UNPAID",
       created_by_manager_id,
+      published_at,
     } = data;
 
     const [result] = await db.query(
       `INSERT INTO invoices 
-       (invoice_code, invoice_category, total_amount, status, created_by_manager_id) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [invoice_code, invoice_category, total_amount, status, created_by_manager_id]
+       (invoice_code, invoice_category, total_amount, status, created_by_manager_id, published_at) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [invoice_code, invoice_category, total_amount, status, created_by_manager_id, published_at]
     );
     return result.insertId;
   },

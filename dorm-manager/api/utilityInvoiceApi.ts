@@ -129,11 +129,35 @@ export const recordUtilityInvoice = async (data: {
 };
 
 /**
+ * Record bulk utility invoice readings
+ */
+export const recordBulkUtilityReadings = async (data: {
+  cycle_id: number;
+  readings: Array<{
+    room_id: number;
+    electricity_old?: number | null;
+    electricity_new: number;
+    water_old?: number | null;
+    water_new: number;
+  }>;
+}): Promise<any> => {
+  try {
+    const response = await api.post(`/cycles/${data.cycle_id}/record-readings`, {
+      readings: data.readings,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error recording bulk utility readings:', error);
+    throw error;
+  }
+};
+
+/**
  * Publish utility invoice cycle
  */
 export const publishUtilityInvoiceCycle = async (cycleId: number): Promise<any> => {
   try {
-    const response = await api.post(`/cycle/${cycleId}/publish`);
+    const response = await api.post(`/cycles/${cycleId}/publish`);
     return response.data;
   } catch (error: any) {
     console.error('Error publishing utility invoice cycle:', error);

@@ -21,7 +21,7 @@ export const MANAGER_NAV_ITEMS: NavItem[] = [
   { label: 'Tổng quan', icon: 'dashboard', link: '/manager/home' },
   { label: 'Quản lý Phòng', icon: 'meeting_room', link: '/manager/rooms' },
   { label: 'Quản lý Sinh viên', icon: 'school', link: '/manager/students' },
-  { label: 'Quản lý Hóa đơn', icon: 'receipt_long', link: '/manager/invoices' },
+  { label: 'Quản lý Hóa đơn', icon: 'receipt_long', link: '/manager/invoices/room-fee' },
   { label: 'Yêu cầu hỗ trợ', icon: 'support_agent', link: '/manager/requests' },
   { label: 'Quản lý Thông báo', icon: 'notifications', link: '/manager/notifications' },
 //   { label: 'Cài đặt', icon: 'settings', link: '/manager/settings' },
