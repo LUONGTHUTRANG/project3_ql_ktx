@@ -17,6 +17,7 @@ const seed = async () => {
     console.log("Seeding Admin...");
     // Check if admin exists to avoid duplicates if run multiple times, or just delete
     await db.query("DELETE FROM admins");
+    await db.query("ALTER TABLE admins AUTO_INCREMENT = 1");
     await db.query(
       "INSERT INTO admins (username, password_hash, full_name) VALUES (?, ?, ?)",
       ["admin", adminPassword, "System Administrator"]
@@ -25,6 +26,7 @@ const seed = async () => {
     // 2. Seed Buildings
     console.log("Seeding Buildings...");
     await db.query("DELETE FROM buildings");
+    await db.query("ALTER TABLE buildings AUTO_INCREMENT = 1");
     const buildings = [
       ["C1", "Khu ký túc xá – Dãy C1", "MIXED"],
       ["C2", "Khu ký túc xá – Dãy C2", "MIXED"],
@@ -38,6 +40,7 @@ const seed = async () => {
     // 3. Seed Rooms
     console.log("Seeding Rooms...");
     await db.query("DELETE FROM rooms");
+    await db.query("ALTER TABLE rooms AUTO_INCREMENT = 1");
     const rooms = [
       // Building C1 (building_id = 1)
       [1, "P101", 1, 4, 3000000.00, 0, 0, 0, "AVAILABLE"],
@@ -90,6 +93,7 @@ const seed = async () => {
     // 4. Seed Semesters (Initialize semesters - only one is active at a time)
     console.log("Seeding Semesters...");
     await db.query("DELETE FROM semesters");
+    await db.query("ALTER TABLE semesters AUTO_INCREMENT = 1");
     const semesters_data = [
       [
         "2025-02-01",
@@ -140,6 +144,7 @@ const seed = async () => {
     // 5. Seed Managers
     console.log("Seeding Managers...");
     await db.query("DELETE FROM managers");
+    await db.query("ALTER TABLE managers AUTO_INCREMENT = 1");
     // Assuming buildings 1 and 2 exist. If not, set building_id to NULL or ensure buildings are seeded first.
     // We will assume the main SQL script has been run which inserts buildings.
     const managers = [
@@ -180,6 +185,7 @@ const seed = async () => {
     // 6. Seed Students
     console.log("Seeding Students...");
     await db.query("DELETE FROM students");
+    await db.query("ALTER TABLE students AUTO_INCREMENT = 1");
     
     const students = [
       [
@@ -248,6 +254,7 @@ const seed = async () => {
     // 7. Seed Stay Records (Students staying in rooms)
     console.log("Seeding Stay Records...");
     await db.query("DELETE FROM stay_records");
+    await db.query("ALTER TABLE stay_records AUTO_INCREMENT = 1");
     
     // Get active semester
     const [semesters] = await db.query(
@@ -275,186 +282,204 @@ const seed = async () => {
     // Clear old data
     await db.query("SET FOREIGN_KEY_CHECKS = 0");
     await db.query("TRUNCATE TABLE invoices");
-    await db.query("TRUNCATE TABLE monthly_usages");
+    await db.query("TRUNCATE TABLE utility_invoices");
+    await db.query("TRUNCATE TABLE utility_invoice_cycles");
+    await db.query("TRUNCATE TABLE room_fee_invoices");
+    await db.query("TRUNCATE TABLE other_invoices");
     await db.query("TRUNCATE TABLE service_prices");
     await db.query("SET FOREIGN_KEY_CHECKS = 1");
+    await db.query("ALTER TABLE service_prices AUTO_INCREMENT = 1");
+    await db.query("ALTER TABLE invoices AUTO_INCREMENT = 1");
+    await db.query("ALTER TABLE utility_invoices AUTO_INCREMENT = 1");
+    await db.query("ALTER TABLE utility_invoice_cycles AUTO_INCREMENT = 1");
+    await db.query("ALTER TABLE room_fee_invoices AUTO_INCREMENT = 1");
+    await db.query("ALTER TABLE other_invoices AUTO_INCREMENT = 1");
 
     const servicePrices = [
-      ["ELECTRICITY", 2950.0, new Date(), 1],
-      ["WATER", 10000.0, new Date(), 1],
+      ["ELECTRICITY", 2950.0, new Date(), 1, "kWh"],
+      ["WATER", 10000.0, new Date(), 1, "m3"],
     ];
     await db.query(
-      "INSERT INTO service_prices (service_name, unit_price, apply_date, is_active) VALUES ?",
+      "INSERT INTO service_prices (service_name, unit_price, apply_date, is_active, unit) VALUES ?",
       [servicePrices]
     );
 
-    // 7. Seed Monthly Usages & Utility Invoices
-    console.log("Seeding Monthly Usages and Utility Invoices...");
-
-    // Get all rooms
-    const [roomsList] = await db.query("SELECT id, room_number FROM rooms");
-
-    // Get a manager for created_by
-    const [managersList] = await db.query("SELECT id FROM managers LIMIT 1");
-    const managerId = managersList.length > 0 ? managersList[0].id : 1;
-
-    const utilityInvoices = [];
+    // 9. Seed Utility Invoice Cycles
+    console.log("Seeding Utility Invoice Cycles...");
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
-    const roomsWithUsage = new Set(); // Track rooms with monthly_usages
 
-    // Only generate utility invoices and monthly usages for about 60% of rooms (randomly selected)
+    // Create current month cycle
+    const [cycleResult] = await db.query(
+      `INSERT INTO utility_invoice_cycles (month, year, status)
+       VALUES (?, ?, 'DRAFT')`,
+      [currentMonth, currentYear]
+    );
+    const cycleId = cycleResult.insertId;
+
+    // 10. Seed Utility Invoices
+    console.log("Seeding Utility Invoices...");
+    const [roomsList] = await db.query("SELECT id, room_number FROM rooms");
+
+    const utilityInvoicesToInsert = [];
+    const roomsWithUsage = new Set();
+
+    // Generate utility invoices for about 60% of rooms with readings
     for (const room of roomsList) {
-      // Random selection: approximately 60% of rooms have utility invoices
       if (Math.random() > 0.6) {
-        continue; // Skip this room
+        continue;
       }
 
       roomsWithUsage.add(room.id);
 
-      // Generate usage for current month
       const elecOld = Math.floor(Math.random() * 1000);
       const elecNew = elecOld + Math.floor(Math.random() * 200) + 10;
       const waterOld = Math.floor(Math.random() * 500);
       const waterNew = waterOld + Math.floor(Math.random() * 20) + 1;
 
-      const elecPrice = 3500;
-      const waterPrice = 6000;
+      // Calculate amount based on usage and unit prices
+      const electricityUsage = elecNew - elecOld;
+      const waterUsage = waterNew - waterOld;
+      const amount = electricityUsage * 2950.0 + waterUsage * 10000.0;
 
-      const totalAmount =
-        (elecNew - elecOld) * elecPrice + (waterNew - waterOld) * waterPrice;
-
-      // Insert usage
-      const [usageResult] = await db.query(
-        `INSERT INTO monthly_usages 
-            (room_id, month, year, electricity_old_index, electricity_new_index, electricity_price, water_old_index, water_new_index, water_price, total_amount)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          room.id,
-          currentMonth,
-          currentYear,
-          elecOld,
-          elecNew,
-          elecPrice,
-          waterOld,
-          waterNew,
-          waterPrice,
-          totalAmount,
-        ]
-      );
-
-      const usageId = usageResult.insertId;
-
-      // Create Utility Invoice with usage_id
-      const invoiceCode = `U${room.id}-${Date.now()
-        .toString()
-        .slice(-8)}-${Math.floor(Math.random() * 10)}`;
-      utilityInvoices.push([
-        invoiceCode,
-        "UTILITY_FEE",
-        activeSemesterId,
+      utilityInvoicesToInsert.push([
+        cycleId,
         room.id,
-        null, // student_id is null for utility
-        usageId,
-        totalAmount,
-        `Tiền điện nước tháng ${currentMonth}/${currentYear} phòng ${room.room_number}`,
-        "UNPAID",
-        new Date(now.getFullYear(), now.getMonth() + 1, 10),
-        null,
-        null,
-        null,
-        managerId,
+        elecOld,
+        elecNew,
+        waterOld,
+        waterNew,
+        amount, // calculated amount
+        "DRAFT", // status
       ]);
     }
 
-    // Generate some utility invoices WITHOUT usage_id (chưa ghi chỉ số)
-    // About 30% of rooms without usage will have invoices created but not recorded usage
-    // These invoices have amount = null since usage hasn't been recorded yet
+    // Generate utility invoices without readings for about 30% of remaining rooms
     for (const room of roomsList) {
-      if (roomsWithUsage.has(room.id)) {
-        continue; // Skip rooms that already have usage
-      }
+      if (roomsWithUsage.has(room.id)) continue;
+      if (Math.random() > 0.3) continue;
 
-      // Random selection: approximately 30% of remaining rooms
-      if (Math.random() > 0.3) {
-        continue;
-      }
-
-      // Create Utility Invoice WITHOUT usage_id and WITHOUT amount (chưa ghi)
-      const invoiceCode = `U${room.id}-${Date.now()
-        .toString()
-        .slice(-9)}-${Math.floor(Math.random() * 10)}`;
-
-      utilityInvoices.push([
-        invoiceCode,
-        "UTILITY_FEE",
-        activeSemesterId,
+      utilityInvoicesToInsert.push([
+        cycleId,
         room.id,
-        null, // student_id is null for utility
-        null, // usage_id is NULL (chưa ghi chỉ số)
-        null, // amount is NULL (không thể tính được vì chưa ghi chỉ số)
-        `Tiền điện nước tháng ${currentMonth}/${currentYear} phòng ${room.room_number} (chưa ghi chỉ số)`,
-        "UNPAID",
-        new Date(now.getFullYear(), now.getMonth() + 1, 10),
-        null,
-        null,
-        null,
-        managerId,
+        null, // electricity_old
+        null, // electricity_new
+        null, // water_old
+        null, // water_new
+        null, // amount
+        "DRAFT", // status
       ]);
     }
 
-    if (utilityInvoices.length > 0) {
+    if (utilityInvoicesToInsert.length > 0) {
       await db.query(
-        `INSERT INTO invoices 
-            (invoice_code, type, semester_id, room_id, student_id, usage_id, amount, description, status, due_date, paid_at, paid_by_student_id, payment_method, created_by_manager_id)
-            VALUES ?`,
-        [utilityInvoices]
+        `INSERT INTO utility_invoices 
+         (cycle_id, room_id, electricity_old, electricity_new, water_old, water_new, amount, status) 
+         VALUES ?`,
+        [utilityInvoicesToInsert]
       );
     }
 
-    // 8. Seed Room Fee Invoices
+    // 11. Seed Room Fee Invoices
     console.log("Seeding Room Fee Invoices...");
-    // Get stay records that are ACTIVE in current semester
     const [activeStayRecords] = await db.query(
-      `
-        SELECT sr.student_id, sr.room_id, r.price_per_semester, r.room_number 
-        FROM stay_records sr 
-        JOIN rooms r ON sr.room_id = r.id 
-        WHERE sr.status = 'ACTIVE' AND sr.semester_id = ?`,
+      `SELECT sr.student_id, sr.room_id, r.price_per_semester, r.room_number 
+       FROM stay_records sr 
+       JOIN rooms r ON sr.room_id = r.id 
+       WHERE sr.status = 'ACTIVE' AND sr.semester_id = ?`,
       [activeSemesterId]
     );
 
-    const roomInvoices = [];
+    const roomFeeInvoicesToInsert = [];
+    let roomFeeSeq = 1;
+    const yearMonth = `${currentYear}${String(currentMonth).padStart(2, '0')}`;
     for (const record of activeStayRecords) {
-      // Shorten invoice code to fit VARCHAR(20)
-      const invoiceCode = `R${record.student_id}-${Date.now()
-        .toString()
-        .slice(-8)}-${Math.floor(Math.random() * 10)}`;
-      roomInvoices.push([
-        invoiceCode,
-        "ROOM_FEE",
-        activeSemesterId,
-        record.room_id,
+      // Create invoice first with format: ROOM-YYYYMM-SEQNO (max 20 chars)
+      const invoiceCode = `ROOM-${yearMonth}-${String(roomFeeSeq).padStart(4, '0')}`;
+      roomFeeSeq++;
+      const [invoiceResult] = await db.query(
+        `INSERT INTO invoices 
+         (invoice_code, invoice_category, total_amount, status)
+         VALUES (?, 'ROOM_FEE', ?, 'PUBLISHED')`,
+        [invoiceCode, record.price_per_semester]
+      );
+
+      roomFeeInvoicesToInsert.push([
+        invoiceResult.insertId,
         record.student_id,
-        null, // usage_id
+        record.room_id,
+        activeSemesterId,
         record.price_per_semester,
-        `Tiền phòng học kỳ 1 năm học 2024-2025 - Phòng ${record.room_number}`,
-        "UNPAID",
-        new Date(now.getFullYear(), now.getMonth() + 1, 15),
-        null,
-        null,
-        null,
-        managerId,
       ]);
     }
 
-    if (roomInvoices.length > 0) {
+    if (roomFeeInvoicesToInsert.length > 0) {
       await db.query(
+        `INSERT INTO room_fee_invoices 
+         (invoice_id, student_id, room_id, semester_id, price_per_semester) 
+         VALUES ?`,
+        [roomFeeInvoicesToInsert]
+      );
+    }
+
+    // 12. Seed Other Invoices (Optional - some misc charges)
+    console.log("Seeding Other Invoices...");
+    const [managersList] = await db.query("SELECT id FROM managers LIMIT 1");
+    const managerId = managersList.length > 0 ? managersList[0].id : 1;
+
+    // Create a few sample other invoices
+    const otherInvoicesToInsert = [];
+    let otherSeq = 1;
+    if (studentIds.length > 0) {
+      // Format: OTHER-YYYYMM-SEQNO (max 20 chars)
+      const invoiceCode1 = `OTHER-${yearMonth}-${String(otherSeq).padStart(4, '0')}`;
+      otherSeq++;
+      const [invoiceResult1] = await db.query(
         `INSERT INTO invoices 
-            (invoice_code, type, semester_id, room_id, student_id, usage_id, amount, description, status, due_date, paid_at, paid_by_student_id, payment_method, created_by_manager_id)
-            VALUES ?`,
-        [roomInvoices]
+         (invoice_code, invoice_category, total_amount, status)
+         VALUES (?, 'OTHER', ?, 'PUBLISHED')`,
+        [invoiceCode1, 500000]
+      );
+
+      otherInvoicesToInsert.push([
+        invoiceResult1.insertId,
+        "STUDENT",
+        studentIds[0],
+        null,
+        "Tiền sửa chữa đồ dùng phòng",
+        "Sửa chữa bàn ghế hư hỏng",
+        500000,
+      ]);
+    }
+
+    // Add a sample room-related other invoice
+    if (roomsList.length > 0) {
+      const invoiceCode2 = `OTHER-${yearMonth}-${String(otherSeq).padStart(4, '0')}`;
+      const [invoiceResult2] = await db.query(
+        `INSERT INTO invoices 
+         (invoice_code, invoice_category, total_amount, status)
+         VALUES (?, 'OTHER', ?, 'PUBLISHED')`,
+        [invoiceCode2, 200000]
+      );
+
+      otherInvoicesToInsert.push([
+        invoiceResult2.insertId,
+        "ROOM",
+        null,
+        roomsList[0].id,
+        "Tiền vệ sinh chung cư",
+        "Vệ sinh tầng lầu và hành lang",
+        200000,
+      ]);
+    }
+
+    if (otherInvoicesToInsert.length > 0) {
+      await db.query(
+        `INSERT INTO other_invoices 
+         (invoice_id, target_type, target_student_id, target_room_id, title, description, amount) 
+         VALUES ?`,
+        [otherInvoicesToInsert]
       );
     }
 
