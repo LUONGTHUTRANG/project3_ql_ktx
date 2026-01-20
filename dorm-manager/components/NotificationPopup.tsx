@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Spin } from 'antd';
+import { Spin, Modal } from 'antd';
 import { getMyNotifications } from '../api';
 
 interface NotificationPopupProps {
@@ -11,6 +11,8 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const loadNotifications = async () => {
@@ -81,6 +83,16 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
     navigate('/notifications');
   };
 
+  const handleNotificationClick = (notification: any) => {
+    setSelectedNotification(notification);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedNotification(null);
+  };
+
   return (
     <>
       {/* Overlay to close when clicking outside */}
@@ -112,10 +124,7 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
               return (
                 <div 
                   key={item.id}
-                  onClick={() => {
-                    navigate(`/notifications/${item.id}`);
-                    onClose();
-                  }}
+                  onClick={() => handleNotificationClick(item)}
                   className={`flex gap-3 px-4 py-3 transition-colors border-b border-[#f0f2f4] dark:border-gray-800 cursor-pointer group ${
                     !item.is_read 
                       ? 'bg-primary/[0.04] dark:bg-primary/[0.08] hover:bg-[#f0f2f4] dark:hover:bg-gray-800' 
@@ -129,18 +138,18 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
                     </div>
                     
                     <div className="flex flex-1 flex-col justify-center min-w-0">
-                      <div className="flex justify-between items-start w-full">
+                      <div className="flex justify-between items-start w-full gap-2">
                         {/* Title - Reduced to text-sm */}
-                        <p className={`text-text-main dark:text-white text-sm leading-snug truncate pr-2 ${!item.is_read ? 'font-bold' : 'font-medium'}`}>
+                        <p className={`text-text-main dark:text-white text-sm leading-snug line-clamp-1 ${!item.is_read ? 'font-bold' : 'font-medium'}`}>
                           {item.title}
                         </p>
                         {/* Time - Reduced to text-[10px] */}
-                        <span className={`text-[10px] shrink-0 pt-0.5 ${!item.is_read ? 'font-medium text-primary' : 'font-normal text-text-secondary dark:text-gray-500'}`}>
+                        <span className={`text-[10px] shrink-0 pt-0.5 whitespace-nowrap ${!item.is_read ? 'font-medium text-primary' : 'font-normal text-text-secondary dark:text-gray-500'}`}>
                           {formatTime(item.created_at)}
                         </span>
                       </div>
                       {/* Description - Reduced to text-xs */}
-                      <p className="text-text-secondary dark:text-gray-400 text-xs font-normal leading-relaxed mt-0.5 line-clamp-2">
+                      <p className="text-text-secondary dark:text-gray-400 text-xs font-normal leading-relaxed mt-0.5 line-clamp-2 break-words">
                         {item.content}
                       </p>
                     </div>
@@ -169,6 +178,98 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* Notification Detail Modal */}
+      <Modal
+        title={null}
+        open={isModalOpen}
+        onCancel={handleModalClose}
+        footer={null}
+        width={500}
+        className="notification-modal"
+        classNames={{
+          content: 'dark:bg-[#1A2633]',
+        }}
+        styles={{
+          mask: {
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+          },
+        }}
+      >
+        {selectedNotification && (
+          <div className="flex flex-col gap-4">
+            {/* Header with Icon and Close */}
+            <div className="flex items-start justify-between pb-4 border-b border-border-color dark:border-gray-700 pr-8">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                {(() => {
+                  const typeInfo = getNotificationTypeInfo(selectedNotification.type);
+                  return (
+                    <>
+                      <div className={`flex items-center justify-center rounded-lg shrink-0 size-14 transition-colors shadow-sm ${typeInfo.colorClass} ${typeInfo.bgClass}`}>
+                        <span className="material-symbols-outlined text-[32px]">{typeInfo.typeIcon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-text-main dark:text-white text-lg font-bold leading-tight break-words">
+                          {selectedNotification.title}
+                        </h2>
+                        <p className="text-text-secondary dark:text-gray-400 text-xs mt-1">
+                          {formatTime(selectedNotification.created_at)}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex flex-col gap-4">
+              <div className="bg-[#f9fafb] dark:bg-[#15202b] rounded-lg p-4">
+                <p className="text-text-main dark:text-white text-sm leading-relaxed whitespace-pre-wrap">
+                  {selectedNotification.content}
+                </p>
+              </div>
+
+              {/* Attachment if exists */}
+              {selectedNotification.attachment_path && (
+                <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">
+                    attachment
+                  </span>
+                  <a 
+                    href={selectedNotification.attachment_path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline flex-1 truncate"
+                  >
+                    Xem tệp đính kèm
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex gap-2 pt-4 border-t border-border-color dark:border-gray-700">
+              <button
+                onClick={handleModalClose}
+                className="flex-1 h-10 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-white font-medium hover:bg-[#f0f2f4] dark:hover:bg-gray-800 transition-colors"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={() => {
+                  handleModalClose();
+                  navigate('/notifications');
+                }}
+                className="flex-1 h-10 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                Xem đầy đủ
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 };

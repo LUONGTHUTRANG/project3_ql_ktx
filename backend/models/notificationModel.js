@@ -145,9 +145,19 @@ const Notification = {
   },
 
   getById: async (id) => {
-    const [rows] = await db.query("SELECT * FROM notifications WHERE id = ?", [
-      id,
-    ]);
+    const [rows] = await db.query(`
+      SELECT n.*,
+             CASE 
+               WHEN n.sender_role = 'ADMIN' THEN a.full_name
+               WHEN n.sender_role = 'MANAGER' THEN m.full_name
+               ELSE NULL
+             END as sender_full_name
+      FROM notifications n
+      LEFT JOIN admins a ON n.sender_id = a.id AND n.sender_role = 'ADMIN'
+      LEFT JOIN managers m ON n.sender_id = m.id AND n.sender_role = 'MANAGER'
+      WHERE n.id = ?
+    `, [id]);
+    
     if (rows.length === 0) return null;
     const notification = rows[0];
 

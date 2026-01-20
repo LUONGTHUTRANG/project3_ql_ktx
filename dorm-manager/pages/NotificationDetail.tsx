@@ -5,6 +5,7 @@ import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
 import { Spin, message } from 'antd';
 import { getNotificationById } from '../api/notificationApi';
+import { formatDateTime } from '../utils/formatters';
 
 interface NotificationDetailProps {
   isManager?: boolean;
@@ -14,6 +15,7 @@ type Notification = {
   id: string;
   title: string;
   sender?: string;
+  sender_full_name?: string;
   timestamp?: string;
   recipients?: string;
   content: string;
@@ -185,8 +187,10 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
                   <span className="material-symbols-outlined text-2xl">payments</span>
                 </div>
                 <div className="flex flex-col">
-                  <h3 className="text-sm font-bold text-text-main dark:text-white">{notification.sender}</h3>
-                  <p className="text-xs font-medium text-text-secondary dark:text-gray-400">Người gửi</p>
+                  <p className="text-xs font-medium text-text-secondary dark:text-gray-400">Người gửi:</p>
+                  <h3 className="text-sm font-bold text-text-main dark:text-white">
+                    {notification.sender_full_name || notification.sender || 'Hệ thống'}
+                  </h3>
                 </div>
               </div>
 
@@ -194,14 +198,14 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
               <div className="flex flex-col md:items-end gap-2">
                 <div className="flex items-center gap-2 text-sm text-text-main dark:text-gray-300 font-medium">
                   <span className="material-symbols-outlined text-[18px] text-text-secondary dark:text-gray-500">schedule</span>
-                  {notification.timestamp}
+                  {formatDateTime(notification.created_at)}
                 </div>
-                <div className="flex items-center gap-2 mt-1 flex-wrap md:justify-end">
+                {/* <div className="flex items-center gap-2 mt-1 flex-wrap md:justify-end">
                   <span className="text-xs text-text-secondary dark:text-gray-500">Gửi đến:</span>
                   <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-100 dark:border-blue-800">
                     {notification.recipients}
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
 
