@@ -9,8 +9,10 @@ import supportRequestRoutes from "./supportRequestRoutes.js";
 import authRoutes from "./authRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
 import registrationRoutes from "./registrationRoutes.js";
-import monthlyUsageRoutes from "./monthlyUsageRoutes.js";
 import servicePriceRoutes from "./servicePriceRoutes.js";
+import utilityInvoiceRoutes from "./utilityInvoiceRoutes.js";
+import roomFeeInvoiceRoutes from "./roomFeeInvoiceRoutes.js";
+import otherInvoiceRoutes from "./otherInvoiceRoutes.js";
 
 const router = express.Router();
 
@@ -24,7 +26,9 @@ router.use("/students", studentRoutes);
 router.use("/support-requests", supportRequestRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/registrations", registrationRoutes);
-router.use("/monthly-usages", monthlyUsageRoutes);
 router.use("/service-prices", servicePriceRoutes);
+router.use("/utility-invoices", utilityInvoiceRoutes);
+router.use("/room-fee-invoices", roomFeeInvoiceRoutes);
+router.use("/other-invoices", otherInvoiceRoutes);
 
 export default router;

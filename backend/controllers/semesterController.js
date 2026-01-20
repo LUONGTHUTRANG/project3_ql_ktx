@@ -31,6 +31,15 @@ export const createSemester = async (req, res) => {
 
 export const updateSemester = async (req, res) => {
   try {
+    // Check if semester exists and is not inactive
+    const semester = await Semester.getById(req.params.id);
+    if (!semester) {
+      return res.status(404).json({ message: "Semester not found" });
+    }
+    if (semester.is_active === 0) {
+      return res.status(400).json({ message: "Cannot update an inactive semester" });
+    }
+    
     const updatedSemester = await Semester.update(req.params.id, req.body);
     res.json(updatedSemester);
   } catch (err) {

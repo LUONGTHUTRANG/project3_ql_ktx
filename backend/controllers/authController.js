@@ -6,8 +6,20 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const generateToken = (user) => {
+  const tokenPayload = {
+    id: user.id,
+    user_id: user.id,
+    role: user.role,
+    username: user.username || user.mssv,
+  };
+
+  // If manager, include building_id
+  if (user.role === "manager" && user.building_id) {
+    tokenPayload.building_id = user.building_id;
+  }
+
   return jwt.sign(
-    { id: user.id, role: user.role, username: user.username || user.mssv },
+    tokenPayload,
     process.env.JWT_SECRET || "your_jwt_secret",
     { expiresIn: "24h" }
   );
