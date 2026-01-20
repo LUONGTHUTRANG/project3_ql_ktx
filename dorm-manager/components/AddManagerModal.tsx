@@ -141,7 +141,7 @@ const AddManagerModal: React.FC<AddManagerModalProps> = ({ isVisible, onClose, o
       ]}
       width={600}
       centered
-      bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
     >
       {isLoadingData ? (
         <div className="flex justify-center items-center py-12">

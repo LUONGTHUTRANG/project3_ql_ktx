@@ -64,6 +64,7 @@ export const getInvoiceById = async (id: string | number) => {
 
 export const getAllInvoices = async () => {
   try {
+    console.log('Fetching all invoices');
     const response = await api.get('/');
     return response.data;
   } catch (error: any) {

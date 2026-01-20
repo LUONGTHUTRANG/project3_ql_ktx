@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { getAllInvoices, getAllSemesters } from '../api';
@@ -42,10 +42,20 @@ interface InvoiceRow {
   original: Invoice;
 }
 
-const InvoiceManagementAdmin: React.FC = () => {
+const InvoiceManagement: React.FC = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabType>('utility_fee');
+  const location = useLocation();
+  
+  // Determine active tab from URL
+  const getActiveTabFromUrl = (): TabType => {
+    if (location.pathname.includes('/utility-fee')) {
+      return 'utility_fee';
+    }
+    return 'room_fee';
+  };
+  
+  const [activeTab, setActiveTab] = useState<TabType>(getActiveTabFromUrl());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -55,6 +65,11 @@ const InvoiceManagementAdmin: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'paid' | 'unpaid' | 'overdue'>('all');
 
   if (!user || (user.role !== 'admin' && user.role !== 'manager')) return null;
+
+  // Update tab when URL changes
+  useEffect(() => {
+    setActiveTab(getActiveTabFromUrl());
+  }, [location]);
 
   // Fetch invoices
   useEffect(() => {
@@ -253,7 +268,7 @@ const InvoiceManagementAdmin: React.FC = () => {
           <nav aria-label="Tabs" className="flex gap-8 -mb-px overflow-x-auto no-scrollbar">
             <button
               onClick={() => {
-                setActiveTab('room_fee');
+                navigate('/manager/invoices/room-fee');
                 setCurrentPage(1);
               }}
               className={`group inline-flex items-center py-4 px-1 border-b-[3px] font-medium text-sm leading-5 transition-colors whitespace-nowrap ${
@@ -270,7 +285,7 @@ const InvoiceManagementAdmin: React.FC = () => {
             </button>
             <button
               onClick={() => {
-                setActiveTab('utility_fee');
+                navigate('/manager/invoices/utility-fee');
                 setCurrentPage(1);
               }}
               className={`group inline-flex items-center py-4 px-1 border-b-[3px] font-medium text-sm leading-5 transition-colors whitespace-nowrap ${
@@ -290,39 +305,15 @@ const InvoiceManagementAdmin: React.FC = () => {
 
         {/* Tab Content */}
         {activeTab === 'room_fee' && (
-          <RoomFeeInvoiceTab
-            invoices={paginatedInvoices}
-            loading={loading}
-            error={error}
-            currentPage={currentPage}
-            itemsPerPage={itemsPerPage}
-            totalPages={totalPages}
-            searchTerm={searchTerm}
-            selectedStatus={selectedStatus}
-            onPageChange={setCurrentPage}
-            onSearchChange={setSearchTerm}
-            onStatusChange={setSelectedStatus}
-          />
+          <RoomFeeInvoiceTab />
         )}
 
         {activeTab === 'utility_fee' && (
-          <UtilityFeeInvoiceTab
-            invoices={paginatedInvoices}
-            loading={loading}
-            error={error}
-            currentPage={currentPage}
-            itemsPerPage={itemsPerPage}
-            totalPages={totalPages}
-            searchTerm={searchTerm}
-            selectedStatus={selectedStatus}
-            onPageChange={setCurrentPage}
-            onSearchChange={setSearchTerm}
-            onStatusChange={setSelectedStatus}
-          />
+          <UtilityFeeInvoiceTab />
         )}
       </div>
     </RoleBasedLayout>
   );
 };
 
-export default InvoiceManagementAdmin;
+export default InvoiceManagement;

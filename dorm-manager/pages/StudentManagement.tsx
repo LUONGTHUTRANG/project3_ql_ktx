@@ -40,7 +40,7 @@ const StudentManagement: React.FC = () => {
   const [totalStudents, setTotalStudents] = useState(0);
 
   // Check if user is admin
-  const isAdmin = user?.role === UserRole.ADMIN;
+  // const isAdmin = user?.role === UserRole.ADMIN;
 
   // Fetch buildings for filter
   useEffect(() => {
@@ -102,8 +102,12 @@ const StudentManagement: React.FC = () => {
   };
 
   const handleRowClick = (studentId: string) => {
-    navigate(`/manager/students/${studentId}`);
+    // if(user?.role === UserRole.ADMIN) navigate(`/admin/students/${studentId}`);
+    // else navigate(`/manager/students/${studentId}`);
+    navigate(`/${user?.role}/students/${studentId}`);
   };
+
+  console.log("render students", currentItems)
 
   return (
     <RoleBasedLayout
@@ -197,17 +201,24 @@ const StudentManagement: React.FC = () => {
                       <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Họ và tên</th>
                       <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Tòa nhà</th>
                       <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Phòng</th>
+                      <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Tình trạng ở</th>
                       <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-color dark:divide-gray-700">
                     {currentItems.map((student, index) => {
-                      const stayStatusMap: Record<string, { label: string; color: string }> = {
-                        'STAYING': { label: 'Đang ở', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
-                        'NOT_STAYING': { label: 'Chưa ở', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' },
-                        'APPLIED': { label: 'Đã đăng ký', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' }
+                      const studentStatusMap: Record<string, { label: string; color: string }> = {
+                        'STUDYING': { label: 'Đang học', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+                        'NOT_STUDYING': { label: 'Ngừng học', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' },
+                        // 'APPLIED': { label: 'Đã đăng ký', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' }
                       };
-                      const statusInfo = stayStatusMap[student.stay_status] || { label: student.stay_status, color: 'bg-gray-100 text-gray-800' };
+                      const stayStatusMapData: Record<string, { label: string; color: string }> = {
+                        'ACTIVE': { label: 'Đang ở', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' },
+                        null: { label: 'Chưa ở', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' },
+                        // 'APPLIED': { label: 'Đã đăng ký', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' }
+                      };
+                      const statusInfo = studentStatusMap[student.student_status] || { label: student.student_status, color: 'bg-gray-100 text-gray-800' };
+                      const stayStatusInfo = stayStatusMapData[student.stay_status] || { label: student.stay_status, color: 'bg-gray-100 text-gray-800' };
                       
                       return (
                         <tr 
@@ -231,6 +242,11 @@ const StudentManagement: React.FC = () => {
                             <div className="text-sm text-text-secondary dark:text-gray-300">{student.room_number || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${stayStatusInfo.color}`}>
+                              {stayStatusInfo.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${statusInfo.color}`}>
                               {statusInfo.label}
                             </span>
@@ -245,7 +261,7 @@ const StudentManagement: React.FC = () => {
                     })}
                     {currentItems.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-6 py-20 text-center text-text-secondary dark:text-gray-500">
+                        <td colSpan={8} className="px-6 py-20 text-center text-text-secondary dark:text-gray-500">
                           Không tìm thấy sinh viên nào.
                         </td>
                       </tr>

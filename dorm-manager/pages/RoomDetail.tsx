@@ -168,7 +168,7 @@ const RoomDetail: React.FC = () => {
               </span>
             </div>
           </div>
-          {isManager && <div className="flex gap-3 flex-wrap">
+          {user.role === UserRole.ADMIN && <div className="flex gap-3 flex-wrap">
             <button className="flex items-center justify-center gap-2 rounded-xl h-11 px-5 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95">
               <span className="material-symbols-outlined text-[20px]">settings</span>
               Cấu hình
@@ -339,52 +339,60 @@ const RoomDetail: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-color dark:divide-gray-700">
-                  {paginatedStudents.map((student, index) => (
-                    <tr key={index} className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                      <td className="py-5 px-6 font-bold">
-                        <div className="flex items-center gap-4">
-                          <div className="flex flex-col">
-                            <span className="text-md text-text-main dark:text-white group-hover:text-primary transition-colors">{student.full_name}</span>
+                  {paginatedStudents.length > 0 ? (
+                    paginatedStudents.map((student, index) => (
+                      <tr key={index} className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                        <td className="py-5 px-6 font-bold">
+                          <div className="flex items-center gap-4">
+                            <div className="flex flex-col">
+                              <span className="text-md text-text-main dark:text-white group-hover:text-primary transition-colors">{student.full_name}</span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="font-bold py-5 px-6 text-center">
-                        <span className="text-md text-text-main dark:text-gray-300">
-                          {student.mssv}
-                        </span>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-2 text-xs font-bold text-text-main dark:text-gray-400">
-                            <span className="material-symbols-outlined text-[16px] text-text-secondary">call</span>
-                            {student.phone_number}
+                        </td>
+                        <td className="font-bold py-5 px-6 text-center">
+                          <span className="text-md text-text-main dark:text-gray-300">
+                            {student.mssv}
+                          </span>
+                        </td>
+                        <td className="py-5 px-6">
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-2 text-xs font-bold text-text-main dark:text-gray-400">
+                              <span className="material-symbols-outlined text-[16px] text-text-secondary">call</span>
+                              {student.phone_number}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs font-bold text-text-main dark:text-gray-400">
+                              <span className="material-symbols-outlined text-[16px] text-text-secondary">mail</span>
+                              {student.email}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-xs font-bold text-text-main dark:text-gray-400">
-                            <span className="material-symbols-outlined text-[16px] text-text-secondary">mail</span>
-                            {student.email}
+                        </td>
+                        <td className="py-5 px-6">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                            student.student_status === 'STUDYING' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
+                            'bg-gray-50 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400'
+                          }`}>
+                            {student.student_status === 'STUDYING' ? 'Đang học' : 'Đã tốt nghiệp'}
+                          </span>
+                        </td>
+                        {isManager && <td className="py-5 px-6 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                            <button className="size-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-primary/10 hover:text-primary text-text-secondary dark:text-gray-400 transition-all" title="Xem hồ sơ">
+                              <span className="material-symbols-outlined text-[20px]">visibility</span>
+                            </button>
+                            <button className="size-9 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 hover:bg-red-500 hover:text-white text-red-500 transition-all" title="Rời phòng">
+                              <span className="material-symbols-outlined text-[20px]">logout</span>
+                            </button>
                           </div>
-                        </div>
+                        </td>}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={isManager ? 5 : 4} className="py-12 px-6 text-center text-text-secondary dark:text-gray-400">
+                        Phòng chưa có sinh viên ở
                       </td>
-                      <td className="py-5 px-6">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                          student.student_status === 'STUDYING' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' :
-                          'bg-gray-50 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400'
-                        }`}>
-                          {student.student_status === 'STUDYING' ? 'Đang học' : 'Đã tốt nghiệp'}
-                        </span>
-                      </td>
-                      {isManager && <td className="py-5 px-6 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                          <button className="size-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-primary/10 hover:text-primary text-text-secondary dark:text-gray-400 transition-all" title="Xem hồ sơ">
-                            <span className="material-symbols-outlined text-[20px]">visibility</span>
-                          </button>
-                          <button className="size-9 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 hover:bg-red-500 hover:text-white text-red-500 transition-all" title="Rời phòng">
-                            <span className="material-symbols-outlined text-[20px]">logout</span>
-                          </button>
-                        </div>
-                      </td>}
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

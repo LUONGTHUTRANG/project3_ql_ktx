@@ -1,15 +1,18 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { getAllInvoices, fetchBuildings, getManagerById } from '../api';
+import { fetchRooms, fetchBuildings, getManagerById } from '../api';
+import { recordBulkUsage, getRoomsWithLastUsage } from '../api/monthlyUsageApi';
+import { getServicePriceByName } from '../api/servicePriceApi';
 import { message, Select } from 'antd';
 import { UserRole } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 interface UtilityReading {
-  invoiceId: number;
   roomId: number;
   roomNumber: string;
   buildingName: string;
+  floor: number;
   electricNew: number | '';
   electricOld: number;
   waterNew: number | '';
@@ -21,81 +24,108 @@ interface UtilityReading {
   warningMessage?: string;
 }
 
-const ELECTRIC_PRICE = 3500; // Per kWh
-const WATER_PRICE = 25000; // Per m³
+const ELECTRIC_PRICE = 3500; // Per kWh (fallback)
+const WATER_PRICE = 25000; // Per m³ (fallback)
 
 const RecordUtilityMetersPage: React.FC = () => {
   const { user } = useContext(AuthContext);
+  // console.log('User in RecordUtilityMetersPage:', user);  
   const [readings, setReadings] = useState<UtilityReading[]>([]);
+  const [roomsData, setRoomsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'room_asc' | 'room_desc' | 'pending'>('room_asc');
   const [selectedFloor, setSelectedFloor] = useState<string>('all');
   const [buildings, setBuildings] = useState<any[]>([]);
-  const [managerBuilding, setManagerBuilding] = useState<string | null>(null);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
+  const [electricPrice, setElectricPrice] = useState<number>(ELECTRIC_PRICE);
+  const [waterPrice, setWaterPrice] = useState<number>(WATER_PRICE);
+
+  const navigate = useNavigate();
 
   if (!user || (user.role !== 'admin' && user.role !== 'manager')) return null;
 
-  // Fetch buildings and unrecorded invoices
+  // Fetch buildings and rooms
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
 
+        // Get current month and year
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+
         // For manager, get their assigned building
+        let managerBuildingId: number | null = null;
         if (user.role === UserRole.MANAGER) {
           const managerProfile = await getManagerById(user.id);
-          setManagerBuilding(managerProfile.building_name || null);
-        }
-
-        // Fetch all buildings for admin
-        if (user.role === UserRole.ADMIN) {
+          // Find building id from buildings data
           const buildingsData = await fetchBuildings();
-          setBuildings(buildingsData);
+          const managerBuild = buildingsData?.find((b: any) => b.name === managerProfile.building_name);
+          managerBuildingId = managerBuild?.id || null;
         }
 
-        // Fetch unrecorded invoices
-        const data = await getAllInvoices();
-        
-        // Filter invoices with usage_id = null (unrecorded utilities)
-        let unrecorded = data.filter((inv: any) => 
-          inv.type === 'UTILITY_FEE' && (inv.usage_id === null || inv.usage_id === undefined)
-        );
+        // Fetch rooms with last usage (unrecorded rooms for this month)
+        const roomsWithUsage = await getRoomsWithLastUsage(currentMonth, currentYear);
+
+        // Filter to only unrecorded rooms
+        let filteredRooms = roomsWithUsage.filter((room: any) => room.status === 'not_recorded');
 
         // For manager, filter by their building only
-        if (user.role === UserRole.MANAGER && managerBuilding) {
-          unrecorded = unrecorded.filter((inv: any) => inv.building_name === managerBuilding);
+        if (user.role === UserRole.MANAGER && managerBuildingId) {
+          filteredRooms = filteredRooms.filter((room: any) => room.building_id === managerBuildingId);
         }
 
+        // Fetch service prices and buildings in parallel
+        const [elecPriceData, waterPriceData, buildingsData] = await Promise.all([
+          getServicePriceByName('ELECTRICITY'),
+          getServicePriceByName('WATER'),
+          fetchBuildings()
+        ]);
+
+        // Set service prices
+        if (elecPriceData) {
+          setElectricPrice(elecPriceData.unit_price);
+        }
+        if (waterPriceData) {
+          setWaterPrice(waterPriceData.unit_price);
+        }
+
+        setBuildings(buildingsData);
+        setRoomsData(filteredRooms);
+
         // Initialize readings
-        const initialReadings: UtilityReading[] = unrecorded.map((inv: any) => ({
-          invoiceId: inv.id,
-          roomId: inv.room_id,
-          roomNumber: inv.room_number || `Phòng ${inv.room_id}`,
-          buildingName: inv.building_name || 'N/A',
-          electricNew: '',
-          electricOld: 0,
-          waterNew: '',
-          waterOld: 0,
-          electricUsage: 0,
-          waterUsage: 0,
-          totalAmount: 0,
-          status: 'pending',
-        }));
+        const initialReadings: UtilityReading[] = filteredRooms.map((room: any) => {
+          const building = buildingsData?.find((b: any) => b.id === room.building_id);
+          return {
+            roomId: room.id,
+            roomNumber: room.room_number || `Phòng ${room.id}`,
+            buildingName: building?.name || 'N/A',
+            floor: room.floor || 0,
+            electricNew: '',
+            electricOld: room.old_electricity || 0,
+            waterNew: '',
+            waterOld: room.old_water || 0,
+            electricUsage: 0,
+            waterUsage: 0,
+            totalAmount: 0,
+            status: 'pending',
+          };
+        });
 
         setReadings(initialReadings);
         setProgress({ completed: 0, total: initialReadings.length });
       } catch (err: any) {
         console.error('Failed to load data:', err);
-        message.error('Không thể tải danh sách phòng cần ghi chỉ số');
+        message.error('Không thể tải danh sách phòng');
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [user, managerBuilding]);
+  }, [user]);
 
   // Handle electric input change
   const handleElectricChange = (index: number, value: string) => {
@@ -159,7 +189,7 @@ const RecordUtilityMetersPage: React.FC = () => {
   const calculateTotal = (readingsList: UtilityReading[], index: number) => {
     const reading = readingsList[index];
     const total =
-      reading.electricUsage * ELECTRIC_PRICE + reading.waterUsage * WATER_PRICE;
+      reading.electricUsage * electricPrice + reading.waterUsage * waterPrice;
     reading.totalAmount = total;
   };
 
@@ -174,24 +204,20 @@ const RecordUtilityMetersPage: React.FC = () => {
 
     // Filter by floor
     if (selectedFloor !== 'all') {
-      filtered = filtered.filter(r => {
-        const roomNum = parseInt(r.roomNumber.split(' ')[1] || '0');
-        const floor = Math.floor(roomNum / 100);
-        return floor === parseInt(selectedFloor);
-      });
+      filtered = filtered.filter(r => r.floor === parseInt(selectedFloor));
     }
 
     // Sort
     if (sortBy === 'room_asc') {
       filtered.sort((a, b) => {
-        const aRoom = parseInt(a.roomNumber.split(' ')[1] || '0');
-        const bRoom = parseInt(b.roomNumber.split(' ')[1] || '0');
+        const aRoom = parseInt(a.roomNumber.split(' ')[1] || a.roomNumber || '0');
+        const bRoom = parseInt(b.roomNumber.split(' ')[1] || b.roomNumber || '0');
         return aRoom - bRoom;
       });
     } else if (sortBy === 'room_desc') {
       filtered.sort((a, b) => {
-        const aRoom = parseInt(a.roomNumber.split(' ')[1] || '0');
-        const bRoom = parseInt(b.roomNumber.split(' ')[1] || '0');
+        const aRoom = parseInt(a.roomNumber.split(' ')[1] || a.roomNumber || '0');
+        const bRoom = parseInt(b.roomNumber.split(' ')[1] || b.roomNumber || '0');
         return bRoom - aRoom;
       });
     } else if (sortBy === 'pending') {
@@ -206,33 +232,107 @@ const RecordUtilityMetersPage: React.FC = () => {
 
   const getFloors = () => {
     const floors = new Set<number>();
-    readings.forEach(r => {
-      const roomNum = parseInt(r.roomNumber.split(' ')[1] || '0');
-      const floor = Math.floor(roomNum / 100);
-      floors.add(floor);
+    roomsData.forEach(room => {
+      if (room.floor !== null && room.floor !== undefined) {
+        floors.add(room.floor);
+      }
     });
     return Array.from(floors).sort((a, b) => a - b);
   };
 
   const handleSave = async () => {
-    // Validate all readings
-    const completedReadings = readings.filter(r => r.status === 'completed');
+    // Get only readings with both electric and water values entered
+    const readingsToSave = readings
+      .filter(r => r.electricNew !== '' && r.waterNew !== '')
+      .map(r => ({
+        roomId: r.roomId,
+        electricityIndex: r.electricNew,
+        waterIndex: r.waterNew,
+      }));
     
-    if (completedReadings.length === 0) {
-      message.warning('Vui lòng nhập đầy đủ chỉ số cho ít nhất một phòng');
+    if (readingsToSave.length === 0) {
+      message.warning('Vui lòng nhập đầy đủ chỉ số điện và nước cho ít nhất một phòng');
       return;
     }
 
     try {
-      // TODO: Call API to save readings and create/update monthly_usages
-      message.success(`Lưu thành công ${completedReadings.length} phòng`);
-    } catch (err) {
-      message.error('Lỗi khi lưu dữ liệu');
+      setLoading(true);
+      const currentDate = new Date();
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+
+      const response = await recordBulkUsage({
+        readings: readingsToSave,
+        month,
+        year,
+      });
+
+      if (response.errors && response.errors.length > 0) {
+        message.warning(
+          `Lưu thành công ${response.created} phòng. Lỗi: ${response.errors.length} phòng`
+        );
+      } else {
+        message.success(
+          `Lưu thành công ${response.created} phòng${response.updated > 0 ? ` (cập nhật ${response.updated})` : ''}`
+        );
+      }
+
+      // Reload data - get rooms with unrecorded usage for this month
+      let managerBuildingId: number | null = null;
+      if (user.role === UserRole.MANAGER) {
+        const managerProfile = await getManagerById(user.id);
+        const buildingsData = await fetchBuildings();
+        const managerBuild = buildingsData?.find((b: any) => b.name === managerProfile.building_name);
+        managerBuildingId = managerBuild?.id || null;
+      }
+
+      // Get rooms with last usage (unrecorded rooms for this month)
+      const usageData = await getRoomsWithLastUsage(month, year);
+
+      // Filter to only unrecorded rooms
+      let filteredRooms = usageData.filter((room: any) => room.status === 'not_recorded');
+
+      // For manager, filter by their building only
+      if (user.role === UserRole.MANAGER && managerBuildingId) {
+        filteredRooms = filteredRooms.filter((room: any) => room.building_id === managerBuildingId);
+      }
+
+      // Get buildings data for display
+      const buildingsData = await fetchBuildings();
+
+      const initialReadings: UtilityReading[] = filteredRooms.map((room: any) => {
+        const building = buildingsData.find((b: any) => b.id === room.building_id);
+        
+        return {
+          roomId: room.id,
+          roomNumber: room.room_number || `Phòng ${room.id}`,
+          buildingName: building?.name || 'N/A',
+          floor: room.floor || 0,
+          electricNew: '',
+          electricOld: room.old_electricity || 0,
+          waterNew: '',
+          waterOld: room.old_water || 0,
+          electricUsage: 0,
+          waterUsage: 0,
+          totalAmount: 0,
+          status: 'pending',
+        };
+      });
+
+      setReadings(initialReadings);
+      setProgress({ completed: 0, total: initialReadings.length });
+    } catch (err: any) {
+      console.error('Error saving data:', err);
+      message.error(err.response?.data?.message || 'Lỗi khi lưu dữ liệu');
+    } finally {
+      setLoading(false);
     }
   };
 
   const filteredReadings = getFilteredAndSortedReadings();
   const completedCount = readings.filter(r => r.status === 'completed').length;
+  const pendingCount = readings.filter(r => r.status === 'pending').length;
+  const warningCount = readings.filter(r => r.status === 'warning').length;
 
   const getStatusBadge = (status: string, message?: string) => {
     switch (status) {
@@ -259,6 +359,15 @@ const RecordUtilityMetersPage: React.FC = () => {
 
   return (
     <RoleBasedLayout searchPlaceholder="Tìm kiếm phòng..." headerTitle="Ghi Chỉ Số Điện Nước">
+      <button
+        onClick={() => navigate(`/${user?.role}/invoices`)}
+        className="group flex items-center gap-2 mb-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+      >
+        <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
+          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+        </div>
+        <span className="text-sm font-bold leading-normal">Quay lại danh sách hóa đơn</span>
+      </button>
       <div className="mx-auto flex flex-col gap-6 animate-in fade-in duration-500 max-w-[1200px] w-full pb-32">
         {/* Page Heading */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
@@ -288,7 +397,7 @@ const RecordUtilityMetersPage: React.FC = () => {
               </div>
             )}
 
-            <div className="flex flex-col min-w-[200px]">
+            {/* <div className="flex flex-col min-w-[200px]">
               <label className="text-text-main dark:text-gray-300 text-sm font-medium pb-2">Sắp xếp</label>
               <Select
                 value={sortBy}
@@ -300,7 +409,7 @@ const RecordUtilityMetersPage: React.FC = () => {
                   { label: 'Chưa nhập liệu', value: 'pending' }
                 ]}
               />
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -355,7 +464,7 @@ const RecordUtilityMetersPage: React.FC = () => {
           <div className="grid grid-cols-1 gap-6">
             {filteredReadings.map((reading, index) => (
               <div
-                key={reading.invoiceId}
+                key={reading.roomId}
                 className={`group bg-white dark:bg-surface-dark rounded-xl shadow-sm border rounded-xl p-5 lg:p-0 lg:py-4 lg:px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-4 items-center hover:shadow-md transition-shadow relative overflow-hidden ${
                   reading.status === 'warning' ? 'border-l-4 border-l-amber-500' : 'border border-border-color dark:border-slate-700'
                 }`}
@@ -483,34 +592,38 @@ const RecordUtilityMetersPage: React.FC = () => {
       {/* Sticky Footer */}
       {filteredReadings.length > 0 && (
         <div className="fixed bottom-0 right-0 bg-white dark:bg-surface-dark border-t border-border-color dark:border-slate-700 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40" style={{ left: '288px' }}>
-          <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-6">
-              <div className="flex flex-col">
-                <span className="text-xs text-text-secondary dark:text-gray-400">Tiến độ</span>
-                <span className="text-sm font-bold text-text-main dark:text-white">
-                  {completedCount}/{readings.length} Phòng
-                </span>
+            {/* Action Row */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-text-secondary dark:text-gray-400">Tổng phòng</span>
+                  <span className="text-sm font-bold text-text-main dark:text-white">{readings.length}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-emerald-600 dark:text-emerald-400">✓ Đã ghi</span>
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{completedCount}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-slate-500 dark:text-slate-400">⊙ Chưa ghi</span>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{pendingCount}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-amber-600 dark:text-amber-400">⚠ Cảnh báo</span>
+                  <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{warningCount}</span>
+                </div>
               </div>
-              <div className="hidden sm:block h-8 w-px bg-border-color dark:bg-slate-700"></div>
-              <div className="hidden sm:flex flex-col">
-                <span className="text-xs text-text-secondary dark:text-gray-400">Tổng tạm tính</span>
-                <span className="text-sm font-bold text-primary">
-                  {readings.filter(r => r.status === 'completed').reduce((sum, r) => sum + r.totalAmount, 0).toLocaleString('vi-VN')}₫
-                </span>
+              <div className="flex w-full sm:w-auto gap-3">
+                <button className="flex-1 sm:flex-none h-10 px-6 rounded-lg border border-border-color dark:border-slate-600 text-text-main dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex-1 sm:flex-none h-10 px-6 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[20px]">save</span> Lưu thay đổi
+                </button>
               </div>
             </div>
-            <div className="flex w-full sm:w-auto gap-3">
-              <button className="flex-1 sm:flex-none h-10 px-6 rounded-lg border border-border-color dark:border-slate-600 text-text-main dark:text-white font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                Hủy
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex-1 sm:flex-none h-10 px-6 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[20px]">save</span> Lưu thay đổi
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </RoleBasedLayout>

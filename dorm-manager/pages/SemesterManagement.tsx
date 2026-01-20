@@ -18,6 +18,14 @@ const SemesterManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingSemester, setEditingSemester] = useState<any>(null);
+  const [deletingPending, setDeletingPending] = useState(false);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    visible: boolean;
+    semester: Semester | null;
+  }>({
+    visible: false,
+    semester: null,
+  });
 
   // Fetch semesters
   useEffect(() => {
@@ -83,23 +91,32 @@ const SemesterManagement: React.FC = () => {
 
   // Handle delete
   const handleDelete = (semester: Semester) => {
-    Modal.confirm({
-      title: 'Xác nhận xóa',
-      content: `Bạn có chắc chắn muốn xóa kỳ ${semester.term} năm ${semester.academic_year} không?`,
-      okText: 'Xóa',
-      cancelText: 'Hủy',
-      okType: 'danger',
-      onOk: async () => {
-        try {
-          await deleteSemester(semester.id);
-          message.success('Xóa kỳ ở thành công');
-          setSemesters(semesters.filter(s => s.id !== semester.id));
-        } catch (error: any) {
-          message.error('Lỗi khi xóa kỳ ở');
-          console.error('Error deleting semester:', error);
-        }
-      },
+    // console.log('Delete button clicked for semester:', semester);
+    setDeleteConfirmModal({
+      visible: true,
+      semester: semester,
     });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmModal.semester) return;
+    
+    setDeletingPending(true);
+    try {
+      await deleteSemester(deleteConfirmModal.semester.id);
+      message.success(`Kỳ ${deleteConfirmModal.semester.term} năm ${deleteConfirmModal.semester.academic_year} đã được xóa thành công`);
+      setSemesters(semesters.filter(s => s.id !== deleteConfirmModal.semester!.id));
+      setDeleteConfirmModal({ visible: false, semester: null });
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'Lỗi khi xóa kỳ ở');
+      console.error('Error deleting semester:', error);
+    } finally {
+      setDeletingPending(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmModal({ visible: false, semester: null });
   };
 
   const handleOpenModal = () => {
@@ -131,6 +148,7 @@ const SemesterManagement: React.FC = () => {
             <p className="text-text-secondary dark:text-gray-400">Quản lý thông tin và thời gian lưu trú của các kỳ học.</p>
           </div>
           <button 
+            type="button"
             onClick={handleOpenModal}
             className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 font-medium whitespace-nowrap"
           >
@@ -175,6 +193,7 @@ const SemesterManagement: React.FC = () => {
                     />
                 </div>
                 <button
+                    type="button"
                     onClick={handleReset}
                     className="h-11 px-2 mt-6 text-text-secondary hover:text-primary hover:bg-background-light dark:hover:bg-gray-800 rounded-lg border border-border-light dark:border-border-dark transition-colors"
                     title="Reset"
@@ -239,14 +258,21 @@ const SemesterManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-right text-sm font-medium">
                           <div className="flex justify-end gap-1">
-                            <button
+                            {semester.is_active === 1 && (<button
+                              type="button"
                               onClick={() => handleEdit(semester)}
-                              className="p-2 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                              title="Chỉnh sửa"
+                              // disabled={semester.is_active === 0}
+                              className={`p-2 rounded-lg transition-colors ${
+                                semester.is_active === 0
+                                  ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                              }`}
+                              title={semester.is_active === 0 ? "Không thể chỉnh sửa kỳ đã ngừng hoạt động" : "Chỉnh sửa"}
                             >
                               <span className="material-symbols-outlined text-[20px]">edit</span>
-                            </button>
+                            </button>)}
                             <button
+                              type="button"
                               onClick={() => handleDelete(semester)}
                               className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                               title="Xóa"
@@ -283,6 +309,26 @@ const SemesterManagement: React.FC = () => {
           onSuccess={handleCreateSuccess}
           editingData={editingSemester}
         />
+
+        {/* Delete Confirm Modal */}
+        <Modal
+          title="Xác nhận xóa"
+          open={deleteConfirmModal.visible}
+          onOk={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          okText="Xóa"
+          cancelText="Hủy"
+          okButtonProps={{ danger: true, loading: deletingPending }}
+          cancelButtonProps={{ disabled: deletingPending }}
+          confirmLoading={deletingPending}
+        >
+          {deleteConfirmModal.semester && (
+            <p>
+              Bạn có chắc chắn muốn xóa kỳ {deleteConfirmModal.semester.term} năm{' '}
+              {deleteConfirmModal.semester.academic_year} không?
+            </p>
+          )}
+        </Modal>
       </div>
     </RoleBasedLayout>
   );

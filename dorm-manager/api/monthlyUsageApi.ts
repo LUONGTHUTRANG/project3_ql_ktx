@@ -78,3 +78,35 @@ export const getMonthlyUsageByRoom = async (roomId: number): Promise<MonthlyUsag
     throw error;
   }
 };
+export const recordBulkUsage = async (data: {
+  readings: Array<{
+    roomId: number;
+    electricityIndex: number | string;
+    waterIndex: number | string;
+  }>;
+  month: number;
+  year: number;
+}) => {
+  try {
+    const response = await api.post('/bulk-record', data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error recording bulk usage:', error);
+    throw error;
+  }
+};
+
+export const getRoomsWithLastUsage = async (month: number, year: number) => {
+  try {
+    const response = await api.get('/rooms-with-last-usage', {
+      params: {
+        month,
+        year,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching rooms with last usage:', error);
+    throw error;
+  }
+};

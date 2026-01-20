@@ -38,14 +38,13 @@ const RoomTable: React.FC<RoomTableProps> = ({
   onEdit,
   onDelete,
   onRoomClick,
-  userRole = 'ADMIN',
+  userRole = '',
   searchTerm = '',
   onSearchChange,
   filterFloor = '',
   onFloorChange,
   filterStatus = '',
   onStatusChange,
-  showEditDelete = true,
 }) => {
   const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Room> | null>(null);
@@ -55,6 +54,8 @@ const RoomTable: React.FC<RoomTableProps> = ({
   const [deleting, setDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  console.log('RoomTable - userRole:', userRole, userRole === 'ADMIN' || userRole === 'MANAGER');
 
   const floorOptions = [
     { value: '', label: 'Tất cả Tầng' },
@@ -195,7 +196,7 @@ const RoomTable: React.FC<RoomTableProps> = ({
                     <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider text-center">Máy giặt</th>
                     <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Giá phòng / kỳ (VND)</th>
                     <th className="p-4 text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider text-right">Trạng thái</th>
-                    {userRole === 'ADMIN' || userRole === 'MANAGER' && (
+                    {(userRole === 'ADMIN' || userRole === 'MANAGER') && (
                       <th className="p-4 text-right text-xs font-semibold text-text-secondary dark:text-gray-400 uppercase tracking-wider">Thao tác</th>
                     )}
                   </tr>
@@ -351,7 +352,7 @@ const RoomTable: React.FC<RoomTableProps> = ({
                         </span>
                       )}
                     </td>
-                    {userRole === 'ADMIN' || userRole === 'MANAGER' && (
+                    {(userRole === 'ADMIN' || userRole === 'MANAGER') && (
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1 sm:gap-2">
                           {editingRoomId === room.id ? (
@@ -382,7 +383,7 @@ const RoomTable: React.FC<RoomTableProps> = ({
                               >
                                 <span className="material-symbols-outlined text-[20px]">visibility</span>
                               </button>
-                              {showEditDelete && (
+                              {userRole==="ADMIN" && (
                                 <>
                                   <button 
                                     onClick={() => handleEditRoom(room)}
@@ -409,7 +410,7 @@ const RoomTable: React.FC<RoomTableProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={userRole === 'ADMIN' ? 9 : 8} className="p-8 text-center text-text-secondary dark:text-gray-400">
+                  <td colSpan={(userRole === 'ADMIN' || userRole === 'MANAGER') ? 9 : 8} className="p-8 text-center text-text-secondary dark:text-gray-400">
                     Không tìm thấy phòng phù hợp với tiêu chí tìm kiếm
                   </td>
                 </tr>

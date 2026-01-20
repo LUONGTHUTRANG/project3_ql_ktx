@@ -17,8 +17,10 @@ import BuildingDetail from './pages/BuildingDetail';
 import StudentRegistration from './pages/StudentRegistration';
 import BillsAndPayments from './pages/BillsAndPayments';
 import InvoiceDetail from './pages/InvoiceDetail';
-import InvoiceManagementAdmin from './pages/InvoiceManagementAdmin';
+import InvoiceManagement from './pages/InvoiceManagement';
 import RecordUtilityMetersPage from './pages/RecordUtilityMetersPage';
+import RoomFeeInvoiceDetail from './pages/RoomFeeInvoiceDetail';
+import UtilityFeeInvoiceDetail from './pages/UtilityFeeInvoiceDetail';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import RoomManagement from './pages/RoomManagement';
@@ -298,10 +300,46 @@ const AppContent: React.FC = () => {
         />
 
         <Route 
+          path="/manager/invoices/room-fee" 
+          element={
+            user && user.role === UserRole.MANAGER
+              ? <InvoiceManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/manager/invoices/utility-fee" 
+          element={
+            user && user.role === UserRole.MANAGER
+              ? <InvoiceManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
           path="/manager/invoices" 
           element={
             user && user.role === UserRole.MANAGER
-              ? <InvoiceManagementAdmin /> 
+              ? <Navigate to="/manager/invoices/room-fee" replace /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/invoice/room-fee/:semesterId" 
+          element={
+            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+              ? <RoomFeeInvoiceDetail /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/invoice/utility-fee/:month/:year" 
+          element={
+            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+              ? <UtilityFeeInvoiceDetail /> 
               : <Navigate to="/login" replace />
           } 
         />
@@ -456,7 +494,8 @@ const AppContent: React.FC = () => {
           } 
         />
 
-        <Route           path="/admin/managers" 
+        <Route
+          path="/admin/managers" 
           element={
             user && user.role === UserRole.ADMIN
               ? <ManagerManagement /> 
@@ -464,7 +503,8 @@ const AppContent: React.FC = () => {
           } 
         />
 
-        <Route           path="/admin/service-prices" 
+        <Route           
+          path="/admin/service-prices" 
           element={
             user && user.role === UserRole.ADMIN
               ? <ServicePriceManagement /> 
@@ -548,7 +588,7 @@ const AppContent: React.FC = () => {
           path="/admin/invoices" 
           element={
             user && user.role === UserRole.ADMIN
-              ? <InvoiceManagementAdmin /> 
+              ? <InvoiceManagement /> 
               : <Navigate to="/login" replace />
           } 
         />

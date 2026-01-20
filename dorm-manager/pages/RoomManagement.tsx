@@ -15,6 +15,8 @@ const RoomManagement: React.FC = () => {
   const [filterFloor, setFilterFloor] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
+  // console.log('User role in RoomManagement:', user);
+
   // Fetch rooms on mount
   useEffect(() => {
     const fetchRooms = async () => {
@@ -189,7 +191,6 @@ const RoomManagement: React.FC = () => {
           onFloorChange={setFilterFloor}
           filterStatus={filterStatus}
           onStatusChange={setFilterStatus}
-          showEditDelete={false}
         />
       </div>
     </RoleBasedLayout>

@@ -1,217 +1,261 @@
-import React from 'react';
-import { Input, Select } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useContext } from 'react';
+import { Select, Spin, message } from 'antd';
 import Pagination from '../components/Pagination';
+import { getRoomFeeInvoicesBySemester, getRoomFeeInvoicesBySemesterAndBuilding } from '../api/roomFeeInvoiceApi';
+import { getAllSemesters, Semester } from '../api/semesterApi';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../App';
 
 interface Invoice {
   id: number;
   invoice_code: string;
-  type: string;
+  invoice_id: number;
   amount: number;
   status: string;
   due_date: string;
-  time_invoiced: string;
+  created_at: string;
   room_id: number;
   room_number?: string;
   building_name?: string;
-  description?: string;
-  month?: number;
-  year?: number;
   semester_id?: number;
+  student_id?: number;
+  mssv?: string;
+  full_name?: string;
+  floor?: number;
+  price_per_semester?: number;
 }
 
 interface InvoiceRow {
-  id: string;
+  key: string;
+  id: number;
   invoiceCode: string;
+  mssv: string;
+  studentName: string;
   room: string;
-  period: string;
-  indices: string;
   amount: string;
   status: string;
   statusLabel: string;
-  statusClass: string;
+  statusColor: string;
   dueDate: string;
   original: Invoice;
 }
 
-interface RoomFeeInvoiceTabProps {
-  invoices: InvoiceRow[];
-  loading: boolean;
-  error: string | null;
-  currentPage: number;
-  itemsPerPage: number;
-  totalPages: number;
-  searchTerm: string;
-  selectedStatus: 'all' | 'paid' | 'unpaid' | 'overdue';
-  onPageChange: (page: number) => void;
-  onSearchChange: (term: string) => void;
-  onStatusChange: (status: 'all' | 'paid' | 'unpaid' | 'overdue') => void;
-}
+const RoomFeeInvoiceTab: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState<number | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-const RoomFeeInvoiceTab: React.FC<RoomFeeInvoiceTabProps> = ({
-  invoices,
-  loading,
-  error,
-  currentPage,
-  itemsPerPage,
-  totalPages,
-  searchTerm,
-  selectedStatus,
-  onPageChange,
-  onSearchChange,
-  onStatusChange,
-}) => {
+  // Load semesters on mount
+  useEffect(() => {
+    const loadSemesters = async () => {
+      try {
+        const data = await getAllSemesters();
+        setSemesters(data || []);
+        
+        // Set default to active semester
+        const activeSemester = data.find((sem: Semester) => sem.is_active === 1);
+        if (activeSemester) {
+          setSelectedSemesterId(activeSemester.id);
+        } else if (data.length > 0) {
+          setSelectedSemesterId(data[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load semesters:', err);
+        message.error('Không thể tải danh sách kỳ');
+      }
+    };
+
+    loadSemesters();
+  }, []);
+
+  // Load invoices when semester changes
+  useEffect(() => {
+    if (!selectedSemesterId) return;
+
+    const loadInvoices = async () => {
+      try {
+        setLoading(true);
+        // Get building ID from manager's managed_building_id
+        const buildingId = user?.managed_building_id || user?.building_id;
+        let data;
+        
+        if (buildingId) {
+          data = await getRoomFeeInvoicesBySemesterAndBuilding(selectedSemesterId, buildingId);
+        } else {
+          data = await getRoomFeeInvoicesBySemester(selectedSemesterId);
+        }
+        
+        setInvoices(data || []);
+        setCurrentPage(1);
+      } catch (err) {
+        console.error('Failed to load invoices:', err);
+        message.error('Không thể tải danh sách hóa đơn tiền phòng');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInvoices();
+  }, [selectedSemesterId, user]);
+
+  // Map invoice to row display
+  const mapInvoiceToRow = (inv: Invoice): InvoiceRow => {
+    const status = inv.status || 'DRAFT';
+    let statusLabel = 'Chưa xác định';
+    let statusColor = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+
+    if (status === 'PAID') {
+      statusLabel = 'Đã thanh toán';
+      statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    } else if (status === 'PUBLISHED') {
+      statusLabel = 'Đã phát hành';
+      statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    } else if (status === 'DRAFT') {
+      statusLabel = 'Nháp';
+      statusColor = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    } else if (status === 'CANCELLED') {
+      statusLabel = 'Đã hủy';
+      statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+    }
+
+    const amount = inv.price_per_semester ? `${Number(inv.price_per_semester).toLocaleString('vi-VN')}₫` : '0₫';
+    const dueDate = inv.created_at ? new Date(inv.created_at).toLocaleDateString('vi-VN') : '-';
+
+    return {
+      key: String(inv.id),
+      id: inv.id,
+      invoiceCode: inv.invoice_code || `RF-${inv.id}`,
+      mssv: inv.mssv || '-',
+      studentName: inv.full_name || '-',
+      room: inv.room_number || `Phòng ${inv.room_id}`,
+      amount,
+      status: status,
+      statusLabel,
+      statusColor,
+      dueDate,
+      original: inv,
+    };
+  };
+
+  const allMappedInvoices = invoices.map(mapInvoiceToRow);
+  const totalPages = Math.ceil(allMappedInvoices.length / itemsPerPage);
+  const paginatedInvoices = allMappedInvoices.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div className="space-y-6">
-      {/* Filter Bar */}
-      <div className="bg-white dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border-color dark:border-gray-700">
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-            <div className="md:col-span-12 lg:col-span-6">
-              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-2">Tìm kiếm</label>
-              <Input
-                placeholder="Nhập mã hóa đơn hoặc số phòng..."
-                prefix={<SearchOutlined />}
-                value={searchTerm}
-                onChange={(e) => {
-                  onSearchChange(e.target.value);
-                  onPageChange(1);
-                }}
-                className="h-11 gap-3 pl-1 flex-1"
-              />
-            </div>
-
-            <div className="md:col-span-6 lg:col-span-3">
-              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-2">Trạng thái</label>
-              <Select
-                placeholder="Chọn trạng thái"
-                value={selectedStatus || undefined}
-                onChange={(value) => {
-                  onStatusChange(value);
-                  onPageChange(1);
-                }}
-                className="w-full h-11"
-                options={[
-                  { label: 'Tất cả trạng thái', value: 'all' },
-                  { label: 'Đã thu', value: 'paid' },
-                  { label: 'Chờ thu', value: 'unpaid' },
-                  { label: 'Quá hạn', value: 'overdue' }
-                ]}
-              />
-            </div>
-
-            <div className="md:col-span-6 lg:col-span-3">
-              <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-2">Xuất dữ liệu</label>
-              <button className="w-full h-11 flex items-center justify-center gap-2 px-4 text-text-main dark:text-gray-300 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <span className="material-symbols-outlined text-[20px]">download</span>
-                <span>Xuất Excel</span>
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Semester Filter */}
+      <div>
+          <label className="block text-sm font-medium text-text-secondary dark:text-gray-400 mb-2">Kỳ ở</label>
+          <Select
+            placeholder="Chọn kỳ ở..."
+            value={selectedSemesterId}
+            onChange={(value) => {
+              setSelectedSemesterId(value);
+              setCurrentPage(1);
+            }}
+            className="w-full h-11"
+            optionLabelProp="label"
+            options={semesters.map((sem) => ({
+              value: sem.id,
+              label: `Kỳ ${sem.term} - Năm học ${sem.academic_year}${sem.is_active === 1 ? ' (Hiện tại)' : ''}`,
+            }))}
+          />
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-border-color dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <span className="text-text-secondary">Đang tải...</span>
-            </div>
-          ) : error ? (
-            <div className="flex items-center justify-center h-64">
-              <span className="text-red-600">{error}</span>
-            </div>
-          ) : invoices.length === 0 ? (
-            <div className="flex items-center justify-center h-64">
-              <span className="text-text-secondary">Không có hóa đơn nào</span>
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-border-color dark:border-gray-700">
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">
-                    <div className="flex items-center gap-2 cursor-pointer hover:text-primary">
-                      Mã HĐ
-                      <span className="material-symbols-outlined text-[16px]">swap_vert</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Phòng</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Kỳ/Tháng</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-right">Tổng tiền</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-center">Trạng thái</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-right sticky right-0 bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm z-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {invoices.map((row) => (
-                  <tr key={row.id} className="group hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-text-main dark:text-white">{row.invoiceCode}</div>
-                      <div className="text-xs text-text-secondary dark:text-gray-400">
-                        {row.original.time_invoiced 
-                          ? `Tạo: ${new Date(row.original.time_invoiced).toLocaleDateString('vi-VN')}`
-                          : 'Tạo: --/--/----'
-                        }
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-text-secondary text-[18px]">bed</span>
-                        <span className="text-sm text-text-main dark:text-gray-200">{row.room}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-text-main dark:text-gray-300">{row.period}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className={`text-sm font-bold ${
-                        row.status === 'PAID' 
-                          ? 'text-text-main dark:text-white' 
-                          : row.statusLabel === 'Quá hạn'
-                          ? 'text-red-600 dark:text-red-400'
-                          : 'text-text-main dark:text-white'
-                      }`}>
-                        {row.amount}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.statusClass}`}>
-                        <span className="size-1.5 rounded-full mr-1.5" 
-                          style={{
-                            backgroundColor: 
-                              row.status === 'PAID' ? '#10b981' :
-                              row.statusLabel === 'Quá hạn' ? '#ef4444' :
-                              row.statusLabel === 'Chờ thu' ? '#eab308' :
-                              '#6b7280'
-                          }}
-                        ></span>
-                        {row.statusLabel}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium sticky right-0 bg-white dark:bg-surface-dark group-hover:bg-gray-50 dark:group-hover:bg-gray-800 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] transition-colors z-10">
-                      <button 
-                        className="text-text-secondary hover:text-primary transition-colors p-1 inline-flex" 
-                        title="Xem chi tiết"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">visibility</span>
-                      </button>
-                    </td>
+      {/* Invoices Table Section */}
+      <div className="bg-white dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+        {loading ? (
+          <div className="flex items-center justify-center p-12">
+            <Spin size="large" tip="Đang tải dữ liệu..." />
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-border-color dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">STT</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Mã hóa đơn</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">MSSV</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Tên sinh viên</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Phòng</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Số tiền</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Trạng thái</th>
+                    <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Hành động</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                </thead>
+                <tbody className="divide-y divide-border-color dark:divide-gray-700">
+                  {paginatedInvoices.map((invoice, index) => (
+                    <tr 
+                      key={invoice.key}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-400">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-text-main dark:text-white">{invoice.invoiceCode}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-text-secondary dark:text-gray-300">{invoice.mssv}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-text-main dark:text-white">{invoice.studentName}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-text-secondary dark:text-gray-300">{invoice.room}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{invoice.amount}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${invoice.statusColor}`}>
+                          {invoice.statusLabel}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button 
+                          onClick={() => navigate(`/invoice/room-fee/detail/${invoice.id}`)}
+                          className="text-text-secondary dark:text-gray-500 group-hover:text-primary transition-colors"
+                        >
+                          <span className="material-symbols-outlined">chevron_right</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {paginatedInvoices.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-20 text-center text-text-secondary dark:text-gray-500">
+                        {invoices.length === 0 ? 'Không có hóa đơn tiền phòng cho kỳ này' : 'Không tìm thấy hóa đơn phù hợp'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-        {/* Pagination */}
-        {!loading && invoices.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={itemsPerPage}
-            onPageChange={onPageChange}
-          />
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={allMappedInvoices.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(val) => {
+                setItemsPerPage(val);
+                setCurrentPage(1);
+              }}
+              itemsPerPageOptions={[5, 10, 20, 50]}
+            />
+          </>
         )}
       </div>
     </div>

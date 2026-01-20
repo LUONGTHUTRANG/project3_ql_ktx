@@ -1,0 +1,3 @@
+:where(.css-dev-only-do-not-override-iecf5o).ant-select:not(.ant-select-customize) .ant-select-input {
+    --tw-ring-shadow: none;
+}

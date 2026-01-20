@@ -121,10 +121,10 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
 
       if (isEditMode && editingData) {
         await updateSemester(editingData.id, submitData);
-        message.success('Cập nhật kỳ ở thành công');
+        message.success(`Kỳ ${form.term} năm ${form.academic_year} đã được cập nhật thành công`);
       } else {
         await createSemester(submitData);
-        message.success('Thêm kỳ ở mới thành công');
+        message.success(`Kỳ ${form.term} năm ${form.academic_year} đã được thêm mới thành công`);
       }
       
       handleClose();
@@ -139,7 +139,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
 
   const currentYear = new Date().getFullYear();
   const yearOptions = [];
-  for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+  for (let i = currentYear - 2; i <= currentYear; i++) {
     yearOptions.push({ label: `${i}-${i + 1}`, value: `${i}-${i + 1}` });
   }
 
@@ -176,7 +176,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
       ]}
       width={700}
       centered
-      bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
     >
       {isLoadingData ? (
         <div className="flex justify-center items-center py-12">
