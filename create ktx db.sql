@@ -54,13 +54,14 @@ CREATE TABLE IF NOT EXISTS `invoices` (
   `paid_at` datetime DEFAULT NULL,
   `paid_by_student_id` int(11) DEFAULT NULL,
   `created_by_manager_id` int(11) DEFAULT NULL,
+  `deadline_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `invoice_code` (`invoice_code`),
   KEY `fk_paid_student` (`paid_by_student_id`),
   KEY `fk_created_manager` (`created_by_manager_id`),
   CONSTRAINT `fk_created_manager` FOREIGN KEY (`created_by_manager_id`) REFERENCES `managers` (`id`),
   CONSTRAINT `fk_paid_student` FOREIGN KEY (`paid_by_student_id`) REFERENCES `students` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -95,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   `type` enum('ANNOUNCEMENT','REMINDER') DEFAULT 'ANNOUNCEMENT',
   `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -117,7 +118,7 @@ CREATE TABLE IF NOT EXISTS `notification_recipients` (
   CONSTRAINT `notification_recipients_ibfk_2` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`),
   CONSTRAINT `notification_recipients_ibfk_3` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`),
   CONSTRAINT `notification_recipients_ibfk_4` FOREIGN KEY (`building_id`) REFERENCES `buildings` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -131,6 +132,9 @@ CREATE TABLE IF NOT EXISTS `other_invoices` (
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `amount` decimal(10,2) NOT NULL,
+  `attachment_path` varchar(255) DEFAULT NULL,
+  `file_name` varchar(50) DEFAULT NULL,
+  `file_size` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_oi_invoice` (`invoice_id`),
   KEY `fk_oi_student` (`target_student_id`),
@@ -138,7 +142,7 @@ CREATE TABLE IF NOT EXISTS `other_invoices` (
   CONSTRAINT `fk_oi_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
   CONSTRAINT `fk_oi_room` FOREIGN KEY (`target_room_id`) REFERENCES `rooms` (`id`),
   CONSTRAINT `fk_oi_student` FOREIGN KEY (`target_student_id`) REFERENCES `students` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -167,7 +171,7 @@ CREATE TABLE IF NOT EXISTS `registrations` (
   CONSTRAINT `registrations_ibfk_2` FOREIGN KEY (`desired_room_id`) REFERENCES `rooms` (`id`),
   CONSTRAINT `registrations_ibfk_3` FOREIGN KEY (`desired_building_id`) REFERENCES `buildings` (`id`),
   CONSTRAINT `registrations_ibfk_4` FOREIGN KEY (`semester_id`) REFERENCES `semesters` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -205,7 +209,7 @@ CREATE TABLE IF NOT EXISTS `room_fee_invoices` (
   CONSTRAINT `fk_rfi_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
   CONSTRAINT `fk_rfi_semester` FOREIGN KEY (`semester_id`) REFERENCES `semesters` (`id`),
   CONSTRAINT `fk_rfi_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -321,7 +325,7 @@ CREATE TABLE IF NOT EXISTS `utility_invoices` (
   CONSTRAINT `fk_cycle` FOREIGN KEY (`cycle_id`) REFERENCES `utility_invoice_cycles` (`id`),
   CONSTRAINT `fk_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
   CONSTRAINT `fk_room` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -336,7 +340,7 @@ CREATE TABLE IF NOT EXISTS `utility_invoice_cycles` (
   `closed_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_month_year` (`month`,`year`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
