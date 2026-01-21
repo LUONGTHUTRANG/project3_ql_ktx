@@ -93,6 +93,7 @@ const OtherInvoiceDetail: React.FC = () => {
 
   const handleDownloadFile = async (invoiceId: number, fileName?: string) => {
     try {
+      console.log("Downloading file for invoice id:", invoiceId, "file name:", fileName);
       await downloadOtherInvoiceFile(invoiceId, fileName);
       message.success('Tệp đã được tải xuống thành công');
     } catch (error) {

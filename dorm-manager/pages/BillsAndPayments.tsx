@@ -13,7 +13,7 @@ const BillsAndPayments: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('unpaid');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [semester, setSemester] = useState<string>('');
   const [semesterOptions, setSemesterOptions] = useState<any[]>([]);
   const [loadingSemesters, setLoadingSemesters] = useState(false);
@@ -123,6 +123,12 @@ const BillsAndPayments: React.FC = () => {
     if (category === 'UTILITY') typeLabel = 'Phí điện nước';
     if (category === 'OTHER') typeLabel = 'Khác';
 
+    // Generate invoice name based on category
+    let invoiceName = 'Hóa đơn';
+    if (category === 'ROOM_FEE') invoiceName = 'Hóa đơn tiền phòng';
+    if (category === 'UTILITY') invoiceName = 'Hóa đơn điện nước';
+    if (category === 'OTHER') invoiceName = inv.title || 'Hóa đơn khác';
+
     // icon selection based on invoice_category
     let icon = 'receipt_long';
     let iconColor = 'text-primary';
@@ -141,13 +147,14 @@ const BillsAndPayments: React.FC = () => {
     return {
       id: String(inv.id || inv.invoice_code || ''),
       type: typeLabel,
+      invoiceName,
       icon,
       iconColor,
       iconBg,
       semesterLabel: '-',
       monthLabel,
       amount,
-      deadline: inv.due_date ? new Date(inv.due_date).toLocaleDateString('vi-VN') : '-',
+      deadline_at: inv.deadline_at ? new Date(inv.deadline_at).toLocaleDateString('vi-VN') : '-',
       status,
       statusLabel,
       statusClass,
@@ -163,6 +170,12 @@ const BillsAndPayments: React.FC = () => {
       if (activeTab === 'overdue') return bill.status === 'overdue';
       return true;
     });
+
+  // Paginate the filtered bills
+  const paginatedBills = filteredBills.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleRowClick = (id: string) => {
     navigate(`/student/bills/${id}`);
@@ -263,76 +276,78 @@ const BillsAndPayments: React.FC = () => {
         {/* Table Container */}
         <div className="overflow-hidden rounded-xl border border-border-color bg-white shadow-sm dark:border-gray-700 dark:bg-surface-dark">
           <div className="overflow-x-auto">
-            <table className="w-full whitespace-nowrap text-left text-sm">
+            <table className="w-full whitespace-nowrap text-left text-sm" style={{ minWidth: '960px' }}>
               <thead className="bg-gray-50 text-text-secondary dark:bg-gray-800/50 dark:text-gray-400">
                 <tr>
-                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs" scope="col">Mã hóa đơn</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs" scope="col">Loại hóa đơn</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs" scope="col">Kỳ</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs" scope="col">Tháng</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs" scope="col">Tổng tiền</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs" scope="col">Hạn thanh toán</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs" scope="col">Trạng thái</th>
-                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-right" scope="col">Hành động</th>
+                  <th className="px-4 py-4 font-bold uppercase tracking-wider text-xs" scope="col" style={{ width: '16.67%' }}>Mã hóa đơn</th>
+                  <th className="px-4 py-4 font-bold uppercase tracking-wider text-xs" scope="col" style={{ width: '8.33%' }}>Loại hóa đơn</th>
+                  <th className="px-4 py-4 font-bold uppercase tracking-wider text-xs" scope="col" style={{ width: '16.67%' }}>Tên hóa đơn</th>
+                  <th className="px-4 py-4 font-bold uppercase tracking-wider text-xs" scope="col" style={{ width: '8.33%' }}>Tháng</th>
+                  <th className="px-4 py-4 font-bold uppercase tracking-wider text-xs" scope="col" style={{ width: '16.67%' }}>Tổng tiền</th>
+                  <th className="px-4 py-4 font-bold uppercase tracking-wider text-xs" scope="col" style={{ width: '12.5%' }}>Hạn thanh toán</th>
+                  <th className="px-4 py-4 font-bold uppercase tracking-wider text-xs" scope="col" style={{ width: '12.5%' }}>Trạng thái</th>
+                  <th className="px-4 py-4 font-bold uppercase tracking-wider text-xs text-center" scope="col" style={{ width: '8.33%' }}>Hành động</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-surface-dark">
                 {loadingBills ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center">
+                    <td colSpan={8} className="px-6 py-12 text-center">
                       <Spin tip="Đang tải hóa đơn..." />
                     </td>
                   </tr>
                 ) : billsError ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-red-600">
+                    <td colSpan={8} className="px-6 py-12 text-center text-red-600">
                       {billsError}
                     </td>
                   </tr>
                 ) : filteredBills.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-text-secondary dark:text-gray-500">
+                    <td colSpan={8} className="px-6 py-12 text-center text-text-secondary dark:text-gray-500">
                       Không có hóa đơn nào trong mục này.
                     </td>
                   </tr>
                 ) : (
-                  filteredBills.map((bill) => (
-                    <tr key={bill.id} onClick={() => handleRowClick(bill.id)} className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer transition-colors">
-                      <td className="px-6 py-4 font-medium text-text-secondary dark:text-gray-400">{bill.original.invoice_code || bill.id}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-text-main dark:text-white">{bill.type}</span>
+                  paginatedBills.map((bill) => (
+                    <tr key={bill.id} onClick={() => handleRowClick(bill.id)} className="group hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-800">
+                      <td className="px-4 py-4 font-medium text-text-secondary dark:text-gray-400 text-sm" style={{ width: '16.67%' }}>{bill.original.invoice_code || bill.id}</td>
+                      <td className="px-4 py-4" style={{ width: '8.33%' }}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-text-main dark:text-white text-sm">{bill.type}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-text-main dark:text-white text-sm">{semester}</td>
-                      <td className="px-6 py-4 text-text-main dark:text-white text-sm">{bill.monthLabel}</td>
-                      <td className={`px-6 py-4 font-bold ${bill.status === 'overdue' ? 'text-red-600' : bill.status === 'paid' ? 'text-green-600' : 'text-primary'}`}>
+                      <td className="px-4 py-4 text-text-main dark:text-white text-sm font-medium truncate" style={{ width: '16.67%' }}>{bill.invoiceName}</td>
+                      <td className="px-4 py-4 text-text-main dark:text-white text-sm whitespace-nowrap" style={{ width: '8.33%' }}>{bill.monthLabel}</td>
+                      <td className={`px-4 py-4 font-bold text-sm whitespace-nowrap ${bill.status === 'overdue' ? 'text-red-600' : bill.status === 'paid' ? 'text-green-600' : 'text-primary'}`} style={{ width: '16.67%' }}>
                         {bill.amount}
                       </td>
-                      <td className={`px-6 py-4 font-medium ${bill.status === 'overdue' ? 'text-red-600' : bill.status === 'expiring' ? 'text-orange-600' : 'text-text-main dark:text-white'}`}>
-                        {bill.deadline}
+                      <td className={`px-4 py-4 font-medium text-sm whitespace-nowrap ${bill.status === 'overdue' ? 'text-red-600' : bill.status === 'expiring' ? 'text-orange-600' : 'text-text-main dark:text-white'}`} style={{ width: '12.5%' }}>
+                        {bill.deadline_at}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold border ${bill.statusClass} border-current/10`}>
+                      <td className="px-4 py-4" style={{ width: '12.5%' }}>
+                        <span className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-bold border ${bill.statusClass} border-current/10`}>
                           {bill.statusLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                          {bill.status === 'paid' ? (
-                            <button 
-                              onClick={() => handleRowClick(bill.id)}
-                              className="rounded-lg border border-border-color bg-white px-4 py-2 text-xs font-bold text-text-main transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 shadow-sm">
-                              Xem biên lai
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleRowClick(bill.id)}
-                              className={`rounded-lg px-4 py-2 text-xs font-bold text-white transition-all shadow-sm active:scale-95 ${bill.status === 'overdue' ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary-hover'}`}>
-                              Thanh toán {bill.status === 'overdue' ? 'ngay' : ''}
-                            </button>
-                          )}
-                        </div>
+                      <td className="px-4 py-4 text-center" style={{ width: '8.33%' }}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(bill.id);
+                          }}
+                          title={bill.status === 'paid' ? 'Xem biên lai' : 'Thanh toán'}
+                          className={`inline-flex items-center justify-center size-9 rounded-lg transition-all hover:scale-110 active:scale-95 ${
+                            bill.status === 'paid' 
+                              ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' 
+                              : bill.status === 'overdue'
+                              ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
+                              : 'text-primary hover:bg-primary/10 dark:hover:bg-primary/20'
+                          }`}>
+                          <span className="material-symbols-outlined text-[22px]">
+                            {bill.status === 'paid' ? 'receipt_long' : 'payment'}
+                          </span>
+                        </button>
                       </td>
                     </tr>
                   ))

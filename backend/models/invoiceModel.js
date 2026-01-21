@@ -29,15 +29,20 @@ const Invoice = {
   },
 
   getForStudentApp: async (studentId, roomId) => {
-    // For student app, get utility invoices for the room and room fee/other invoices for the student
+    // For student app, get utility invoices for the room, room fee/other invoices for the student,
+    // and other invoices with target_type = 'ROOM' for the student's room
+    // Join with other_invoices to get title for OTHER category invoices
     const query = `
-      SELECT i.* FROM invoices i
+      SELECT i.*, COALESCE(oi.title) as title
+      FROM invoices i
+      LEFT JOIN other_invoices oi ON i.id = oi.invoice_id
       WHERE i.id IN (SELECT invoice_id FROM utility_invoices WHERE room_id = ?)
          OR i.id IN (SELECT invoice_id FROM room_fee_invoices WHERE student_id = ?)
          OR i.id IN (SELECT invoice_id FROM other_invoices WHERE target_student_id = ?)
+         OR i.id IN (SELECT invoice_id FROM other_invoices WHERE target_type = 'ROOM' AND target_room_id = ?)
       ORDER BY i.created_at DESC
     `;
-    const [rows] = await db.query(query, [roomId, studentId, studentId]);
+    const [rows] = await db.query(query, [roomId, studentId, studentId, roomId]);
     return rows;
   },
 
@@ -100,6 +105,48 @@ const Invoice = {
         invoice.water_price = utilityData[0].water_price;
         invoice.water_unit = utilityData[0].water_unit;
       }
+    } else if (category === 'OTHER') {
+      // For OTHER invoices, join with other_invoices to get attachment and recipient info
+      const [otherData] = await db.query(
+        `SELECT oi.target_type, oi.id as other_invoice_id, oi.target_student_id, oi.target_room_id, 
+                oi.title, oi.description, oi.amount, oi.attachment_path, oi.file_name, oi.file_size,
+                s.full_name, s.mssv,
+                r.room_number, r.floor, b.name as building_name, b.id as building_id
+         FROM other_invoices oi
+         LEFT JOIN students s ON oi.target_student_id = s.id
+         LEFT JOIN rooms r ON oi.target_room_id = r.id
+         LEFT JOIN buildings b ON r.building_id = b.id
+         WHERE oi.invoice_id = ?
+         LIMIT 1`,
+        [id]
+      );
+      console.log("Other invoice data:", otherData);
+      
+      if (otherData && otherData.length > 0) {
+        const data = otherData[0];
+        invoice.target_type = data.target_type;
+        invoice.target_student_id = data.target_student_id;
+        invoice.target_room_id = data.target_room_id;
+        invoice.building_id = data.building_id;
+        invoice.other_invoice_id = data.other_invoice_id;
+        invoice.building_name = data.building_name;
+        invoice.title = data.title || invoice.title;
+        invoice.description = data.description;
+        invoice.attachment_path = data.attachment_path;
+        invoice.file_name = data.file_name;
+        invoice.file_size = data.file_size;
+        invoice.due_date = data.deadline_at || invoice.due_date;
+        // Add recipient info
+        if (data.target_type === 'STUDENT') {
+          invoice.full_name = data.full_name;
+          invoice.mssv = data.mssv;
+        } else if (data.target_type === 'ROOM') {
+          invoice.room_number = data.room_number;
+          invoice.floor = data.floor;
+        } else if (data.target_type === 'BUILDING') {
+          invoice.building_name = data.building_name;
+        }
+      }
     }
     
     return invoice;
@@ -113,19 +160,26 @@ const Invoice = {
       status = "UNPAID",
       created_by_manager_id,
       published_at,
+      deadline_at,
     } = data;
+
+    console.log("Creating invoice with data:", data);
 
     const [result] = await db.query(
       `INSERT INTO invoices 
-       (invoice_code, invoice_category, total_amount, status, created_by_manager_id, published_at) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [invoice_code, invoice_category, total_amount, status, created_by_manager_id, published_at]
+       (invoice_code, invoice_category, total_amount, status, created_by_manager_id, published_at, deadline_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [invoice_code, invoice_category, total_amount, status, created_by_manager_id, published_at, deadline_at]
     );
     return result.insertId;
   },
 
   delete: async (invoiceCode) => {
     await db.query(`DELETE FROM invoices WHERE invoice_code = ?`, [invoiceCode]);
+  },
+
+  deleteById: async (invoiceId) => {
+    await db.query(`DELETE FROM invoices WHERE id = ?`, [invoiceId]);
   },
 
   getByBuildingId: async (buildingId, category = null, status = null) => {

@@ -4,7 +4,7 @@ const OtherInvoice = {
   // Get other invoice by ID
   getById: async (id) => {
     const [rows] = await db.query(
-      `SELECT oi.*, inv.status, inv.invoice_code, inv.created_at, inv.total_amount,
+      `SELECT oi.*, inv.status, inv.invoice_code, inv.created_at, inv.total_amount, inv.deadline_at,
               r.room_number, r.floor
        FROM other_invoices oi
        JOIN invoices inv ON oi.invoice_id = inv.id

@@ -11,6 +11,7 @@ export interface User {
   avatar: string;
   email?: string; 
   mssv?: string; // Mã số sinh viên (for students)
+  building_id?: string | number; // Tòa nhà (for managers)
 }
 
 export interface Notification {

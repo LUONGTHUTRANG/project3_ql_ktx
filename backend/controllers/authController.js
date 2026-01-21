@@ -116,17 +116,24 @@ export const login = async (req, res) => {
 
     console.log("check user", user);
 
+    const responseUser = {
+      id: user.id,
+      username: user.username,
+      mssv: user.mssv,
+      fullName: user.full_name,
+      role: userRole,
+      email: user.email,
+      currentRoomId: user.room_id, // For students, from stay_records
+    };
+
+    // Add building_id for manager
+    if (userRole === "manager" && user.building_id) {
+      responseUser.building_id = user.building_id;
+    }
+
     res.json({
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        mssv: user.mssv,
-        fullName: user.full_name,
-        role: userRole,
-        email: user.email,
-        currentRoomId: user.room_id, // For students, from stay_records
-      },
+      user: responseUser,
     });
   } catch (error) {
     console.error(error);

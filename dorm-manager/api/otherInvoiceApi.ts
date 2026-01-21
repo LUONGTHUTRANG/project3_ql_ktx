@@ -34,6 +34,7 @@ export interface OtherInvoiceCreateData {
   attachment?: File;
   file_name?: string;
   file_size?: number;
+  due_date?: string;
 }
 
 /**
@@ -41,31 +42,31 @@ export interface OtherInvoiceCreateData {
  */
 export const createOtherInvoice = async (data: OtherInvoiceCreateData) => {
   try {
-    const formData = new FormData();
-    formData.append('target_type', data.target_type);
-    if (data.target_student_id) {
-      formData.append('target_student_id', data.target_student_id);
-    }
-    if (data.target_room_id) {
-      formData.append('target_room_id', data.target_room_id);
-    }
-    formData.append('title', data.title);
-    if (data.description) {
-      formData.append('description', data.description);
-    }
-    formData.append('amount', String(data.amount));
+    // const formData = new FormData();
+    // formData.append('target_type', data.target_type);
+    // if (data.target_student_id) {
+    //   formData.append('target_student_id', data.target_student_id);
+    // }
+    // if (data.target_room_id) {
+    //   formData.append('target_room_id', data.target_room_id);
+    // }
+    // formData.append('title', data.title);
+    // if (data.description) {
+    //   formData.append('description', data.description);
+    // }
+    // formData.append('amount', String(data.amount));
     
-    if (data.attachment) {
-      formData.append('attachment', data.attachment);
-      if (data.file_name) {
-        formData.append('file_name', data.file_name);
-      }
-      if (data.file_size) {
-        formData.append('file_size', String(data.file_size));
-      }
-    }
+    // if (data.attachment) {
+    //   formData.append('attachment', data.attachment);
+    //   if (data.file_name) {
+    //     formData.append('file_name', data.file_name);
+    //   }
+    //   if (data.file_size) {
+    //     formData.append('file_size', String(data.file_size));
+    //   }
+    // }
 
-    const response = await api.post('/', formData, {
+    const response = await api.post('/', data, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -142,6 +143,52 @@ export const deleteOtherInvoice = async (invoiceId: string | number) => {
     return response.data;
   } catch (error: any) {
     console.error('Error deleting other invoice:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update an OTHER type invoice
+ */
+export const updateOtherInvoice = async (invoiceId: string | number, data: OtherInvoiceCreateData) => {
+  try {
+    // const formData = new FormData();
+    // formData.append('target_type', data.target_type);
+    // if (data.target_student_id) {
+    //   formData.append('target_student_id', data.target_student_id);
+    // }
+    // if (data.target_room_id) {
+    //   formData.append('target_room_id', data.target_room_id);
+    // }
+    // formData.append('title', data.title);
+    // if (data.description) {
+    //   formData.append('description', data.description);
+    // }
+    // formData.append('amount', String(data.amount));
+    // if (data.due_date) {
+    //   formData.append('due_date', data.due_date);
+    // }
+    
+    // if (data.attachment) {
+    //   formData.append('attachment', data.attachment);
+    //   if (data.file_name) {
+    //     formData.append('file_name', data.file_name);
+    //   }
+    //   if (data.file_size) {
+    //     formData.append('file_size', String(data.file_size));
+    //   }
+    // }
+
+    console.log("Updating other invoice with data:", data);
+
+    const response = await api.put(`/${invoiceId}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating other invoice:', error);
     throw error;
   }
 };

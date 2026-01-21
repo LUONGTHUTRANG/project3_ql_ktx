@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { Spin, message } from 'antd';
+import { Spin, message, Modal } from 'antd';
 import Pagination from '../components/Pagination';
-import { getAllOtherInvoices } from '../api/otherInvoiceApi';
+import { getAllOtherInvoices, deleteOtherInvoice } from '../api/otherInvoiceApi';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 
@@ -64,6 +64,39 @@ const OtherInvoiceTab: React.FC = () => {
 
     loadInvoices();
   }, []);
+
+  const handleDeleteInvoice = (invoiceId: number, invoiceTitle: string) => {
+    Modal.confirm({
+      title: 'Xác nhận xóa hóa đơn',
+      content: `Bạn có chắc chắn muốn xóa hóa đơn "${invoiceTitle}" không? Hành động này không thể hoàn tác.`,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk() {
+        return new Promise(async (resolve, reject) => {
+          try {
+            await deleteOtherInvoice(invoiceId);
+            message.success('Xóa hóa đơn thành công');
+            // Reload invoices
+            setLoading(true);
+            const data = await getAllOtherInvoices();
+            setInvoices(data || []);
+            setCurrentPage(1);
+            resolve(undefined);
+          } catch (err) {
+            console.error('Failed to delete invoice:', err);
+            message.error('Không thể xóa hóa đơn');
+            reject(err);
+          } finally {
+            setLoading(false);
+          }
+        });
+      },
+      onCancel() {
+        console.log('Cancel delete');
+      },
+    });
+  };
 
   // Map invoice to row display
   const mapInvoiceToRow = (inv: OtherInvoice): InvoiceRow => {
@@ -175,15 +208,36 @@ const OtherInvoiceTab: React.FC = () => {
                           {invoice.statusLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <td className="px-6 py-4 whitespace-nowrap text-right space-x-3 flex justify-end">
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/invoice/other/detail/${invoice.id}`);
                           }}
-                          className="text-text-secondary dark:text-gray-500 group-hover:text-primary transition-colors"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                          title="Xem chi tiết"
                         >
-                          <span className="material-symbols-outlined">chevron_right</span>
+                          <span className="material-symbols-outlined text-xl">visibility</span>
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/invoice/other/edit/${invoice.id}`);
+                          }}
+                          className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <span className="material-symbols-outlined text-xl">edit</span>
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteInvoice(invoice.id, invoice.title);
+                          }}
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 transition-colors"
+                          title="Xóa"
+                        >
+                          <span className="material-symbols-outlined text-xl">delete</span>
                         </button>
                       </td>
                     </tr>

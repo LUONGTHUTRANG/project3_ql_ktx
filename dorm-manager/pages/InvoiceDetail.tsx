@@ -5,6 +5,7 @@ import QRCode from 'react-qr-code';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { getInvoiceById } from '../api/invoiceApi';
+import { downloadOtherInvoiceFile } from '@/api/otherInvoiceApi';
 import { getMonthlyUsageById } from '../api/monthlyUsageApi';
 import { getStudentById } from '../api/studentApi';
 import { generateQRCode } from '../api/paymentApi';
@@ -97,6 +98,19 @@ const InvoiceDetail: React.FC = () => {
 
     // Navigate to payment confirmation page
     navigate(`/student/payment-confirmation?ref=${qrCode.paymentRef}&invoiceId=${id}`);
+  };
+
+  const handleDownloadFile = async () => {
+    if (!invoice?.other_invoice_id || !invoice?.file_name) return;
+    
+    try {
+      console.log("Downloading file for invoice id:", invoice.other_invoice_id, "file name:", invoice.file_name);
+      await downloadOtherInvoiceFile(invoice.other_invoice_id, invoice.file_name);
+      message.success('Tệp đã được tải xuống thành công');
+    } catch (error) {
+      console.error('Download error:', error);
+      message.error('Lỗi khi tải tệp');
+    }
   };
 
   if (isLoading) {
@@ -286,7 +300,7 @@ const InvoiceDetail: React.FC = () => {
               </div>
 
               {/* Customer & Info Section */}
-              <div className="p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="p-6 md:p-10 grid grid-cols-1 md:grid-cols-3 gap-10">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500 mb-3">Thông tin Sinh viên</p>
                   <div className="flex flex-col gap-1">
@@ -307,7 +321,43 @@ const InvoiceDetail: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                {invoice.invoice_category?.toUpperCase() === 'OTHER' && (
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-text-secondary dark:text-gray-500 mb-3">Phạm vi nhận</p>
+                    <div className="flex items-center gap-4">
+                      {/* <div className={`size-12 rounded-xl flex items-center justify-center border ${
+                        invoice.target_type === 'STUDENT' 
+                          ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-800' 
+                          : invoice.target_type === 'ROOM'
+                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800'
+                          : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-800'
+                      }`}>
+                        <span className="material-symbols-outlined text-2xl">
+                          {invoice.target_type === 'STUDENT' ? 'person' : invoice.target_type === 'ROOM' ? 'door_open' : 'apartment'}
+                        </span>
+                      </div> */}
+                      <div>
+                        <p className="text-lg font-bold text-text-main dark:text-white">
+                          {invoice.target_type === 'STUDENT' 
+                            ? 'Cá nhân sinh viên'
+                            : invoice.target_type === 'ROOM'
+                            ? 'Phòng sinh viên'
+                            : 'Toàn bộ tòa nhà'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* Description Section */}
+              {invoice.description && (
+                <div className="px-6 md:px-10 py-6 border-b border-t border-border-color dark:border-gray-700">
+                  <p className="text-lg font-bold uppercase dark:text-gray-500 mb-3">Mô tả</p>
+                  <p className="text-text-main dark:text-white text-sm leading-relaxed font-medium">{invoice.description}</p>
+                </div>
+              )}
 
               {/* Line Items Table */}
               <div className="px-6 md:px-10 pb-4">
@@ -315,22 +365,22 @@ const InvoiceDetail: React.FC = () => {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b-2 border-border-color dark:border-gray-700">
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-400 w-1/2">Khoản mục</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-center">Đơn vị</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-right">Đơn giá</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-right">Thành tiền</th>
+                        <th className="py-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-400 w-1/2">Khoản mục</th>
+                        <th className="py-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-center">Đơn vị</th>
+                        <th className="py-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-right">Đơn giá</th>
+                        <th className="py-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-right">Thành tiền</th>
                       </tr>
                     </thead>
                     <tbody className="text-text-main dark:text-white">
                       {invoiceItems.map((item, idx) => (
                         <tr key={idx} className={item.isHeader ? 'bg-primary/5 dark:bg-primary/10 border-b border-border-color dark:border-gray-700' : 'border-b border-dashed border-border-color dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors'}>
-                          <td className="py-5 px-4">
+                          <td className="py-5">
                             {item.name && <p className="font-bold text-sm">{item.name}</p>}
                             {item.desc && <p className={item.isHeader ? 'text-[10px] text-text-secondary dark:text-gray-500 mt-0.5 font-medium' : 'text-[11px] text-text-secondary dark:text-gray-500 mt-1 font-medium italic'}>{item.desc}</p>}
                           </td>
-                          <td className="py-5 px-4 text-center text-sm font-medium text-text-secondary dark:text-gray-400">{item.unit}</td>
-                          <td className="py-5 px-4 text-right text-sm font-medium">{item.price > 0 ? item.price.toLocaleString() + ' đ' : '-'}</td>
-                          <td className="py-5 px-4 text-right font-bold text-sm">{item.total > 0 ? item.total.toLocaleString() + ' đ' : '-'}</td>
+                          <td className="py-5 text-center text-sm font-medium text-text-secondary dark:text-gray-400">{item.unit}</td>
+                          <td className="py-5 text-right text-sm font-medium">{item.price > 0 ? item.price.toLocaleString() + ' đ' : '-'}</td>
+                          <td className="py-5 text-right font-bold text-sm">{item.total > 0 ? item.total.toLocaleString() + ' đ' : '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -340,21 +390,46 @@ const InvoiceDetail: React.FC = () => {
 
               {/* Total Section */}
               <div className="bg-gray-50 dark:bg-black/20 p-6 md:p-10 flex flex-col items-end gap-3">
-                <div className="flex mr-4 justify-between w-full md:w-1/2 text-sm font-medium">
+                <div className="flex justify-between w-full md:w-1/2 text-sm font-medium">
                   <span className="text-text-secondary dark:text-gray-400">Tổng cộng:</span>
                   <span className="text-text-main dark:text-white">{subtotal.toLocaleString()} đ</span>
                 </div>
-                <div className="flex mr-4 justify-between w-full md:w-1/2 text-sm font-medium">
+                <div className="flex justify-between w-full md:w-1/2 text-sm font-medium">
                   <span className="text-text-secondary dark:text-gray-400">Thuế GTGT (0%):</span>
                   <span className="text-text-main dark:text-white">0 đ</span>
                 </div>
-                <div className="w-full mr-4 h-px bg-border-color dark:bg-gray-700 my-2 md:w-1/2"></div>
-                <div className="flex mr-4 justify-between w-full md:w-1/2 items-end">
+                <div className="w-full h-px bg-border-color dark:bg-gray-700 my-2 md:w-1/2"></div>
+                <div className="flex justify-between w-full md:w-1/2 items-end">
                   <span className="text-base font-black text-text-main dark:text-white">TỔNG CỘNG:</span>
                   <span className="text-3xl font-black text-primary">{total.toLocaleString()} đ</span>
                 </div>
               </div>
             </div>
+
+            {/* Attachment Section */}
+            {invoice.attachment_path && (
+              <div className="px-6 py-4 rounded-2xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                <p className="text-sm font-bold uppercase dark:text-gray-500 mb-4">Tệp đính kèm</p>
+                <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-blue-100 dark:border-blue-900/50">
+                  <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-2xl">description</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-text-main dark:text-white">{invoice.file_name || 'Tệp đính kèm'}</p>
+                    {invoice.file_size && (
+                      <p className="text-xs text-text-secondary dark:text-gray-400 mt-1">
+                        Kích thước: {(invoice.file_size / 1024).toFixed(2)} KB
+                      </p>
+                    )}
+                  </div>
+                  <button 
+                    onClick={handleDownloadFile}
+                    className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
+                    title="Tải về"
+                  >
+                    <span className="material-symbols-outlined">download</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Note Section */}
             {invoice.status !== 'PAID' && (<div className="flex gap-4 p-5 bg-orange-50 dark:bg-orange-900/10 rounded-2xl border border-orange-100 dark:border-orange-900/30 shadow-sm animate-pulse-subtle">

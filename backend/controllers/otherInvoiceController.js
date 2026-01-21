@@ -70,6 +70,8 @@ export const create = async (req, res) => {
       due_date,
     } = req.body;
 
+    console.log("Creating other invoice with data:", req.body);
+
     // Validation
     if (!target_type || !title || !amount) {
       return res.status(400).json({ message: "Missing required fields: target_type, title, amount" });
@@ -111,6 +113,7 @@ export const create = async (req, res) => {
       status: 'PUBLISHED',
       created_by_manager_id: req.user?.id || null,
       published_at: new Date(),
+      deadline_at: due_date ? new Date(due_date) : null,
     });
 
     // Handle file attachment if provided
@@ -229,9 +232,13 @@ export const deleteInvoice = async (req, res) => {
       return res.status(404).json({ message: "Other invoice not found" });
     }
 
-    // Also delete the corresponding invoice record
-    await Invoice.delete(otherInvoice.invoice_code);
+    // Delete other invoice first (because of foreign key constraint)
     await OtherInvoice.delete(invoiceId);
+    
+    // Then delete the corresponding invoice record
+    if (otherInvoice.invoice_id) {
+      await Invoice.deleteById(otherInvoice.invoice_id);
+    }
 
     res.json({ message: "Other invoice deleted successfully" });
   } catch (err) {

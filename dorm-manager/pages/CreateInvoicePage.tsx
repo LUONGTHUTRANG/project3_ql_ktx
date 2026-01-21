@@ -1,13 +1,14 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { message, Input, Select, DatePicker, Spin } from 'antd';
 import dayjs from 'dayjs';
-import { createOtherInvoice } from '../api/otherInvoiceApi';
+import { createOtherInvoice, getOtherInvoiceById, updateOtherInvoice } from '../api/otherInvoiceApi';
 import { fetchBuildings } from '../api/buildingApi';
 import { fetchRoomsByBuilding } from '../api/roomApi';
 import { getStudentsByRoomId } from '../api/studentApi';
+import { UserRole } from '../types';
 
 interface CreateInvoiceForm {
   title: string;
@@ -24,8 +25,12 @@ interface CreateInvoiceForm {
 const CreateInvoicePage: React.FC = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { invoiceId } = useParams<{ invoiceId: string }>();
+  const isEditMode = !!invoiceId;
+  
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
+  const [editInvoiceData, setEditInvoiceData] = useState<any>(null);
   
   // State for dynamic data
   const [buildings, setBuildings] = useState<any[]>([]);
@@ -48,21 +53,55 @@ const CreateInvoicePage: React.FC = () => {
 
   // Load buildings on component mount
   useEffect(() => {
-    const loadBuildings = async () => {
+    const loadInitialData = async () => {
       try {
         setLoadingData(true);
         const buildingsData = await fetchBuildings();
         setBuildings(buildingsData);
+
+        // Set default building for manager
+        let defaultBuilding = 'all';
+        console.log("User info:", user);
+        if (user?.role === UserRole.MANAGER && user?.building_id) {
+          defaultBuilding = String(user.building_id);
+        }
+        console.log("Default building set to:", defaultBuilding);
+
+        // If in edit mode, load invoice data
+        if (isEditMode && invoiceId) {
+          const invoiceData = await getOtherInvoiceById(invoiceId);
+          setEditInvoiceData(invoiceData);
+          console.log("Loaded invoice data for editing:", invoiceData.floor.toString() || 'all');
+          // Pre-fill form with invoice data
+          setFormData(prev => ({
+            ...prev,
+            title: invoiceData.title || '',
+            description: invoiceData.description || '',
+            amount: invoiceData.amount ? `${invoiceData.amount}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '',
+            dueDate: invoiceData.deadline_at ? dayjs(invoiceData.deadline_at).format('YYYY-MM-DD') : '',
+            // Will set building/floor/room/student based on target type
+            building: defaultBuilding,
+            floor: invoiceData.floor.toString() || 'all',
+            room: invoiceData.target_type === 'ROOM' ? String(invoiceData.target_room_id) : 'all',
+            student: invoiceData.target_type === 'STUDENT' ? String(invoiceData.target_student_id) : 'all',
+          }));
+        } else {
+          // Set default building for manager on create mode
+          setFormData(prev => ({
+            ...prev,
+            building: defaultBuilding,
+          }));
+        }
       } catch (error) {
-        console.error('Error loading buildings:', error);
-        message.error('Lỗi khi tải danh sách tòa nhà');
+        console.error('Error loading data:', error);
+        message.error('Lỗi khi tải dữ liệu');
       } finally {
         setLoadingData(false);
       }
     };
     
-    loadBuildings();
-  }, []);
+    loadInitialData();
+  }, [isEditMode, invoiceId, user]);
 
   // Load rooms and floors when building changes
   useEffect(() => {
@@ -88,13 +127,24 @@ const CreateInvoicePage: React.FC = () => {
           .sort((a: number, b: number) => (a as number) - (b as number));
         setFloors(uniqueFloors as any[]);
         
-        // Reset dependent fields
-        setFormData(prev => ({
-          ...prev,
-          floor: 'all',
-          room: 'all',
-          student: 'all'
-        }));
+        // In edit mode, restore floor value from loaded data
+        // In create mode, reset floor to 'all'
+        if (isEditMode && editInvoiceData) {
+          setFormData(prev => ({
+            ...prev,
+            floor: editInvoiceData.floor?.toString() || 'all',
+            room: editInvoiceData.target_type === 'ROOM' ? String(editInvoiceData.target_room_id) : 'all',
+            student: editInvoiceData.target_type === 'STUDENT' ? String(editInvoiceData.target_student_id) : 'all',
+          }));
+        } else {
+          // Reset dependent fields in create mode
+          setFormData(prev => ({
+            ...prev,
+            floor: 'all',
+            room: 'all',
+            student: 'all'
+          }));
+        }
       } catch (error) {
         console.error('Error loading rooms:', error);
         message.error('Lỗi khi tải danh sách phòng');
@@ -102,7 +152,7 @@ const CreateInvoicePage: React.FC = () => {
     };
 
     loadRoomsAndFloors();
-  }, [formData.building]);
+  }, [formData.building, isEditMode, editInvoiceData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -134,6 +184,11 @@ const CreateInvoicePage: React.FC = () => {
       ...prev,
       dueDate: dateString
     }));
+  };
+
+  const disabledDate = (current: any) => {
+    // Disable ngày trước ngày hiện tại
+    return current && current < dayjs().startOf('day');
   };
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -229,8 +284,8 @@ const CreateInvoicePage: React.FC = () => {
       return;
     }
 
-    // Check if recipient is selected
-    if ((formData.student === 'all' || !formData.student) && (formData.room === 'all' || !formData.room)) {
+    // Check if recipient is selected (student or specific room)
+    if (formData.student === 'all' && formData.room === 'all') {
       message.error('Vui lòng chọn sinh viên hoặc phòng để tạo hóa đơn');
       return;
     }
@@ -239,11 +294,11 @@ const CreateInvoicePage: React.FC = () => {
     let targetType = 'STUDENT';
     let targetId: string | number | undefined;
 
-    // Priority: student > room > error
+    // Priority: student > room (including 'all') > error
     if (formData.student !== 'all' && formData.student) {
       targetType = 'STUDENT';
       targetId = formData.student;
-    } else if (formData.room !== 'all' && formData.room) {
+    } else if (formData.room !== 'all') {
       targetType = 'ROOM';
       // Convert room string to number if it's a room ID
       targetId = parseInt(formData.room, 10) || formData.room;
@@ -253,6 +308,10 @@ const CreateInvoicePage: React.FC = () => {
         message.error('Phòng không hợp lệ. Vui lòng chọn phòng từ danh sách.');
         return;
       }
+    } else if (formData.room === 'all' && formData.building !== 'all') {
+      // User selected "Tất cả Phòng" - create invoice for all rooms in building
+      targetType = 'BUILDING';
+      targetId = formData.building;
     } else {
       message.error('Vui lòng chọn sinh viên hoặc phòng để tạo hóa đơn');
       return;
@@ -260,23 +319,40 @@ const CreateInvoicePage: React.FC = () => {
 
     setLoading(true);
     try {
-      await createOtherInvoice({
-        target_type: targetType as 'STUDENT' | 'ROOM',
-        target_student_id: targetType === 'STUDENT' ? String(targetId) : undefined,
-        target_room_id: targetType === 'ROOM' ? String(targetId) : undefined,
+      console.log("Submitting invoice with data:", formData);
+      const invoicePayload: any = {
+        target_type: targetType as 'STUDENT' | 'ROOM' | 'BUILDING',
         title: formData.title,
         description: formData.description,
         amount: parseInt(formData.amount.replace(/\./g, ''), 10),
         attachment: formData.attachment,
         file_name: formData.attachment?.name,
         file_size: formData.attachment?.size,
-      });
+        due_date: formData.dueDate,
+      };
+      
+      if (targetType === 'STUDENT') {
+        invoicePayload.target_student_id = String(targetId);
+      } else if (targetType === 'ROOM') {
+        invoicePayload.target_room_id = String(targetId);
+      } else if (targetType === 'BUILDING') {
+        invoicePayload.target_building_id = String(targetId);
+      }
+      console.log("Final invoice payload:", invoicePayload);
 
-      message.success('Tạo hóa đơn thành công!');
+      if (isEditMode && invoiceId) {
+        // Update existing invoice
+        await updateOtherInvoice(invoiceId, invoicePayload);
+        message.success('Cập nhật hóa đơn thành công!');
+      } else {
+        // Create new invoice
+        await createOtherInvoice(invoicePayload);
+        message.success('Tạo hóa đơn thành công!');
+      }
       navigate(-1);
     } catch (error: any) {
-      console.error('Error creating invoice:', error);
-      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Lỗi khi tạo hóa đơn';
+      console.error('Error saving invoice:', error);
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Lỗi khi lưu hóa đơn';
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -284,10 +360,10 @@ const CreateInvoicePage: React.FC = () => {
   };
 
   return (
-    <RoleBasedLayout user={user} headerTitle="Tạo Hóa đơn">
+    <RoleBasedLayout user={user} headerTitle={isEditMode ? "Chỉnh sửa Hóa đơn" : "Tạo Hóa đơn"}>
       <div className="min-h-screen bg-background-light dark:bg-background-dark mb-20">
         <button
-            onClick={() => navigate(`/${user?.role}/invoices/utility-fee`)}
+            onClick={() => navigate(-1)}
             className="group flex items-center gap-2 mb-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
         >
             <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
@@ -306,10 +382,10 @@ const CreateInvoicePage: React.FC = () => {
             <div className="flex flex-wrap justify-between items-end gap-3">
               <div className="flex flex-col gap-1">
                 <h1 className="text-[#111418] dark:text-white text-3xl font-black leading-tight tracking-[-0.033em]">
-                  Tạo Hóa đơn Mới
+                  {isEditMode ? 'Chỉnh sửa Hóa đơn' : 'Tạo Hóa đơn Mới'}
                 </h1>
                 <p className="text-[#617589] dark:text-slate-400 text-base font-normal">
-                  Tạo và gửi hóa đơn thanh toán cho sinh viên hoặc khu vực ký túc xá.
+                  {isEditMode ? 'Cập nhật thông tin hóa đơn' : 'Tạo và gửi hóa đơn thanh toán cho sinh viên hoặc khu vực ký túc xá.'}
                 </p>
               </div>
             </div>
@@ -367,6 +443,8 @@ const CreateInvoicePage: React.FC = () => {
                     <DatePicker
                       value={formData.dueDate ? dayjs(formData.dueDate) : null}
                       onChange={handleDateChange}
+                      disabledDate={disabledDate}
+                      name="dueDate"
                       format="DD/MM/YYYY"
                       placeholder="Chọn ngày đến hạn"
                       className="w-full dark:bg-slate-800 dark:border-slate-700 h-10"
@@ -464,18 +542,24 @@ const CreateInvoicePage: React.FC = () => {
                     <label className="text-[#111418] dark:text-slate-200 text-xs font-bold uppercase tracking-wider">
                       Tòa nhà
                     </label>
-                    <Select
-                      value={formData.building}
-                      onChange={(value) => handleSelectChange('building', value)}
-                      className="dark:bg-slate-800 h-10"
-                      options={[
-                        { value: 'all', label: 'Tất cả Tòa' },
-                        ...buildings.map((building: any) => ({
-                          value: building.id.toString(),
-                          label: building.name,
-                        })),
-                      ]}
-                    />
+                    {user?.role === UserRole.MANAGER ? (
+                      <div className="flex items-center h-10 px-3 rounded-lg bg-gray-100 dark:bg-slate-800 border border-[#dbe0e6] dark:border-slate-700 text-[#111418] dark:text-slate-200">
+                        {buildings.find((b: any) => String(b.id) === formData.building)?.name || 'N/A'}
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData.building}
+                        onChange={(value) => handleSelectChange('building', value)}
+                        className="dark:bg-slate-800 h-10"
+                        options={[
+                          { value: 'all', label: 'Tất cả Tòa' },
+                          ...buildings.map((building: any) => ({
+                            value: building.id.toString(),
+                            label: building.name,
+                          })),
+                        ]}
+                      />
+                    )}
                   </div>
 
                   {/* Floor Select */}
@@ -529,7 +613,7 @@ const CreateInvoicePage: React.FC = () => {
                       value={formData.student}
                       onChange={(value) => handleSelectChange('student', value)}
                       className="dark:bg-slate-800 h-10"
-                      disabled={formData.room === 'all'}
+                      disabled={formData.room === 'all' || formData.building === 'all'}
                       options={[
                         { value: 'all', label: 'Tất cả sinh viên' },
                         ...students.map((student: any) => ({
@@ -547,13 +631,15 @@ const CreateInvoicePage: React.FC = () => {
                     info
                   </span>
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    Hệ thống sẽ tạo{' '}
+                    Hệ thống sẽ tạo hóa đơn cho{' '}
                     <strong>
-                      {formData.building === 'all' ? 'tất cả hóa đơn' : '12 hóa đơn'}
-                    </strong>{' '}
-                    cho toàn bộ sinh viên tại{' '}
-                    <strong>
-                      {formData.building === 'all' ? 'toàn bộ tòa' : `Tòa ${formData.building}`}
+                      {formData.student !== 'all' && formData.student
+                        ? 'sinh viên được chọn'
+                        : formData.room !== 'all'
+                          ? `phòng ${formData.room}`
+                          : formData.building !== 'all'
+                            ? `tất cả phòng trong tòa ${formData.building}`
+                            : 'tất cả tòa'}
                     </strong>
                     .
                   </p>
@@ -582,7 +668,7 @@ const CreateInvoicePage: React.FC = () => {
             <span className="material-symbols-outlined mr-2">
               {loading ? 'hourglass_empty' : 'send'}
             </span>
-            {loading ? 'Đang tạo...' : 'Tạo hóa đơn'}
+            {loading ? 'Đang xử lý...' : (isEditMode ? 'Lưu thay đổi' : 'Tạo hóa đơn')}
           </button>
         </div>
       </div>

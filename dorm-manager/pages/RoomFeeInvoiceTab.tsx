@@ -174,7 +174,7 @@ const RoomFeeInvoiceTab: React.FC = () => {
       </div>
 
       {/* Invoices Table Section */}
-      <div className="bg-white dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+      <div className="bg-white dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
         {loading ? (
           <div className="flex items-center justify-center p-12">
             <Spin size="large" tip="Đang tải dữ liệu..." />
