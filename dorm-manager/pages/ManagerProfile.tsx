@@ -180,7 +180,7 @@ const ManagerProfile: React.FC<ManagerProfileProps> = ({ isAdmin = false }) => {
       searchPlaceholder="Tìm kiếm..."
       headerTitle="Hồ sơ cá nhân"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
+      <div className="mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
         {/* Profile Header Card */}
         <div className="rounded-2xl border border-border-color bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-surface-dark overflow-hidden relative">
           <div className="absolute right-0 top-0 h-full w-1/4 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none"></div>

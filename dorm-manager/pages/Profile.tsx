@@ -231,7 +231,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
             </div>
             <span className="text-sm font-bold leading-normal">Quay lại danh sách</span>
           </button>}
-      <div className="max-w-[1200px] mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
+      <div className="mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
           <>
         {/* Profile Header Card */}
         <div className="rounded-2xl border border-border-color bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-surface-dark overflow-hidden relative">

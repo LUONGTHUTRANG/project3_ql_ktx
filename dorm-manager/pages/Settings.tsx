@@ -111,9 +111,9 @@ const Settings: React.FC = () => {
             <div className="flex flex-col justify-center flex-1 gap-1">
               <h2 className="text-text-main dark:text-white text-2xl font-bold leading-tight">{user.name}</h2>
               <p className="text-text-secondary dark:text-gray-400 text-base font-medium">
-                {isManager ? `ID: ${user.id}` : `MSSV: ${user.mssv || user.id}`}
+                {isManager ? `Email: ${user.email}` : `MSSV: ${user.mssv || user.id}`}
               </p>
-              <p className="text-text-secondary dark:text-gray-400 text-sm">{user.subtitle}</p>
+              <p className="text-text-secondary dark:text-gray-400 text-sm">{isManager ? `Tòa nhà quản lý: ${user.building_id}` : `${user.subtitle}`}</p>
             </div>
             <div className="flex items-center self-center sm:self-start mt-2 sm:mt-0">
               <button 

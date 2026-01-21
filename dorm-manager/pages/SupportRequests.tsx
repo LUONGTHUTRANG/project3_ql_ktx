@@ -140,7 +140,7 @@ const SupportRequests: React.FC = () => {
       searchPlaceholder="Tìm kiếm yêu cầu, dịch vụ..."
       headerTitle="Yêu cầu hỗ trợ"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col gap-6">
+      <div className="mx-auto flex flex-col gap-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="flex flex-col gap-1">
             <h2 className="text-text-main dark:text-white text-3xl font-bold tracking-tight">Danh sách Yêu cầu</h2>

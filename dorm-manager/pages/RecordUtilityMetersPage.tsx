@@ -518,7 +518,7 @@ const RecordUtilityMetersPage: React.FC = () => {
         </div>
         <span className="text-sm font-bold leading-normal">Quay lại danh sách hóa đơn</span>
       </button>
-      <div className="mx-auto flex flex-col gap-6 animate-in fade-in duration-500 max-w-[1200px] w-full pb-32">
+      <div className="mx-auto flex flex-col gap-6 animate-in fade-in duration-500 w-full pb-32">
         {/* Page Heading */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="flex flex-col gap-2">

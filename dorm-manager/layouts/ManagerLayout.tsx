@@ -30,7 +30,7 @@ const ManagerLayout: React.FC<ManagerLayoutProps> = ({
         user={user} 
         navItems={navItems} 
         logout={logout} 
-        title="Manager Panel"
+        // title="Manager Panel"
       />
 
       {/* Main Content Area */}

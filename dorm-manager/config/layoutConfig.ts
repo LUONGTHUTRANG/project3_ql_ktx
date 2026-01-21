@@ -63,16 +63,16 @@ export const getNavItemsByRole = (role: UserRole): NavItem[] => {
  * Get layout title based on user role
  */
 export const getLayoutTitleByRole = (role: UserRole): string => {
-  switch (role) {
-    case UserRole.ADMIN:
-      return 'Admin Panel';
-    case UserRole.MANAGER:
-      return 'Manager Panel';
-    case UserRole.STUDENT:
-      return 'Student Portal';
-    default:
-      return 'Portal';
-  }
+  // switch (role) {
+    // case UserRole.ADMIN:
+      return 'Hệ thống Quản lý Ký túc xá';
+    // case UserRole.MANAGER:
+    //   return 'Manager Panel';
+    // case UserRole.STUDENT:
+    //   return 'Student Portal';
+    // default:
+    //   return 'Portal';
+  // }
 };
 
 /**
@@ -86,17 +86,17 @@ interface LayoutConfig {
 
 export const LAYOUT_CONFIG: Record<UserRole, LayoutConfig> = {
   [UserRole.STUDENT]: {
-    title: 'Student Portal',
+    title: 'Hệ thống Quản lý Ký túc xá',
     navItems: STUDENT_NAV_ITEMS,
     defaultSearchPlaceholder: 'Tìm kiếm...',
   },
   [UserRole.MANAGER]: {
-    title: 'Manager Panel',
+    title: 'Hệ thống Quản lý Ký túc xá',
     navItems: MANAGER_NAV_ITEMS,
     defaultSearchPlaceholder: 'Tìm kiếm...',
   },
   [UserRole.ADMIN]: {
-    title: 'Admin Panel',
+    title: 'Hệ thống Quản lý Ký túc xá',
     navItems: ADMIN_NAV_ITEMS,
     defaultSearchPlaceholder: 'Tìm kiếm...',
   },

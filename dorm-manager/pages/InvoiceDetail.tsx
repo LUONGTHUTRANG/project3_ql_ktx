@@ -257,7 +257,7 @@ const InvoiceDetail: React.FC = () => {
       searchPlaceholder="Tìm kiếm..."
       headerTitle="Chi tiết Hóa đơn"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
+      <div className="mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
         
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 mb-2 text-sm font-medium">

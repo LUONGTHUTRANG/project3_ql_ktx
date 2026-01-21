@@ -150,7 +150,7 @@ const RoomDetail: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col max-w-[1200px] mx-auto gap-6">
+        <div className="flex flex-col mx-auto gap-6">
 
         {/* Page Header & Actions */}
         <div className="flex flex-col lg:flex-row justify-between gap-6 px-1 items-start lg:items-end border-b border-border-color dark:border-gray-700 pb-8">

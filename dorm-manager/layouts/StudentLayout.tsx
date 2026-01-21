@@ -30,7 +30,7 @@ const StudentLayout: React.FC<StudentLayoutProps> = ({
         user={user} 
         navItems={navItems} 
         logout={logout} 
-        title="Student Portal"
+        // title="Student Portal"
       />
 
       {/* Main Content Area */}

@@ -118,7 +118,7 @@ const StudentDashboard: React.FC = () => {
       searchPlaceholder="Tìm kiếm dịch vụ, thông báo..."
       headerTitle="Trang chủ"
     >
-      <div className="mx-auto max-w-6xl flex flex-col gap-6">
+      <div className="mx-auto flex flex-col gap-6">
         
         {/* Welcome Banner */}
         <div className="rounded-2xl bg-white dark:bg-surface-dark p-6 md:p-8 shadow-sm border border-border-color dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden group">

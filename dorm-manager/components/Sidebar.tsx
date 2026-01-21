@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { User, NavItem, UserRole } from '../types';
 import { Modal } from 'antd';
@@ -11,12 +11,45 @@ interface SidebarProps {
   title?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Dorm Manager" }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Hệ thống Quản lý Ký túc xá" }) => {
   const location = useLocation();
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Initialize from localStorage
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const [hasScrollbar, setHasScrollbar] = useState(false);
 
   const settingsLink = user.role === UserRole.STUDENT ? '/student/settings' : '/manager/settings';
   const isSettingsActive = location.pathname.startsWith(settingsLink);
+
+  // Save collapsed state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(isCollapsed));
+  }, [isCollapsed]);
+
+  // Detect if scrollbar is visible
+  useEffect(() => {
+    const checkScrollbar = () => {
+      const asideElement = document.querySelector('aside');
+      if (asideElement) {
+        const hasVerticalScroll = asideElement.scrollHeight > asideElement.clientHeight;
+        setHasScrollbar(hasVerticalScroll);
+      }
+    };
+
+    checkScrollbar();
+    window.addEventListener('resize', checkScrollbar);
+    // Check after content renders
+    const timer = setTimeout(checkScrollbar, 100);
+
+    return () => {
+      window.removeEventListener('resize', checkScrollbar);
+      clearTimeout(timer);
+    };
+  }, [isCollapsed, navItems]);
 
   const handleLogoutClick = () => {
     setLogoutModalVisible(true);
@@ -28,26 +61,39 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Dorm
   };
 
   return (
-    <aside className="w-72 flex-shrink-0 bg-white dark:bg-surface-dark border-r border-border-color dark:border-gray-700 flex flex-col hidden md:flex z-20 h-full overflow-y-auto">
-      <div className="p-6 flex flex-col gap-6">
-        {/* Logo / Brand */}
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex items-center justify-center rounded-lg bg-primary/10 p-2 text-primary">
-            <span className="material-symbols-outlined fill" style={{ fontSize: '28px' }}>apartment</span>
+    <aside className={`flex-shrink-0 bg-white dark:bg-surface-dark border-r border-border-color dark:border-gray-700 flex flex-col hidden md:flex z-20 h-full overflow-y-auto transition-all duration-300 ${
+      isCollapsed ? (hasScrollbar ? 'w-[90px]' : 'w-20') : 'w-72'
+    }`}>
+      <div className={`${isCollapsed ? 'p-3' : 'p-6'} flex flex-col gap-6 h-full`}>
+        {/* Header with Logo */}
+        <div 
+          onMouseEnter={() => setIsLogoHovered(true)}
+          onMouseLeave={() => setIsLogoHovered(false)}
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="flex items-center gap-3 px-2 cursor-pointer group"
+        >
+          <div className="flex items-center justify-center rounded-lg bg-primary/10 p-2 text-primary shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
+            <span className="material-symbols-outlined fill" style={{ fontSize: '28px' }}>
+              {isLogoHovered ? (isCollapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left') : 'apartment'}
+            </span>
           </div>
-          <h2 className="text-text-main dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">{title}</h2>
+          {!isCollapsed && (
+            <h2 className="text-text-main dark:text-white text-xl font-bold leading-snug tracking-[-0.015em] group-hover:text-primary transition-colors whitespace-normal flex-1">{title}</h2>
+          )}
         </div>
         
         {/* User Profile Snippet */}
-        <div className="flex items-center gap-3 rounded-xl bg-background-light dark:bg-gray-800 p-3">
+        <div className={`flex items-center gap-3 rounded-xl bg-background-light dark:bg-gray-800 ${isCollapsed ? 'justify-center p-2' : 'p-3'}`}>
           <div 
-            className="bg-center bg-no-repeat bg-cover rounded-full size-12 border-2 border-white dark:border-gray-600 shadow-sm" 
+            className="bg-center bg-no-repeat bg-cover rounded-full size-12 border-2 border-white dark:border-gray-600 shadow-sm shrink-0" 
             style={{ backgroundImage: `url("${getAvatarUrl(user.avatar, user.name)}")` }}
           ></div>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-text-main dark:text-white text-sm font-bold leading-tight truncate">{user.name}</h1>
-            <p className="text-text-secondary dark:text-gray-400 text-xs font-normal leading-normal truncate">{user.subtitle}</p>
-          </div>
+          {!isCollapsed && (
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-text-main dark:text-white text-sm font-bold leading-tight truncate">{user.name}</h1>
+              <p className="text-text-secondary dark:text-gray-400 text-xs font-normal leading-normal truncate">{user.subtitle}</p>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -58,7 +104,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Dorm
               <Link 
                 key={index} 
                 to={item.link || '#'} 
-                className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors group ${
+                title={isCollapsed ? item.label : undefined}
+                className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-lg transition-colors group ${
                   isActive 
                     ? 'bg-primary/10 text-primary' 
                     : 'hover:bg-background-light dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300'
@@ -67,19 +114,22 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Dorm
                 <span className={`material-symbols-outlined ${isActive ? 'fill' : 'group-hover:text-text-main dark:group-hover:text-white'}`}>
                   {item.icon}
                 </span>
-                <p className={`text-sm font-medium leading-normal ${isActive ? 'font-bold' : 'text-text-main dark:text-gray-200'}`}>
-                  {item.label}
-                </p>
+                {!isCollapsed && (
+                  <p className={`text-sm font-medium leading-normal ${isActive ? 'font-bold' : 'text-text-main dark:text-gray-200'}`}>
+                    {item.label}
+                  </p>
+                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom Actions */}
-        <div className="flex flex-col gap-2 border-t border-border-color dark:border-gray-700 pt-4">
+        <div className={`flex flex-col gap-2 border-t border-border-color dark:border-gray-700 ${isCollapsed ? 'pt-2' : 'pt-4'}`}>
           <Link 
             to={settingsLink} 
-            className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors group ${
+            title={isCollapsed ? 'Cài đặt' : undefined}
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-lg transition-colors group ${
               isSettingsActive 
                 ? 'bg-primary/10 text-primary' 
                 : 'hover:bg-background-light dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300'
@@ -88,16 +138,21 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Dorm
             <span className={`material-symbols-outlined ${isSettingsActive ? 'fill' : 'group-hover:text-text-main dark:group-hover:text-white'}`}>
               settings
             </span>
-            <p className={`text-sm font-medium leading-normal ${isSettingsActive ? 'font-bold' : 'text-text-main dark:text-gray-200'}`}>
-              Cài đặt
-            </p>
+            {!isCollapsed && (
+              <p className={`text-sm font-medium leading-normal ${isSettingsActive ? 'font-bold' : 'text-text-main dark:text-gray-200'}`}>
+                Cài đặt
+              </p>
+            )}
           </Link>
           <button 
             onClick={handleLogoutClick}
-            className="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors w-full text-left"
+            title={isCollapsed ? 'Đăng xuất' : undefined}
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors w-full text-left`}
           >
             <span className="material-symbols-outlined">logout</span>
-            <p className="text-sm font-medium leading-normal">Đăng xuất</p>
+            {!isCollapsed && (
+              <p className="text-sm font-medium leading-normal">Đăng xuất</p>
+            )}
           </button>
 
           {/* Logout Confirmation Modal */}
