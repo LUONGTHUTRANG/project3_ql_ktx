@@ -17,6 +17,7 @@ import BuildingDetail from './pages/BuildingDetail';
 import StudentRegistration from './pages/StudentRegistration';
 import BillsAndPayments from './pages/BillsAndPayments';
 import InvoiceDetail from './pages/InvoiceDetail';
+import PaymentConfirmation from './pages/PaymentConfirmation';
 import InvoiceManagement from './pages/InvoiceManagement';
 import CreateInvoicePage from './pages/CreateInvoicePage';
 import RecordUtilityMetersPage from './pages/RecordUtilityMetersPage';
@@ -67,7 +68,7 @@ const AppContent: React.FC = () => {
               storedUser.role === 'admin' ? UserRole.ADMIN :
               storedUser.role === 'manager' ? UserRole.MANAGER : UserRole.STUDENT,
         avatar: storedUser.avatar,
-        subtitle: storedUser.email || 'User',
+        email: storedUser.email || 'User',
         mssv: storedUser.mssv,
       });
     }
@@ -88,7 +89,7 @@ const AppContent: React.FC = () => {
               userData.role === 'admin' ? UserRole.ADMIN :
               userData.role === 'manager' ? UserRole.MANAGER : UserRole.STUDENT,
         avatar: userData.avatar,
-        subtitle: userData.email || 'User',
+        email: userData.email || 'User',
         mssv: userData.mssv,
       });
     } catch (err: any) {
@@ -224,6 +225,15 @@ const AppContent: React.FC = () => {
           element={
             user && user.role === UserRole.STUDENT 
               ? <InvoiceDetail /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/student/payment-confirmation" 
+          element={
+            user && user.role === UserRole.STUDENT 
+              ? <PaymentConfirmation /> 
               : <Navigate to="/login" replace />
           } 
         />

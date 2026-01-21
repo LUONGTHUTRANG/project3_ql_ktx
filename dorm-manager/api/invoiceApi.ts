@@ -42,9 +42,13 @@ export interface InvoiceItem {
   // any other fields returned
 }
 
-export const getInvoicesForStudent = async (studentId: string): Promise<InvoiceItem[]> => {
+export const getInvoicesForStudent = async (studentId: string, semesterId?: string): Promise<InvoiceItem[]> => {
   try {
-    const response = await api.get('/', { params: { student_id: studentId } });
+    const params: any = { student_id: studentId };
+    if (semesterId) {
+      params.semester_id = semesterId;
+    }
+    const response = await api.get('/', { params });
     return response.data;
   } catch (error: any) {
     console.error('Error fetching invoices for student:', error);

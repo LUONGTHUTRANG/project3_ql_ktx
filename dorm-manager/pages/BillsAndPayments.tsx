@@ -32,10 +32,14 @@ const BillsAndPayments: React.FC = () => {
         const options = data.map((sem: any) => ({
           value: String(sem.id),
           label: `Kỳ ${sem.term} - ${sem.academic_year}`,
+          is_active: sem.is_active,
         }));
         setSemesterOptions(options);
-        // Set default to first semester
-        if (options.length > 0) {
+        // Set default to active semester, or first one if none active
+        const activeSemester = options.find((opt: any) => opt.is_active);
+        if (activeSemester) {
+          setSemester(activeSemester.value);
+        } else if (options.length > 0) {
           setSemester(options[0].value);
         }
       } catch (err) {
@@ -48,20 +52,21 @@ const BillsAndPayments: React.FC = () => {
     loadSemesters();
   }, []);
 
-  // Fetch invoices for student (or all if manager)
+  // Fetch invoices for student (or all if manager) with semester filter
   useEffect(() => {
     const loadBills = async () => {
-      if (!user) return;
+      if (!user || !semester) return;
       try {
         setLoadingBills(true);
         setBillsError(null);
         let data = [];
         console.log('User role in BillsAndPayments:', user);
         if (user.role === 'student') {
-          data = await getInvoicesForStudent(user.id);
+          data = await getInvoicesForStudent(user.id, semester);
         } else {
           data = await getAllInvoices();
         }
+        console.log('Fetched invoices:', data);
         setBills(data);
       } catch (err: any) {
         console.error('Failed to load invoices:', err);
@@ -72,59 +77,66 @@ const BillsAndPayments: React.FC = () => {
     };
 
     loadBills();
-  }, [user]);
+  }, [user, semester]);
 
   // Helper to map invoice to display-friendly object
   const mapInvoiceToRow = (inv: any) => {
-    const now = new Date();
-    const due = inv.due_date ? new Date(inv.due_date) : null;
-
+    // Determine status based on invoice status field
     let status = 'unpaid';
     let statusLabel = 'Chưa thanh toán';
     let statusClass = 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
 
-    if (inv.status && inv.status.toUpperCase() === 'PAID') {
+    const invoiceStatus = inv.status?.toUpperCase();
+
+    if (invoiceStatus === 'PAID') {
       status = 'paid';
       statusLabel = 'Đã thanh toán';
       statusClass = 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400';
-    } else if (inv.status && inv.status.toUpperCase() === 'UNPAID') {
-      if (due && due < now) {
-        status = 'overdue';
-        statusLabel = 'Quá hạn';
-        statusClass = 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400';
-      } else if (due && (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24) <= 7) {
-        status = 'expiring';
-        statusLabel = 'Sắp hết hạn';
-        statusClass = 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
-      }
+    } else if (invoiceStatus === 'OVERDUE') {
+      status = 'overdue';
+      statusLabel = 'Quá hạn';
+      statusClass = 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+    } else if (invoiceStatus === 'PUBLISHED') {
+      status = 'unpaid';
+      statusLabel = 'Chưa thanh toán';
+      statusClass = 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
     }
 
-    const amount = inv.amount ? `${Number(inv.amount).toLocaleString('vi-VN')}₫` : '0₫';
+    // Get amount - use total_amount from API response
+    const amount = inv.total_amount 
+      ? `${Number(inv.total_amount).toLocaleString('vi-VN')}₫` 
+      : inv.amount 
+      ? `${Number(inv.amount).toLocaleString('vi-VN')}₫` 
+      : '0₫';
 
-    // Extract semester and month separately
-    let semesterLabel = '-';
+    // Extract month from created_at timestamp
     let monthLabel = '-';
-    
-    if (inv.month) {
-      monthLabel = `${inv.month}`;
-    } else if (inv.usage_month) {
-      monthLabel = `${inv.usage_month}`;
-    } else if (inv.time_invoiced) {
-      const d = new Date(inv.time_invoiced);
-      monthLabel = `${d.getMonth() + 1}`;
+    if (inv.created_at) {
+      const d = new Date(inv.created_at);
+      monthLabel = `${d.getMonth() + 1}/${d.getFullYear()}`;
     }
 
+    // Map invoice_category to typeLabel
     let typeLabel = 'Hóa đơn';
-    if (inv.type === 'ROOM_FEE') typeLabel = 'Phí phòng ở';
-    if (inv.type === 'UTILITY_FEE') typeLabel = 'Phí điện nước';
-    if (inv.type === 'OTHER') typeLabel = inv.description || 'Khác';
+    const category = inv.invoice_category?.toUpperCase();
+    if (category === 'ROOM_FEE') typeLabel = 'Phí phòng ở';
+    if (category === 'UTILITY') typeLabel = 'Phí điện nước';
+    if (category === 'OTHER') typeLabel = 'Khác';
 
-    // icon selection based on type
+    // icon selection based on invoice_category
     let icon = 'receipt_long';
     let iconColor = 'text-primary';
     let iconBg = 'bg-primary/10';
-    if (inv.type === 'UTILITY_FEE') { icon = 'electric_bolt'; iconColor = 'text-yellow-600'; iconBg = 'bg-yellow-50 dark:bg-yellow-900/20'; }
-    if (inv.type === 'ROOM_FEE') { icon = 'bedroom_parent'; iconColor = 'text-purple-600'; iconBg = 'bg-purple-50 dark:bg-purple-900/20'; }
+    if (category === 'UTILITY') { 
+      icon = 'electric_bolt'; 
+      iconColor = 'text-yellow-600'; 
+      iconBg = 'bg-yellow-50 dark:bg-yellow-900/20'; 
+    }
+    if (category === 'ROOM_FEE') { 
+      icon = 'bedroom_parent'; 
+      iconColor = 'text-purple-600'; 
+      iconBg = 'bg-purple-50 dark:bg-purple-900/20'; 
+    }
 
     return {
       id: String(inv.id || inv.invoice_code || ''),
@@ -132,7 +144,7 @@ const BillsAndPayments: React.FC = () => {
       icon,
       iconColor,
       iconBg,
-      semesterLabel,
+      semesterLabel: '-',
       monthLabel,
       amount,
       deadline: inv.due_date ? new Date(inv.due_date).toLocaleDateString('vi-VN') : '-',
@@ -144,16 +156,9 @@ const BillsAndPayments: React.FC = () => {
   };
 
   const filteredBills = bills
-    .filter(bill => {
-      // Filter by semester_id if a semester is selected
-      if (semester && semester !== 'all') {
-        return String(bill.semester_id) === semester;
-      }
-      return true;
-    })
     .map(mapInvoiceToRow)
     .filter(bill => {
-      if (activeTab === 'unpaid') return bill.status === 'unpaid' || bill.status === 'expiring';
+      if (activeTab === 'unpaid') return bill.status === 'unpaid';
       if (activeTab === 'paid') return bill.status === 'paid';
       if (activeTab === 'overdue') return bill.status === 'overdue';
       return true;
@@ -195,7 +200,14 @@ const BillsAndPayments: React.FC = () => {
             <div>
               <p className="mb-1 text-sm font-medium text-text-secondary dark:text-gray-400">Tổng dư nợ hiện tại</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-text-main dark:text-white">2.450.000₫</span>
+                <span className="text-3xl font-bold text-text-main dark:text-white">
+                  {(() => {
+                    const totalDebt = bills
+                      .filter(bill => bill.status?.toUpperCase() === 'PUBLISHED' || bill.status?.toUpperCase() === 'OVERDUE')
+                      .reduce((sum, bill) => sum + Number(bill.total_amount || bill.amount || 0), 0);
+                    return totalDebt.toLocaleString('vi-VN') + '₫';
+                  })()}
+                </span>
                 <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30">Cần thanh toán</span>
               </div>
             </div>
@@ -216,7 +228,12 @@ const BillsAndPayments: React.FC = () => {
               }`}
             >
               <span>Chưa thanh toán</span>
-              <span className={`ml-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${activeTab === 'unpaid' ? 'bg-primary/10 text-primary' : 'bg-gray-100 dark:bg-gray-800 text-text-secondary'}`}>{filteredBills.filter(b => b.status === 'unpaid' || b.status === 'expiring').length}</span>
+              <span className={`ml-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${activeTab === 'unpaid' ? 'bg-primary/10 text-primary' : 'bg-gray-100 dark:bg-gray-800 text-text-secondary'}`}>
+                {bills.filter(b => {
+                  const status = b.status?.toUpperCase();
+                  return status === 'PUBLISHED' || status === 'OVERDUE';
+                }).length}
+              </span>
             </button>
             <button 
               onClick={() => setActiveTab('paid')}
@@ -225,7 +242,9 @@ const BillsAndPayments: React.FC = () => {
               }`}
             >
               <span>Đã thanh toán</span>
-              <span className="ml-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-gray-100 dark:bg-gray-800 text-text-secondary">{filteredBills.filter(b => b.status === 'paid').length}</span>
+              <span className={`ml-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${activeTab === 'paid' ? 'bg-primary/10 text-primary' : 'bg-gray-100 dark:bg-gray-800 text-text-secondary'}`}>
+                {bills.filter(b => b.status?.toUpperCase() === 'PAID').length}
+              </span>
             </button>
             <button 
               onClick={() => setActiveTab('overdue')}
@@ -234,7 +253,9 @@ const BillsAndPayments: React.FC = () => {
               }`}
             >
               <span>Quá hạn</span>
-              <span className="ml-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-600 dark:bg-red-900/30 dark:text-red-400">{filteredBills.filter(b => b.status === 'overdue').length}</span>
+              <span className={`ml-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${activeTab === 'overdue' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-800 text-text-secondary'}`}>
+                {bills.filter(b => b.status?.toUpperCase() === 'OVERDUE').length}
+              </span>
             </button>
           </nav>
         </div>
@@ -283,7 +304,7 @@ const BillsAndPayments: React.FC = () => {
                           <span className="font-bold text-text-main dark:text-white">{bill.type}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-text-main dark:text-white text-sm">{bill.semesterLabel}</td>
+                      <td className="px-6 py-4 text-text-main dark:text-white text-sm">{semester}</td>
                       <td className="px-6 py-4 text-text-main dark:text-white text-sm">{bill.monthLabel}</td>
                       <td className={`px-6 py-4 font-bold ${bill.status === 'overdue' ? 'text-red-600' : bill.status === 'paid' ? 'text-green-600' : 'text-primary'}`}>
                         {bill.amount}
@@ -299,11 +320,15 @@ const BillsAndPayments: React.FC = () => {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                           {bill.status === 'paid' ? (
-                            <button className="rounded-lg border border-border-color bg-white px-4 py-2 text-xs font-bold text-text-main transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 shadow-sm">
+                            <button 
+                              onClick={() => handleRowClick(bill.id)}
+                              className="rounded-lg border border-border-color bg-white px-4 py-2 text-xs font-bold text-text-main transition-all hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 shadow-sm">
                               Xem biên lai
                             </button>
                           ) : (
-                            <button className={`rounded-lg px-4 py-2 text-xs font-bold text-white transition-all shadow-sm active:scale-95 ${bill.status === 'overdue' ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary-hover'}`}>
+                            <button
+                              onClick={() => handleRowClick(bill.id)}
+                              className={`rounded-lg px-4 py-2 text-xs font-bold text-white transition-all shadow-sm active:scale-95 ${bill.status === 'overdue' ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary-hover'}`}>
                               Thanh toán {bill.status === 'overdue' ? 'ngay' : ''}
                             </button>
                           )}

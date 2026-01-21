@@ -9,7 +9,7 @@ export interface User {
   name: string;
   role: UserRole;
   avatar: string;
-  subtitle?: string; // e.g., "P.302 - Nhà B" or "Quản lý Tòa A1"
+  email?: string; 
   mssv?: string; // Mã số sinh viên (for students)
 }
 

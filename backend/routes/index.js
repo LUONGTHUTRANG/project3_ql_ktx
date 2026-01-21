@@ -13,6 +13,7 @@ import servicePriceRoutes from "./servicePriceRoutes.js";
 import utilityInvoiceRoutes from "./utilityInvoiceRoutes.js";
 import roomFeeInvoiceRoutes from "./roomFeeInvoiceRoutes.js";
 import otherInvoiceRoutes from "./otherInvoiceRoutes.js";
+import paymentRoutes from "./paymentRoutes.js";
 
 const router = express.Router();
 
@@ -30,5 +31,6 @@ router.use("/service-prices", servicePriceRoutes);
 router.use("/utility-invoices", utilityInvoiceRoutes);
 router.use("/room-fee-invoices", roomFeeInvoiceRoutes);
 router.use("/other-invoices", otherInvoiceRoutes);
+router.use("/payments", paymentRoutes);
 
 export default router;

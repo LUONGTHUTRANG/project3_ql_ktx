@@ -8,3 +8,4 @@ export * from './notificationApi';
 export * from './monthlyUsageApi';
 export * from './studentApi';
 export * from './managerApi';
+export * from './paymentApi';
