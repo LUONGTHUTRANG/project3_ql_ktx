@@ -34,6 +34,7 @@ import SemesterManagement from './pages/SemesterManagement';
 import ManagerManagement from './pages/ManagerManagement';
 import { User, UserRole } from './types';
 import { loginUser, logout as logoutUser, getStoredUser } from './api/auth';
+import RegistrationManagement from './pages/RegistrationManagement';
 
 // Context to manage auth state
 interface AuthContextType {
@@ -416,6 +417,15 @@ const AppContent: React.FC = () => {
               : <Navigate to="/login" replace />
           } 
         />
+
+        <Route
+            path="/manager/registrations"
+            element={
+              user && user.role === UserRole.MANAGER
+                ? <RegistrationManagement />
+                : <Navigate to="/login" replace />
+            }
+          />
 
         <Route 
           path="/manager/notifications" 

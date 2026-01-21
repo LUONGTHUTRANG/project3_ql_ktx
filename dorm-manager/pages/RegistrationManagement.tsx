@@ -2,6 +2,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
+import RoleBasedLayout from '../layouts/RoleBasedLayout';
+import Pagination from '../components/Pagination';
+import { Input, Select, Spin, message } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import { getAllRegistrations, updateRegistrationStatus, Registration } from '../api/registrationApi';
 import API_BASE_URL from '../api/config';
 
@@ -159,83 +163,76 @@ const RegistrationManagement: React.FC = () => {
     const basePath = isAdmin ? '/admin' : '/manager';
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => navigate(`${basePath}/home`)}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
-                            >
-                                <span className="material-symbols-outlined">arrow_back</span>
-                            </button>
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Quản lý đơn đăng ký</h1>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Tổng: {total} đơn đăng ký</p>
-                            </div>
-                        </div>
+        <RoleBasedLayout
+            searchPlaceholder="Tìm đơn đăng ký..."
+            headerTitle="Quản lý đơn đăng ký"
+            headerSubtitle={`Tổng: ${total} đơn`}
+        >
+            <div className="max-w-[1400px] mx-auto flex flex-col gap-6">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-text-main dark:text-white text-3xl font-bold tracking-tight">Danh sách Đơn Đăng ký Ở</h1>
+                        <p className="text-text-secondary dark:text-gray-400 text-sm mt-2">Quản lý và xử lý các đơn đăng ký nội trú của sinh viên.</p>
                     </div>
                 </div>
-            </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 {/* Filters */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tìm kiếm</label>
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Tên hoặc MSSV..."
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Trạng thái</label>
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent"
-                            >
-                                <option value="">Tất cả</option>
-                                <option value="PENDING">Chờ duyệt</option>
-                                <option value="RETURN">Yêu cầu bổ sung</option>
-                                <option value="APPROVED">Đã duyệt</option>
-                                <option value="REJECTED">Từ chối</option>
-                                <option value="AWAITING_PAYMENT">Chờ thanh toán</option>
-                                <option value="COMPLETED">Hoàn thành</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Loại đăng ký</label>
-                            <select
-                                value={typeFilter}
-                                onChange={(e) => setTypeFilter(e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-transparent"
-                            >
-                                <option value="">Tất cả</option>
-                                <option value="NORMAL">Thường</option>
-                                <option value="PRIORITY">Ưu tiên</option>
-                                <option value="RENEWAL">Gia hạn</option>
-                            </select>
-                        </div>
-                        <div className="flex items-end">
-                            <button
-                                onClick={() => {
-                                    setSearchQuery('');
-                                    setStatusFilter('');
-                                    setTypeFilter('');
-                                    setPage(1);
-                                }}
-                                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                            >
-                                <span className="material-symbols-outlined mr-1 text-sm">refresh</span>
-                                Reset
-                            </button>
+                <div>
+                    <div className="flex flex-col gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            <div className="md:col-span-12 lg:col-span-6">
+                                <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-2">Tìm kiếm</label>
+                                <Input
+                                    placeholder="Nhập tên hoặc MSSV..."
+                                    prefix={<SearchOutlined />}
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setPage(1);
+                                    }}
+                                    className="h-11 gap-3 pl-1"
+                                />
+                            </div>
+                            <div className="md:col-span-6 lg:col-span-3">
+                                <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-2">Trạng thái</label>
+                                <Select
+                                    placeholder="Tất cả trạng thái"
+                                    value={statusFilter || undefined}
+                                    onChange={(value) => {
+                                        setStatusFilter(value);
+                                        setPage(1);
+                                    }}
+                                    className="w-full h-11"
+                                    options={[
+                                        { label: 'Tất cả trạng thái', value: '' },
+                                        { label: 'Chờ duyệt', value: 'PENDING' },
+                                        { label: 'Yêu cầu bổ sung', value: 'RETURN' },
+                                        { label: 'Đã duyệt', value: 'APPROVED' },
+                                        { label: 'Từ chối', value: 'REJECTED' },
+                                        { label: 'Chờ thanh toán', value: 'AWAITING_PAYMENT' },
+                                        { label: 'Hoàn thành', value: 'COMPLETED' },
+                                    ]}
+                                />
+                            </div>
+                            <div className="md:col-span-6 lg:col-span-3">
+                                <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-2">Loại đăng ký</label>
+                                <Select
+                                    placeholder="Tất cả loại"
+                                    value={typeFilter || undefined}
+                                    onChange={(value) => {
+                                        setTypeFilter(value);
+                                        setPage(1);
+                                    }}
+                                    className="w-full h-11"
+                                    options={[
+                                        { label: 'Tất cả loại', value: '' },
+                                        { label: 'Thường', value: 'NORMAL' },
+                                        { label: 'Ưu tiên', value: 'PRIORITY' },
+                                        { label: 'Gia hạn', value: 'RENEWAL' },
+                                    ]}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -247,47 +244,48 @@ const RegistrationManagement: React.FC = () => {
                     </div>
                 )}
 
-                {/* Loading */}
-                {loading ? (
-                    <div className="flex justify-center items-center py-20">
-                        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                    </div>
-                ) : registrations.length === 0 ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-                        <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4">inbox</span>
-                        <p className="text-gray-500 dark:text-gray-400 text-lg">Không có đơn đăng ký nào</p>
-                    </div>
-                ) : (
-                    <>
-                        {/* Registrations Table */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 dark:bg-gray-700">
-                                        <tr>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Sinh viên</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Loại</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Tòa nhà</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Trạng thái</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Ngày tạo</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Thao tác</th>
+                {/* Table Section */}
+                <div className="bg-white dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+                    {loading ? (
+                        <div className="flex items-center justify-center p-12">
+                            <Spin size="large" tip="Đang tải dữ liệu..." />
+                        </div>
+                    ) : registrations.length === 0 ? (
+                        <div className="flex items-center justify-center p-12">
+                            <div className="text-center">
+                                <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600 mb-4 inline-block">inbox</span>
+                                <p className="text-gray-500 dark:text-gray-400 text-lg mt-4">Không có đơn đăng ký nào</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto flex-1">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-border-color dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">ID</th>
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Sinh viên</th>
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Loại</th>
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Tòa nhà</th>
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Trạng thái</th>
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Ngày tạo</th>
+                                            <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Thao tác</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tbody className="divide-y divide-border-color dark:divide-gray-700">
                                         {registrations.map((reg) => (
-                                            <tr key={reg.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">#{reg.id}</td>
+                                            <tr key={reg.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-main dark:text-white">#{reg.id}</td>
                                                 <td className="px-6 py-4">
                                                     <div>
-                                                        <p className="text-sm font-medium text-gray-900 dark:text-white">{reg.student_name || 'N/A'}</p>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400">{reg.mssv || 'N/A'}</p>
+                                                        <p className="text-sm font-medium text-text-main dark:text-white">{reg.student_name || 'N/A'}</p>
+                                                        <p className="text-xs text-text-secondary dark:text-gray-400">{reg.mssv || 'N/A'}</p>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">{getTypeBadge(reg.registration_type)}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{reg.building_name || 'Chưa chọn'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-300">{reg.building_name || 'Chưa chọn'}</td>
                                                 <td className="px-6 py-4">{getStatusBadge(reg.status)}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{formatDate(reg.created_at)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary dark:text-gray-300">{formatDate(reg.created_at)}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
                                                         {/* View Detail Button - Always visible */}
@@ -330,32 +328,19 @@ const RegistrationManagement: React.FC = () => {
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
 
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div className="flex justify-center items-center gap-2 mt-6">
-                                <button
-                                    disabled={page === 1}
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                                    className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                    Trước
-                                </button>
-                                <span className="px-4 py-2 text-gray-600 dark:text-gray-300">
-                                    Trang {page} / {totalPages}
-                                </span>
-                                <button
-                                    disabled={page === totalPages}
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                    Sau
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
+                            {/* Pagination */}
+                            <Pagination
+                                currentPage={page}
+                                totalPages={totalPages}
+                                totalItems={total}
+                                itemsPerPage={20}
+                                onPageChange={setPage}
+                                itemsPerPageOptions={[10, 20, 50]}
+                            />
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* Modal for Approve/Reject */}
@@ -590,7 +575,7 @@ const RegistrationManagement: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </RoleBasedLayout>
     );
 };
 
