@@ -12,6 +12,7 @@ interface Invoice {
   cycle_id: number;
   amount: number;
   status: string;
+  invoice_status?: string;
   electricity_old: number;
   electricity_new: number;
   water_old: number;
@@ -171,16 +172,24 @@ const UtilityFeeInvoiceTab: React.FC = () => {
   };
 
   const mapInvoiceToRow = (inv: Invoice): InvoiceRow => {
-    const status = inv.status || 'DRAFT';
+    // If status is PUBLISHED, use the status from the invoices table (invoice_status)
+    // Otherwise use the status from utility_invoices table
+    const status = inv.status === 'PUBLISHED' && inv.invoice_status 
+      ? inv.invoice_status 
+      : inv.status || 'DRAFT';
+    
     let statusLabel = 'Chưa xác định';
     let statusColor = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
 
     if (status === 'PAID') {
       statusLabel = 'Đã thanh toán';
       statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+    } else if (status === 'OVERDUE') {
+      statusLabel = 'Đã quá hạn';
+      statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
     } else if (status === 'PUBLISHED') {
-      statusLabel = 'Đã phát hành';
-      statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      statusLabel = 'Chưa thanh toán';
+      statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
     } else if (status === 'DRAFT') {
       statusLabel = 'Nháp';
       statusColor = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';

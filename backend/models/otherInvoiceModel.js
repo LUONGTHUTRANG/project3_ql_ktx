@@ -4,9 +4,11 @@ const OtherInvoice = {
   // Get other invoice by ID
   getById: async (id) => {
     const [rows] = await db.query(
-      `SELECT oi.*, inv.status, inv.invoice_code, inv.created_at, inv.total_amount
+      `SELECT oi.*, inv.status, inv.invoice_code, inv.created_at, inv.total_amount,
+              r.room_number, r.floor
        FROM other_invoices oi
        JOIN invoices inv ON oi.invoice_id = inv.id
+       LEFT JOIN rooms r ON oi.target_room_id = r.id
        WHERE oi.id = ?`,
       [id]
     );
@@ -87,13 +89,16 @@ const OtherInvoice = {
       title,
       description,
       amount,
+      attachment_path,
+      file_name,
+      file_size
     } = data;
 
     const [result] = await db.query(
       `INSERT INTO other_invoices 
-       (invoice_id, target_type, target_student_id, target_room_id, title, description, amount)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [invoice_id, target_type, target_student_id, target_room_id, title, description, amount]
+       (invoice_id, target_type, target_student_id, target_room_id, title, description, amount, attachment_path, file_name, file_size)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [invoice_id, target_type, target_student_id, target_room_id, title, description, amount, attachment_path, file_name, file_size]
     );
     return result.insertId;
   },

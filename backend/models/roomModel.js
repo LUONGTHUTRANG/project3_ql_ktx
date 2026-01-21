@@ -25,6 +25,11 @@ const Room = {
     return rows[0];
   },
 
+  getByBuildingId: async (buildingId) => {
+    const [rows] = await db.query("SELECT * FROM rooms WHERE building_id = ? ORDER BY floor, room_number", [buildingId]);
+    return rows;
+  },
+
   create: async (data) => {
     const {
       building_id,

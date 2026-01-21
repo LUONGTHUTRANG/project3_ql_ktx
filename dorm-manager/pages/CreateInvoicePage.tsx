@@ -1,9 +1,13 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { message, Input, Select, DatePicker } from 'antd';
+import { message, Input, Select, DatePicker, Spin } from 'antd';
 import dayjs from 'dayjs';
+import { createOtherInvoice } from '../api/otherInvoiceApi';
+import { fetchBuildings } from '../api/buildingApi';
+import { fetchRoomsByBuilding } from '../api/roomApi';
+import { getStudentsByRoomId } from '../api/studentApi';
 
 interface CreateInvoiceForm {
   title: string;
@@ -21,6 +25,14 @@ const CreateInvoicePage: React.FC = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  
+  // State for dynamic data
+  const [buildings, setBuildings] = useState<any[]>([]);
+  const [floors, setFloors] = useState<string[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  
   const [formData, setFormData] = useState<CreateInvoiceForm>({
     title: '',
     amount: '',
@@ -34,6 +46,64 @@ const CreateInvoicePage: React.FC = () => {
   const [fileName, setFileName] = useState<string>('');
   const [filePreview, setFilePreview] = useState<{name: string, size: string} | null>(null);
 
+  // Load buildings on component mount
+  useEffect(() => {
+    const loadBuildings = async () => {
+      try {
+        setLoadingData(true);
+        const buildingsData = await fetchBuildings();
+        setBuildings(buildingsData);
+      } catch (error) {
+        console.error('Error loading buildings:', error);
+        message.error('Lỗi khi tải danh sách tòa nhà');
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    
+    loadBuildings();
+  }, []);
+
+  // Load rooms and floors when building changes
+  useEffect(() => {
+    const loadRoomsAndFloors = async () => {
+      if (formData.building === 'all') {
+        setRooms([]);
+        setFloors([]);
+        setFormData(prev => ({
+          ...prev,
+          floor: 'all',
+          room: 'all',
+          student: 'all'
+        }));
+        return;
+      }
+
+      try {
+        const roomsData = await fetchRoomsByBuilding(formData.building);
+        setRooms(roomsData);
+        
+        // Extract unique floors from rooms and sort them
+        const uniqueFloors = Array.from(new Set(roomsData.map((r: any) => r.floor)))
+          .sort((a: number, b: number) => (a as number) - (b as number));
+        setFloors(uniqueFloors as any[]);
+        
+        // Reset dependent fields
+        setFormData(prev => ({
+          ...prev,
+          floor: 'all',
+          room: 'all',
+          student: 'all'
+        }));
+      } catch (error) {
+        console.error('Error loading rooms:', error);
+        message.error('Lỗi khi tải danh sách phòng');
+      }
+    };
+
+    loadRoomsAndFloors();
+  }, [formData.building]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -43,9 +113,18 @@ const CreateInvoicePage: React.FC = () => {
   };
 
   const handleAmountChange = (value: string) => {
+    // Remove all non-digit characters
+    const numericValue = value.replace(/\D/g, '');
+    
+    // Format with thousand separators using Vietnamese locale
+    let formattedValue = '';
+    if (numericValue) {
+      formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    
     setFormData(prev => ({
       ...prev,
-      amount: value
+      amount: formattedValue
     }));
   };
 
@@ -70,6 +149,34 @@ const CreateInvoicePage: React.FC = () => {
       [name]: value
     }));
   };
+
+  // Load students when room changes
+  useEffect(() => {
+    const loadStudents = async () => {
+      if (formData.room === 'all') {
+        setStudents([]);
+        setFormData(prev => ({
+          ...prev,
+          student: 'all'
+        }));
+        return;
+      }
+
+      try {
+        const studentsData = await getStudentsByRoomId(formData.room);
+        setStudents(studentsData);
+        setFormData(prev => ({
+          ...prev,
+          student: 'all'
+        }));
+      } catch (error) {
+        console.error('Error loading students:', error);
+        message.error('Lỗi khi tải danh sách sinh viên');
+      }
+    };
+
+    loadStudents();
+  }, [formData.room]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,7 +219,7 @@ const CreateInvoicePage: React.FC = () => {
       return;
     }
 
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
+    if (!formData.amount || parseInt(formData.amount.replace(/,/g, '')) <= 0) {
       message.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
@@ -122,14 +229,55 @@ const CreateInvoicePage: React.FC = () => {
       return;
     }
 
+    // Check if recipient is selected
+    if ((formData.student === 'all' || !formData.student) && (formData.room === 'all' || !formData.room)) {
+      message.error('Vui lòng chọn sinh viên hoặc phòng để tạo hóa đơn');
+      return;
+    }
+
+    // Determine target type and ID
+    let targetType = 'STUDENT';
+    let targetId: string | number | undefined;
+
+    // Priority: student > room > error
+    if (formData.student !== 'all' && formData.student) {
+      targetType = 'STUDENT';
+      targetId = formData.student;
+    } else if (formData.room !== 'all' && formData.room) {
+      targetType = 'ROOM';
+      // Convert room string to number if it's a room ID
+      targetId = parseInt(formData.room, 10) || formData.room;
+      
+      // Validation: room_id must be a valid number
+      if (isNaN(parseInt(formData.room, 10))) {
+        message.error('Phòng không hợp lệ. Vui lòng chọn phòng từ danh sách.');
+        return;
+      }
+    } else {
+      message.error('Vui lòng chọn sinh viên hoặc phòng để tạo hóa đơn');
+      return;
+    }
+
     setLoading(true);
     try {
-      // TODO: Implement API call to create invoice
-      message.success('Tạo hóa đơn thành công');
+      await createOtherInvoice({
+        target_type: targetType as 'STUDENT' | 'ROOM',
+        target_student_id: targetType === 'STUDENT' ? String(targetId) : undefined,
+        target_room_id: targetType === 'ROOM' ? String(targetId) : undefined,
+        title: formData.title,
+        description: formData.description,
+        amount: parseInt(formData.amount.replace(/\./g, ''), 10),
+        attachment: formData.attachment,
+        file_name: formData.attachment?.name,
+        file_size: formData.attachment?.size,
+      });
+
+      message.success('Tạo hóa đơn thành công!');
       navigate(-1);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating invoice:', error);
-      message.error('Lỗi khi tạo hóa đơn');
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || 'Lỗi khi tạo hóa đơn';
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -147,8 +295,12 @@ const CreateInvoicePage: React.FC = () => {
             </div>
             <span className="text-sm font-bold leading-normal">Quay lại danh sách hóa đơn</span>
         </button>
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col items-center">
+        
+        {loadingData ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Spin size="large" tip="Đang tải dữ liệu..." />
+          </div>
+        ) : (
           <div className="layout-content-container flex flex-col w-full gap-6">
             {/* PageHeading Component */}
             <div className="flex flex-wrap justify-between items-end gap-3">
@@ -176,7 +328,7 @@ const CreateInvoicePage: React.FC = () => {
                   {/* Title Field */}
                   <div className="flex flex-col gap-2 md:col-span-2">
                     <label className="text-[#111418] dark:text-slate-200 text-md font-semibold">
-                      Tiêu đề hóa đơn
+                      Tiêu đề hóa đơn <span className="text-red-500">*</span>
                     </label>
                     <Input
                       name="title"
@@ -191,16 +343,15 @@ const CreateInvoicePage: React.FC = () => {
                   {/* Amount Field */}
                   <div className="flex flex-col gap-2">
                     <label className="text-[#111418] dark:text-slate-200 text-md font-semibold">
-                      Giá tiền (VNĐ)
+                      Giá tiền (VNĐ) <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <Input
-                        type="number"
+                        type="text"
                         name="amount"
                         value={formData.amount}
                         onChange={(e) => handleAmountChange(e.target.value)}
                         placeholder="0"
-                        min="0"
                         className="dark:bg-slate-800 dark:border-slate-700 h-10"
                         addonAfter="VNĐ"
                         prefix={<span className="hidden" />}
@@ -211,7 +362,7 @@ const CreateInvoicePage: React.FC = () => {
                   {/* Due Date Field */}
                   <div className="flex flex-col gap-2">
                     <label className="text-[#111418] dark:text-slate-200 text-md font-semibold">
-                      Ngày đến hạn
+                      Ngày đến hạn <span className="text-red-500">*</span>
                     </label>
                     <DatePicker
                       value={formData.dueDate ? dayjs(formData.dueDate) : null}
@@ -304,7 +455,7 @@ const CreateInvoicePage: React.FC = () => {
                 <div className="flex items-center gap-2 mb-4">
                   <span className="material-symbols-outlined text-primary">groups</span>
                   <h2 className="text-[#111418] dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">
-                    Đối tượng nhận hóa đơn
+                    Đối tượng nhận hóa đơn <span className="text-red-500">*</span>
                   </h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -319,9 +470,10 @@ const CreateInvoicePage: React.FC = () => {
                       className="dark:bg-slate-800 h-10"
                       options={[
                         { value: 'all', label: 'Tất cả Tòa' },
-                        { value: 'A1', label: 'Tòa A1' },
-                        { value: 'A2', label: 'Tòa A2' },
-                        { value: 'B1', label: 'Tòa B1' },
+                        ...buildings.map((building: any) => ({
+                          value: building.id.toString(),
+                          label: building.name,
+                        })),
                       ]}
                     />
                   </div>
@@ -335,11 +487,13 @@ const CreateInvoicePage: React.FC = () => {
                       value={formData.floor}
                       onChange={(value) => handleSelectChange('floor', value)}
                       className="dark:bg-slate-800 h-10"
+                      disabled={formData.building === 'all'}
                       options={[
                         { value: 'all', label: 'Tất cả Tầng' },
-                        { value: '1', label: 'Tầng 1' },
-                        { value: '2', label: 'Tầng 2' },
-                        { value: '3', label: 'Tầng 3' },
+                        ...floors.map((floor: any) => ({
+                          value: floor.toString(),
+                          label: `Tầng ${floor}`,
+                        })),
                       ]}
                     />
                   </div>
@@ -353,11 +507,15 @@ const CreateInvoicePage: React.FC = () => {
                       value={formData.room}
                       onChange={(value) => handleSelectChange('room', value)}
                       className="dark:bg-slate-800 h-10"
+                      disabled={formData.building === 'all'}
                       options={[
                         { value: 'all', label: 'Tất cả Phòng' },
-                        { value: '101', label: 'Phòng 101' },
-                        { value: '102', label: 'Phòng 102' },
-                        { value: '103', label: 'Phòng 103' },
+                        ...rooms
+                          .filter((room: any) => formData.floor === 'all' || room.floor.toString() === formData.floor)
+                          .map((room: any) => ({
+                            value: room.id.toString(),
+                            label: `Phòng ${room.room_number}`,
+                          })),
                       ]}
                     />
                   </div>
@@ -371,10 +529,13 @@ const CreateInvoicePage: React.FC = () => {
                       value={formData.student}
                       onChange={(value) => handleSelectChange('student', value)}
                       className="dark:bg-slate-800 h-10"
+                      disabled={formData.room === 'all'}
                       options={[
                         { value: 'all', label: 'Tất cả sinh viên' },
-                        { value: 'student1', label: 'Nguyễn Văn A' },
-                        { value: 'student2', label: 'Trần Thị B' },
+                        ...students.map((student: any) => ({
+                          value: student.id,
+                          label: student.full_name,
+                        })),
                       ]}
                     />
                   </div>
@@ -400,7 +561,7 @@ const CreateInvoicePage: React.FC = () => {
               </section>
             </form>
           </div>
-        </main>
+        )}
       </div>
 
       {/* Sticky Footer */}

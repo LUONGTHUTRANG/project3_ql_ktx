@@ -19,6 +19,19 @@ export const getRoomById = async (req, res) => {
   }
 };
 
+export const getRoomsByBuilding = async (req, res) => {
+  try {
+    const { building_id } = req.query;
+    if (!building_id) {
+      return res.status(400).json({ error: "building_id query parameter is required" });
+    }
+    const rooms = await Room.getByBuildingId(building_id);
+    res.json(rooms);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const createRoom = async (req, res) => {
   try {
     const newRoom = await Room.create(req.body);

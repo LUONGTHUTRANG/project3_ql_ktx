@@ -23,6 +23,7 @@ import CreateInvoicePage from './pages/CreateInvoicePage';
 import RecordUtilityMetersPage from './pages/RecordUtilityMetersPage';
 import RoomFeeInvoiceDetail from './pages/RoomFeeInvoiceDetail';
 import UtilityFeeInvoiceDetail from './pages/UtilityFeeInvoiceDetail';
+import OtherInvoiceDetail from './pages/OtherInvoiceDetail';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import RoomManagement from './pages/RoomManagement';
@@ -336,6 +337,15 @@ const AppContent: React.FC = () => {
         />
 
         <Route 
+          path="/manager/invoices/other-invoice" 
+          element={
+            user && user.role === UserRole.MANAGER
+              ? <InvoiceManagement /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
           path="/manager/invoices" 
           element={
             user && user.role === UserRole.MANAGER
@@ -358,6 +368,15 @@ const AppContent: React.FC = () => {
           element={
             user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
               ? <UtilityFeeInvoiceDetail /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
+          path="/invoice/other/detail/:invoiceId" 
+          element={
+            user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
+              ? <OtherInvoiceDetail /> 
               : <Navigate to="/login" replace />
           } 
         />

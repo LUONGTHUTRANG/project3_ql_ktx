@@ -6,9 +6,10 @@ import { getAllInvoices, getAllSemesters } from '../api';
 import { message } from 'antd';
 import RoomFeeInvoiceTab from './RoomFeeInvoiceTab';
 import UtilityFeeInvoiceTab from './UtilityFeeInvoiceTab';
+import OtherInvoiceTab from './OtherInvoiceTab';
 
 type StatusType = 'PAID' | 'UNPAID' | 'SUBMITTED' | 'CANCELLED' | 'PENDING';
-type TabType = 'room_fee' | 'utility_fee';
+type TabType = 'room_fee' | 'utility_fee' | 'other_invoice';
 
 interface Invoice {
   id: number;
@@ -51,6 +52,8 @@ const InvoiceManagement: React.FC = () => {
   const getActiveTabFromUrl = (): TabType => {
     if (location.pathname.includes('/utility-fee')) {
       return 'utility_fee';
+    } else if (location.pathname.includes('/other-invoice')) {
+      return 'other_invoice';
     }
     return 'room_fee';
   };
@@ -300,6 +303,20 @@ const InvoiceManagement: React.FC = () => {
                 <span className="ml-2 bg-blue-100 text-blue-600 py-0.5 px-2 rounded-full text-xs hidden sm:inline-block dark:bg-blue-900/20 dark:text-blue-400">{utilityFeeUnpaidCount}</span>
               )}
             </button>
+            <button
+              onClick={() => {
+                navigate('/manager/invoices/other-invoice');
+                setCurrentPage(1);
+              }}
+              className={`group inline-flex items-center py-4 px-1 border-b-[3px] font-medium text-sm leading-5 transition-colors whitespace-nowrap ${
+                activeTab === 'other_invoice'
+                  ? 'border-primary text-primary font-bold'
+                  : 'border-transparent text-text-secondary dark:text-gray-400 hover:text-text-main dark:hover:text-gray-200 hover:border-border-color'
+              }`}
+            >
+              <span className="material-symbols-outlined mr-2 text-[20px]">description</span>
+              Hóa đơn khác
+            </button>
           </nav>
         </div>
 
@@ -310,6 +327,10 @@ const InvoiceManagement: React.FC = () => {
 
         {activeTab === 'utility_fee' && (
           <UtilityFeeInvoiceTab />
+        )}
+
+        {activeTab === 'other_invoice' && (
+          <OtherInvoiceTab />
         )}
       </div>
     </RoleBasedLayout>

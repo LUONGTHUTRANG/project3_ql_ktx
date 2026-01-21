@@ -12,10 +12,12 @@ const UtilityInvoice = {
 
   // Get all utility invoices for a cycle (with optional building filter)
   getByCycleId: async (cycleId, buildingId = null) => {
-    let query = `SELECT ui.*, r.room_number, r.floor, b.id as building_id, b.name as building_name
+    let query = `SELECT ui.*, r.room_number, r.floor, b.id as building_id, b.name as building_name,
+                 i.status as invoice_status
                  FROM utility_invoices ui
                  JOIN rooms r ON ui.room_id = r.id
                  JOIN buildings b ON r.building_id = b.id
+                 LEFT JOIN invoices i ON ui.invoice_id = i.id
                  WHERE ui.cycle_id = ?`;
     const params = [cycleId];
     

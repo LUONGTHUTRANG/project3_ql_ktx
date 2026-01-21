@@ -18,6 +18,19 @@ export const fetchRooms = async () => {
 };
 
 /**
+ * Fetch rooms by building ID
+ */
+export const fetchRoomsByBuilding = async (buildingId: number | string) => {
+  try {
+    const response = await axios.get(`${BASE_URL}?building_id=${buildingId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching rooms for building ${buildingId}:`, error);
+    throw error;
+  }
+};
+
+/**
  * Fetch a room by ID
  */
 export const fetchRoomById = async (id: number | string) => {
