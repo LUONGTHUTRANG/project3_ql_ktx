@@ -1,7 +1,11 @@
-import React, { useContext, useState, useRef } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { Select, Switch } from 'antd';
+import { Select, Switch, message } from 'antd';
+import { createRegistration } from '../api/registrationApi';
+import { fetchBuildings } from '../api/buildingApi';
+import { getAllSemesters, Semester } from '../api/semesterApi';
+import { getCurrentStay, CurrentStayInfo } from '../api/studentApi';
 
 type RegistrationStatus = 'upcoming' | 'open' | 'closed';
 type ActiveTab = 'regular' | 'special' | 'extension';
@@ -10,6 +14,14 @@ interface UploadedFile {
   name: string;
   size: string;
   url: string;
+  file?: File; // Store the actual File object for upload
+}
+
+interface Building {
+  id: number;
+  name: string;
+  location?: string;
+  gender_restriction?: string;
 }
 
 const StudentRegistration: React.FC = () => {
@@ -17,7 +29,7 @@ const StudentRegistration: React.FC = () => {
   const [isGroupReg, setIsGroupReg] = useState(false);
   const [selectedHabits, setSelectedHabits] = useState<string[]>(['Ngủ sớm']);
   const [activeTab, setActiveTab] = useState<ActiveTab>('regular');
-  
+
   // Trạng thái cổng đăng ký: 'upcoming' (Chưa mở), 'open' (Đang mở), 'closed' (Đã đóng)
   const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus>('open');
 
@@ -32,6 +44,74 @@ const StudentRegistration: React.FC = () => {
   const [extensionFiles, setExtensionFiles] = useState<UploadedFile[]>([]);
   const extensionFileInputRef = useRef<HTMLInputElement>(null);
 
+  // ===== NEW STATES FOR API CONNECTION =====
+  const [loading, setLoading] = useState(false);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [activeSemester, setActiveSemester] = useState<Semester | null>(null);
+
+  // Form data states
+  const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
+  const [selectedRoomType, setSelectedRoomType] = useState<string>('4');
+  const [selectedFloor, setSelectedFloor] = useState<string>('any');
+  const [priorityCategory, setPriorityCategory] = useState<string>('');
+  const [priorityDescription, setPriorityDescription] = useState<string>('');
+  const [extensionReason, setExtensionReason] = useState<string>('');
+
+  // Current stay info for renewal
+  const [currentStayInfo, setCurrentStayInfo] = useState<CurrentStayInfo | null>(null);
+  const [loadingCurrentStay, setLoadingCurrentStay] = useState(false);
+
+  // Fetch buildings and semester on mount
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        // Fetch buildings
+        const buildingsData = await fetchBuildings();
+        setBuildings(buildingsData);
+
+        // Fetch semesters and find active one
+        const semesters = await getAllSemesters();
+        const active = semesters.find((s: Semester) => s.is_active === 1);
+        if (active) {
+          setActiveSemester(active);
+        }
+
+        // Fetch current stay info for renewal tab
+        await loadCurrentStay();
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      }
+    };
+    loadInitialData();
+  }, []);
+
+  // Load current stay info
+  const loadCurrentStay = async () => {
+    setLoadingCurrentStay(true);
+    try {
+      const response = await getCurrentStay();
+      if (response.hasCurrentStay && response.data) {
+        setHasCurrentStay(true);
+        setCurrentStayInfo(response.data);
+      } else {
+        setHasCurrentStay(false);
+        setCurrentStayInfo(null);
+      }
+    } catch (error) {
+      console.error('Error loading current stay:', error);
+      setHasCurrentStay(false);
+      setCurrentStayInfo(null);
+    } finally {
+      setLoadingCurrentStay(false);
+    }
+  };
+
+  // Format date helper
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('vi-VN');
+  };
+
   if (!user) return null;
 
   const habits = [
@@ -44,7 +124,7 @@ const StudentRegistration: React.FC = () => {
   ];
 
   const toggleHabit = (habit: string) => {
-    setSelectedHabits(prev => 
+    setSelectedHabits(prev =>
       prev.includes(habit) ? prev.filter(h => h !== habit) : [...prev, habit]
     );
   };
@@ -61,7 +141,8 @@ const StudentRegistration: React.FC = () => {
       const newFiles = Array.from(files).map((file: File) => ({
         name: file.name,
         size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-        url: URL.createObjectURL(file)
+        url: URL.createObjectURL(file),
+        file: file, // Store the actual File object for upload
       }));
       setFiles(prev => [...prev, ...newFiles]);
     }
@@ -72,8 +153,86 @@ const StudentRegistration: React.FC = () => {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  // ===== SUBMIT HANDLER =====
+  const handleSubmit = async () => {
+    if (!user) {
+      message.error('Vui lòng đăng nhập để tiếp tục');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let registrationType: 'NORMAL' | 'PRIORITY' | 'RENEWAL' = 'NORMAL';
+      let evidenceFile: File | null = null;
+      let priorityCat: 'NONE' | 'POOR_HOUSEHOLD' | 'DISABILITY' | 'OTHER' = 'NONE';
+      let priorityDesc: string | null = null;
+
+      // Determine registration type based on active tab
+      if (activeTab === 'regular') {
+        registrationType = 'NORMAL';
+      } else if (activeTab === 'special') {
+        registrationType = 'PRIORITY';
+        // Map priority category
+        if (priorityCategory === '1') priorityCat = 'OTHER'; // Con liệt sĩ
+        else if (priorityCategory === '2') priorityCat = 'DISABILITY';
+        else if (priorityCategory === '3') priorityCat = 'POOR_HOUSEHOLD';
+        else if (priorityCategory === '4') priorityCat = 'OTHER'; // Dân tộc thiểu số
+
+        priorityDesc = priorityDescription || null;
+
+        // Get evidence file
+        if (specialFiles.length > 0 && specialFiles[0].file) {
+          evidenceFile = specialFiles[0].file;
+        }
+      } else if (activeTab === 'extension') {
+        registrationType = 'RENEWAL';
+        priorityDesc = extensionReason || null;
+
+        // Get evidence file for extension
+        if (extensionFiles.length > 0 && extensionFiles[0].file) {
+          evidenceFile = extensionFiles[0].file;
+        }
+      }
+
+      // For renewal, use current room's building if available
+      const buildingIdToSend = activeTab === 'extension' && currentStayInfo
+        ? currentStayInfo.building_id
+        : selectedBuildingId;
+
+      const roomIdToSend = activeTab === 'extension' && currentStayInfo
+        ? currentStayInfo.room_id
+        : null;
+
+      // Call API
+      const result = await createRegistration({
+        student_id: user.id,
+        registration_type: registrationType,
+        desired_building_id: buildingIdToSend,
+        desired_room_id: roomIdToSend,
+        priority_category: priorityCat,
+        priority_description: priorityDesc,
+        evidence: evidenceFile,
+      });
+
+      message.success(result.message || 'Đăng ký thành công!');
+
+      // Reset form after success
+      setSelectedBuildingId(null);
+      setPriorityCategory('');
+      setPriorityDescription('');
+      setExtensionReason('');
+      setSpecialFiles([]);
+      setExtensionFiles([]);
+
+    } catch (error: any) {
+      message.error(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <RoleBasedLayout 
+    <RoleBasedLayout
       searchPlaceholder="Tìm kiếm..."
       headerTitle="Đăng ký Nội trú"
     >
@@ -90,35 +249,32 @@ const StudentRegistration: React.FC = () => {
         <div className="bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-border-color dark:border-gray-700 overflow-hidden">
           <div className="border-b border-border-color dark:border-gray-700">
             <div className="flex gap-0 overflow-x-auto no-scrollbar">
-              <button 
+              <button
                 onClick={() => setActiveTab('regular')}
-                className={`group flex items-center gap-2 border-b-[3px] pb-3 pt-4 px-6 cursor-pointer transition-all ${
-                  activeTab === 'regular' 
-                    ? 'border-b-primary text-primary' 
-                    : 'border-b-transparent text-text-secondary dark:text-gray-400 hover:text-text-main dark:hover:text-white'
-                }`}
+                className={`group flex items-center gap-2 border-b-[3px] pb-3 pt-4 px-6 cursor-pointer transition-all ${activeTab === 'regular'
+                  ? 'border-b-primary text-primary'
+                  : 'border-b-transparent text-text-secondary dark:text-gray-400 hover:text-text-main dark:hover:text-white'
+                  }`}
               >
                 <span className={`material-symbols-outlined ${activeTab === 'regular' ? 'fill' : ''}`}>assignment</span>
                 <p className="text-sm font-bold whitespace-nowrap">Đơn đăng ký thông thường</p>
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('special')}
-                className={`group flex items-center gap-2 border-b-[3px] pb-3 pt-4 px-6 cursor-pointer transition-all ${
-                  activeTab === 'special' 
-                    ? 'border-b-primary text-primary' 
-                    : 'border-b-transparent text-text-secondary dark:text-gray-400 hover:text-text-main dark:hover:text-white'
-                }`}
+                className={`group flex items-center gap-2 border-b-[3px] pb-3 pt-4 px-6 cursor-pointer transition-all ${activeTab === 'special'
+                  ? 'border-b-primary text-primary'
+                  : 'border-b-transparent text-text-secondary dark:text-gray-400 hover:text-text-main dark:hover:text-white'
+                  }`}
               >
                 <span className={`material-symbols-outlined ${activeTab === 'special' ? 'fill' : ''}`}>star</span>
                 <p className="text-sm font-bold whitespace-nowrap">Đơn ưu tiên / Đặc biệt</p>
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('extension')}
-                className={`group flex items-center gap-2 border-b-[3px] pb-3 pt-4 px-6 cursor-pointer transition-all ${
-                  activeTab === 'extension' 
-                    ? 'border-b-primary text-primary' 
-                    : 'border-b-transparent text-text-secondary dark:text-gray-400 hover:text-text-main dark:hover:text-white'
-                }`}
+                className={`group flex items-center gap-2 border-b-[3px] pb-3 pt-4 px-6 cursor-pointer transition-all ${activeTab === 'extension'
+                  ? 'border-b-primary text-primary'
+                  : 'border-b-transparent text-text-secondary dark:text-gray-400 hover:text-text-main dark:hover:text-white'
+                  }`}
               >
                 <span className={`material-symbols-outlined ${activeTab === 'extension' ? 'fill' : ''}`}>history_edu</span>
                 <p className="text-sm font-bold whitespace-nowrap">Gia hạn chỗ ở</p>
@@ -138,7 +294,7 @@ const StudentRegistration: React.FC = () => {
               <p className="text-text-secondary dark:text-gray-400 text-base max-w-[500px] mb-10 leading-relaxed">
                 Hiện tại hệ thống chưa mở tiếp nhận đơn đăng ký chỗ ở cho học kỳ này. Vui lòng quay lại vào thời gian đăng ký dự kiến bên dưới.
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mb-12">
                 <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl border border-border-color dark:border-gray-700 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors">
                   <div className="flex items-center gap-2 text-text-secondary dark:text-gray-400">
@@ -184,7 +340,7 @@ const StudentRegistration: React.FC = () => {
               <p className="text-text-secondary dark:text-gray-400 text-base max-w-[500px] mb-10 leading-relaxed">
                 Thời gian tiếp nhận đơn đăng ký chỗ ở cho đợt này đã kết thúc. Hệ thống hiện không còn nhận thêm yêu cầu mới. Vui lòng quay lại trong đợt đăng ký tiếp theo.
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mb-12">
                 <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl border border-border-color dark:border-gray-700 flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2 text-text-secondary dark:text-gray-400">
@@ -229,15 +385,15 @@ const StudentRegistration: React.FC = () => {
                       <span className="material-symbols-outlined text-primary text-2xl font-bold">person</span>
                       <h2 className="text-text-main dark:text-white text-xl font-bold">Thông tin cá nhân</h2>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-bold">Mã số sinh viên</span>
                         <div className="relative group">
-                          <input 
-                            className="w-full h-11 rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-secondary dark:text-gray-400 cursor-not-allowed text-sm" 
-                            readOnly 
-                            // value={user.id.replace('S', '')} 
+                          <input
+                            className="w-full h-11 rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-secondary dark:text-gray-400 cursor-not-allowed text-sm"
+                            readOnly
+                            value={user.mssv || ''}
                           />
                           <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">lock</span>
                         </div>
@@ -245,27 +401,27 @@ const StudentRegistration: React.FC = () => {
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-bold">Họ và tên</span>
                         <div className="relative group">
-                          <input 
-                            className="w-full h-11 rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-secondary dark:text-gray-400 cursor-not-allowed text-sm" 
-                            readOnly 
-                            value={user.name} 
+                          <input
+                            className="w-full h-11 rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-secondary dark:text-gray-400 cursor-not-allowed text-sm"
+                            readOnly
+                            value={user.name}
                           />
                           <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">lock</span>
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-bold">Lớp sinh hoạt</span>
-                        <input 
-                          className="w-full h-11 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 text-text-main dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" 
-                          placeholder="Ví dụ: CNTT2024" 
+                        <input
+                          className="w-full h-11 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 text-text-main dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+                          placeholder="Ví dụ: CNTT2024"
                         />
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-bold">Số điện thoại</span>
-                        <input 
-                          className="w-full h-11 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 text-text-main dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" 
-                          placeholder="09xx xxx xxx" 
-                          type="tel" 
+                        <input
+                          className="w-full h-11 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 px-4 text-text-main dark:text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+                          placeholder="09xx xxx xxx"
+                          type="tel"
                         />
                       </div>
                     </div>
@@ -283,11 +439,10 @@ const StudentRegistration: React.FC = () => {
                         <button
                           key={habit.label}
                           onClick={() => toggleHabit(habit.label)}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold transition-all ${
-                            selectedHabits.includes(habit.label)
-                              ? 'bg-primary border-primary text-white shadow-md shadow-primary/20 scale-105'
-                              : 'bg-white dark:bg-gray-800 border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 hover:border-primary/50'
-                          }`}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold transition-all ${selectedHabits.includes(habit.label)
+                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/20 scale-105'
+                            : 'bg-white dark:bg-gray-800 border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 hover:border-primary/50'
+                            }`}
                         >
                           <span className="material-symbols-outlined text-[18px]">{habit.icon}</span>
                           {habit.label}
@@ -305,7 +460,7 @@ const StudentRegistration: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-bold">Loại phòng</span>
-                        <Select 
+                        <Select
                           className="w-full h-11"
                           defaultValue="4"
                           options={[
@@ -318,20 +473,18 @@ const StudentRegistration: React.FC = () => {
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-bold">Tòa nhà mong muốn</span>
-                        <Select 
+                        <Select
                           className="w-full h-11"
                           placeholder="Chọn tòa nhà"
-                          options={[
-                            { value: 'A', label: 'Tòa nhà A' },
-                            { value: 'B', label: 'Tòa nhà B' },
-                            { value: 'C', label: 'Tòa nhà C' },
-                          ]}
+                          value={selectedBuildingId}
+                          onChange={(value) => setSelectedBuildingId(value)}
+                          options={buildings.map(b => ({ value: b.id, label: b.name }))}
                           suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
                         />
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-bold">Tầng ưu tiên</span>
-                        <Select 
+                        <Select
                           className="w-full h-11"
                           defaultValue="any"
                           options={[
@@ -358,13 +511,13 @@ const StudentRegistration: React.FC = () => {
                           <p className="text-xs text-text-secondary dark:text-gray-400">Bạn muốn ở cùng bạn bè? Hãy nhập MSSV của họ.</p>
                         </div>
                       </div>
-                      <Switch 
-                        checked={isGroupReg} 
+                      <Switch
+                        checked={isGroupReg}
                         onChange={setIsGroupReg}
                         className={isGroupReg ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}
                       />
                     </div>
-                    
+
                     {isGroupReg && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 animate-in slide-in-from-top-2 duration-300">
                         <div className="flex flex-col gap-2">
@@ -418,7 +571,7 @@ const StudentRegistration: React.FC = () => {
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Mã số sinh viên</span>
-                        <input className="h-11 w-full rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-main dark:text-white text-sm cursor-not-allowed font-medium" disabled />
+                        <input className="h-11 w-full rounded-lg border border-border-color bg-gray-50 dark:bg-gray-800 dark:border-gray-700 px-4 text-text-main dark:text-white text-sm cursor-not-allowed font-medium" disabled value={user.mssv || ''} />
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Lớp sinh hoạt</span>
@@ -440,7 +593,7 @@ const StudentRegistration: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Loại phòng <span className="text-red-500">*</span></span>
-                        <Select 
+                        <Select
                           className="w-full h-11"
                           placeholder="Chọn loại phòng"
                           options={[
@@ -453,14 +606,12 @@ const StudentRegistration: React.FC = () => {
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Tòa nhà mong muốn</span>
-                        <Select 
+                        <Select
                           className="w-full h-11"
                           placeholder="Chọn tòa nhà"
-                          options={[
-                            { value: 'A', label: 'Tòa A (Khu trung tâm)' },
-                            { value: 'B', label: 'Tòa B' },
-                            { value: 'C', label: 'Tòa C (Mới xây)' },
-                          ]}
+                          value={selectedBuildingId}
+                          onChange={(value) => setSelectedBuildingId(value)}
+                          options={buildings.map(b => ({ value: b.id, label: b.name }))}
                           suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
                         />
                       </div>
@@ -481,9 +632,11 @@ const StudentRegistration: React.FC = () => {
                     <div className="grid grid-cols-1 gap-6">
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Diện ưu tiên <span className="text-red-500">*</span></span>
-                        <Select 
+                        <Select
                           className="w-full h-11"
                           placeholder="Chọn diện ưu tiên"
+                          value={priorityCategory}
+                          onChange={(value) => setPriorityCategory(value)}
                           options={[
                             { value: '1', label: 'Con liệt sĩ, con thương binh, bệnh binh' },
                             { value: '2', label: 'Sinh viên khuyết tật' },
@@ -495,9 +648,9 @@ const StudentRegistration: React.FC = () => {
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Minh chứng kèm theo <span className="text-red-500">*</span></span>
-                        
+
                         {/* Hidden File Input */}
-                        <input 
+                        <input
                           type="file"
                           ref={specialFileInputRef}
                           onChange={(e) => handleFileChange(e, setSpecialFiles)}
@@ -507,7 +660,7 @@ const StudentRegistration: React.FC = () => {
                         />
 
                         {/* Upload Trigger Area */}
-                        <div 
+                        <div
                           onClick={() => specialFileInputRef.current?.click()}
                           className="border-2 border-dashed border-border-color dark:border-gray-700 rounded-xl p-8 flex flex-col items-center justify-center gap-3 bg-gray-50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 hover:border-primary transition-colors cursor-pointer group/upload"
                         >
@@ -535,9 +688,9 @@ const StudentRegistration: React.FC = () => {
                                   <span className="text-xs text-text-secondary dark:text-gray-500">{file.size}</span>
                                 </div>
                               </div>
-                              <button 
+                              <button
                                 onClick={() => removeFile(idx, setSpecialFiles)}
-                                className="text-text-secondary hover:text-red-500 transition-colors p-1" 
+                                className="text-text-secondary hover:text-red-500 transition-colors p-1"
                                 type="button"
                               >
                                 <span className="material-symbols-outlined text-[20px]">close</span>
@@ -553,7 +706,13 @@ const StudentRegistration: React.FC = () => {
 
               {activeTab === 'extension' && (
                 /* EXTENSION TAB CONTENT */
-                hasCurrentStay ? (
+                loadingCurrentStay ? (
+                  /* LOADING STATE */
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+                    <p className="text-text-secondary dark:text-gray-400">Đang tải thông tin chỗ ở...</p>
+                  </div>
+                ) : hasCurrentStay && currentStayInfo ? (
                   /* CASE: HAS CURRENT STAY - Show Form */
                   <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-top-4 duration-500">
                     {/* Section 1: Current Info */}
@@ -567,21 +726,48 @@ const StudentRegistration: React.FC = () => {
                           <span className="text-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Phòng hiện tại</span>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="material-symbols-outlined text-text-secondary dark:text-gray-500" style={{ fontSize: '20px' }}>meeting_room</span>
-                            <span className="text-text-main dark:text-white text-base font-bold">P.302 - Nhà B</span>
+                            <span className="text-text-main dark:text-white text-base font-bold">
+                              {currentStayInfo.room_number} - {currentStayInfo.building_name}
+                            </span>
                           </div>
                         </div>
                         <div className="flex flex-col gap-1 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-border-color dark:border-gray-700">
                           <span className="text-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Kỳ học hiện tại</span>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="material-symbols-outlined text-text-secondary dark:text-gray-500" style={{ fontSize: '20px' }}>school</span>
-                            <span className="text-text-main dark:text-white text-base font-medium">Học kỳ II / 2023-2024</span>
+                            <span className="text-text-main dark:text-white text-base font-medium">
+                              Học kỳ {currentStayInfo.term} / {currentStayInfo.academic_year}
+                            </span>
                           </div>
                         </div>
                         <div className="flex flex-col gap-1 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-border-color dark:border-gray-700">
-                          <span className="text-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Hết hạn hợp đồng</span>
+                          <span className="text-text-secondary dark:text-gray-400 text-xs font-bold uppercase tracking-wider">Thời gian đã ở</span>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="material-symbols-outlined text-red-500" style={{ fontSize: '20px' }}>event_busy</span>
-                            <span className="text-text-main dark:text-white text-base font-bold">30/06/2024</span>
+                            <span className="material-symbols-outlined text-green-500" style={{ fontSize: '20px' }}>schedule</span>
+                            <span className="text-text-main dark:text-white text-base font-bold">
+                              {currentStayInfo.months_stayed > 0
+                                ? `${currentStayInfo.months_stayed} tháng ${currentStayInfo.days_stayed % 30} ngày`
+                                : `${currentStayInfo.days_stayed} ngày`
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Additional Info Row */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                          <span className="text-blue-600 dark:text-blue-400 text-xs font-bold uppercase tracking-wider">Ngày vào ở</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400" style={{ fontSize: '20px' }}>event_available</span>
+                            <span className="text-text-main dark:text-white text-base font-bold">{formatDate(currentStayInfo.start_date)}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+                          <span className="text-amber-600 dark:text-amber-400 text-xs font-bold uppercase tracking-wider">Kết thúc học kỳ</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="material-symbols-outlined text-amber-600 dark:text-amber-400" style={{ fontSize: '20px' }}>event_busy</span>
+                            <span className="text-text-main dark:text-white text-base font-bold">{formatDate(currentStayInfo.semester_end)}</span>
                           </div>
                         </div>
                       </div>
@@ -591,33 +777,25 @@ const StudentRegistration: React.FC = () => {
                     <div className="flex flex-col gap-5">
                       <div className="flex items-center gap-3 border-b border-dashed border-border-color dark:border-gray-700 pb-3">
                         <span className="material-symbols-outlined text-primary text-2xl font-bold bg-primary/10 rounded-full p-1">calendar_month</span>
-                        <h2 className="text-text-main dark:text-white text-xl font-bold">Thời gian gia hạn dự kiến</h2>
+                        <h2 className="text-text-main dark:text-white text-xl font-bold">Yêu cầu gia hạn</h2>
                       </div>
-                      <div className="flex flex-col gap-4 p-5 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800">
+                      <div className="flex flex-col gap-4 p-5 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-800">
                         <div className="flex items-start gap-4">
                           <div className="mt-0.5">
-                            <span className="material-symbols-outlined text-primary" style={{ fontSize: '28px' }}>date_range</span>
+                            <span className="material-symbols-outlined text-green-600" style={{ fontSize: '28px' }}>autorenew</span>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-text-secondary dark:text-blue-300 text-xs font-bold uppercase tracking-wide">Kỳ tiếp theo</span>
-                            <span className="text-text-main dark:text-white text-lg font-bold text-primary dark:text-blue-400">Học kỳ I / 2024-2025</span>
+                            <span className="text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wide">Tiếp tục ở tại</span>
+                            <span className="text-text-main dark:text-white text-lg font-bold text-green-700 dark:text-green-400">
+                              {currentStayInfo.room_number} - {currentStayInfo.building_name}
+                            </span>
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 ml-0 sm:ml-[44px] border-t border-blue-200 dark:border-blue-800/50 pt-4 border-dashed">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-text-secondary dark:text-gray-400 text-xs font-medium">Ngày bắt đầu dự kiến</span>
-                            <div className="flex items-center gap-2">
-                              <span className="material-symbols-outlined text-green-600 dark:text-green-400" style={{ fontSize: '20px' }}>event_available</span>
-                              <span className="text-text-main dark:text-white text-sm font-bold">15/08/2024</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-text-secondary dark:text-gray-400 text-xs font-medium">Ngày kết thúc dự kiến</span>
-                            <div className="flex items-center gap-2">
-                              <span className="material-symbols-outlined text-red-500 dark:text-red-400" style={{ fontSize: '20px' }}>event_busy</span>
-                              <span className="text-text-main dark:text-white text-sm font-bold">15/01/2025</span>
-                            </div>
-                          </div>
+                        <div className="ml-0 sm:ml-[44px] border-t border-green-200 dark:border-green-800/50 pt-4 border-dashed">
+                          <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Bạn đang yêu cầu gia hạn chỗ ở tại phòng <strong>{currentStayInfo.room_number}</strong> ({currentStayInfo.building_name})
+                            cho học kỳ tiếp theo. Giá phòng: <strong>{new Intl.NumberFormat('vi-VN').format(currentStayInfo.price_per_semester)} VNĐ/kỳ</strong>
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -637,7 +815,7 @@ const StudentRegistration: React.FC = () => {
 
                       <div className="flex flex-col gap-2">
                         <label className="text-text-main dark:text-white text-sm font-bold">Minh chứng (Tùy chọn)</label>
-                        <input 
+                        <input
                           type="file"
                           ref={extensionFileInputRef}
                           onChange={(e) => handleFileChange(e, setExtensionFiles)}
@@ -645,7 +823,7 @@ const StudentRegistration: React.FC = () => {
                           className="hidden"
                           accept=".png,.jpg,.jpeg,.pdf"
                         />
-                        <div 
+                        <div
                           onClick={() => extensionFileInputRef.current?.click()}
                           className="mt-1 flex justify-center rounded-xl border-2 border-dashed border-border-color dark:border-gray-700 px-6 py-8 hover:bg-background-light dark:hover:bg-gray-800 transition-colors cursor-pointer group"
                         >
@@ -674,9 +852,9 @@ const StudentRegistration: React.FC = () => {
                                   <span className="text-xs text-text-secondary dark:text-gray-500">{file.size}</span>
                                 </div>
                               </div>
-                              <button 
+                              <button
                                 onClick={() => removeFile(idx, setExtensionFiles)}
-                                className="text-text-secondary hover:text-red-500 transition-colors p-1" 
+                                className="text-text-secondary hover:text-red-500 transition-colors p-1"
                                 type="button"
                               >
                                 <span className="material-symbols-outlined text-[20px]">close</span>
@@ -698,19 +876,20 @@ const StudentRegistration: React.FC = () => {
                       Hệ thống không tìm thấy thông tin lưu trú hiện tại của bạn tại ký túc xá. Chức năng gia hạn chỉ áp dụng cho sinh viên đang ở nội trú trong học kỳ hiện tại.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4">
-                      <button 
+                      <button
                         onClick={() => setActiveTab('regular')}
                         className="flex items-center justify-center gap-2 px-8 h-12 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95"
                       >
                         <span className="material-symbols-outlined">add_circle</span>
                         Đăng ký mới ngay
                       </button>
-                      <button 
-                        onClick={() => setHasCurrentStay(true)}
-                        className="flex items-center justify-center gap-2 px-8 h-12 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                      <button
+                        onClick={() => loadCurrentStay()}
+                        disabled={loadingCurrentStay}
+                        className="flex items-center justify-center gap-2 px-8 h-12 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all disabled:opacity-50"
                       >
-                        <span className="material-symbols-outlined">refresh</span>
-                        Thử lại
+                        <span className={`material-symbols-outlined ${loadingCurrentStay ? 'animate-spin' : ''}`}>refresh</span>
+                        {loadingCurrentStay ? 'Đang tải...' : 'Thử lại'}
                       </button>
                     </div>
                   </div>
@@ -722,16 +901,25 @@ const StudentRegistration: React.FC = () => {
                 <button className="w-full sm:w-auto px-6 py-3 rounded-xl text-sm font-bold text-text-secondary dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   {activeTab === 'extension' ? 'Hủy' : 'Hủy bỏ'}
                 </button>
-                <button 
-                  disabled={activeTab === 'extension' && !hasCurrentStay}
-                  className={`w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-3 rounded-xl text-base font-bold shadow-lg transition-all active:scale-95 ${
-                    activeTab === 'extension' && !hasCurrentStay
-                      ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
-                      : 'bg-primary hover:bg-primary-hover text-white shadow-primary/20'
-                  }`}
+                <button
+                  onClick={handleSubmit}
+                  disabled={(activeTab === 'extension' && !hasCurrentStay) || loading}
+                  className={`w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-3 rounded-xl text-base font-bold shadow-lg transition-all active:scale-95 ${(activeTab === 'extension' && !hasCurrentStay) || loading
+                    ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
+                    : 'bg-primary hover:bg-primary-hover text-white shadow-primary/20'
+                    }`}
                 >
-                  <span className="material-symbols-outlined text-xl">send</span>
-                  {activeTab === 'extension' ? 'Gửi yêu cầu gia hạn' : 'Gửi đơn đăng ký'}
+                  {loading ? (
+                    <>
+                      <span className="material-symbols-outlined text-xl animate-spin">progress_activity</span>
+                      Đang gửi...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-xl">send</span>
+                      {activeTab === 'extension' ? 'Gửi yêu cầu gia hạn' : 'Gửi đơn đăng ký'}
+                    </>
+                  )}
                 </button>
               </div>
             </div>

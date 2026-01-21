@@ -70,7 +70,7 @@ export const updateStudentContact = async (req, res) => {
 
     // Update student
     const result = await Student.updateById(id, updateData);
-    
+
     if (!result) {
       return res.status(404).json({ error: "Sinh viên không tồn tại" });
     }
@@ -86,3 +86,32 @@ export const updateStudentContact = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Get current active stay record for a student (for renewal feature)
+export const getCurrentStay = async (req, res) => {
+  try {
+    const studentId = req.user?.id || req.params.id;
+
+    if (!studentId) {
+      return res.status(400).json({ error: "Student ID is required" });
+    }
+
+    const currentStay = await Student.getCurrentStay(studentId);
+
+    if (!currentStay) {
+      return res.json({
+        hasCurrentStay: false,
+        message: "Bạn chưa có chỗ ở trong KTX"
+      });
+    }
+
+    res.json({
+      hasCurrentStay: true,
+      data: currentStay
+    });
+  } catch (err) {
+    console.error("Error getting current stay:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+

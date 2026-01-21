@@ -103,6 +103,67 @@ const Registration = {
     const [rows] = await db.query(query, params);
     return rows[0].count;
   },
+
+  // Get ALL registrations (for Manager to see all types)
+  getAll: async (limit = 20, offset = 0, filters = {}) => {
+    let query = `
+      SELECT r.*, s.full_name as student_name, s.mssv, b.name as building_name
+      FROM registrations r
+      JOIN students s ON r.student_id = s.id
+      LEFT JOIN buildings b ON r.desired_building_id = b.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (filters.status) {
+      query += " AND r.status = ?";
+      params.push(filters.status);
+    }
+
+    if (filters.registration_type) {
+      query += " AND r.registration_type = ?";
+      params.push(filters.registration_type);
+    }
+
+    if (filters.search) {
+      query += " AND (s.full_name LIKE ? OR s.mssv LIKE ?)";
+      params.push(`%${filters.search}%`, `%${filters.search}%`);
+    }
+
+    query += " ORDER BY r.created_at DESC LIMIT ? OFFSET ?";
+    params.push(limit, offset);
+
+    const [rows] = await db.query(query, params);
+    return rows;
+  },
+
+  countAll: async (filters = {}) => {
+    let query = `
+      SELECT COUNT(*) as count
+      FROM registrations r
+      JOIN students s ON r.student_id = s.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (filters.status) {
+      query += " AND r.status = ?";
+      params.push(filters.status);
+    }
+
+    if (filters.registration_type) {
+      query += " AND r.registration_type = ?";
+      params.push(filters.registration_type);
+    }
+
+    if (filters.search) {
+      query += " AND (s.full_name LIKE ? OR s.mssv LIKE ?)";
+      params.push(`%${filters.search}%`, `%${filters.search}%`);
+    }
+
+    const [rows] = await db.query(query, params);
+    return rows[0].count;
+  },
   getById: async (id) => {
     const [rows] = await db.query(
       `SELECT r.*, s.full_name as student_name, s.mssv, b.name as building_name

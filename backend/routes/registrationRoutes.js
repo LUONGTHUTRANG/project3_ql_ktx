@@ -5,6 +5,7 @@ import {
   createRegistration,
   getStudentRegistrations,
   getAllPriorityRegistrations,
+  getAllRegistrations,
   getRegistrationById,
   updateRegistrationStatus,
 } from "../controllers/registrationController.js";
@@ -30,6 +31,7 @@ const upload = multer({ storage: storage });
 router.post("/", upload.single("evidence"), createRegistration);
 router.get("/my-registrations", getStudentRegistrations);
 router.get("/priority", getAllPriorityRegistrations);
+router.get("/all", getAllRegistrations);  // For Manager to get all registrations
 router.get("/:id", getRegistrationById);
 router.put("/:id/status", updateRegistrationStatus);
 

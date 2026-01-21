@@ -98,3 +98,43 @@ export const updateStudentContact = async (id: string, data: { phone_number?: st
     throw error;
   }
 };
+
+// Interface for current stay info (for renewal)
+export interface CurrentStayInfo {
+  stay_id: number;
+  student_id: number;
+  room_id: number;
+  semester_id: number;
+  start_date: string;
+  end_date: string | null;
+  stay_status: string;
+  room_number: string;
+  floor: number;
+  max_capacity: number;
+  price_per_semester: number;
+  building_id: number;
+  building_name: string;
+  term: string;
+  academic_year: string;
+  semester_start: string;
+  semester_end: string;
+  days_stayed: number;
+  months_stayed: number;
+}
+
+export interface CurrentStayResponse {
+  hasCurrentStay: boolean;
+  message?: string;
+  data?: CurrentStayInfo;
+}
+
+// Lấy thông tin chỗ ở hiện tại của sinh viên (cho gia hạn)
+export const getCurrentStay = async (): Promise<CurrentStayResponse> => {
+  try {
+    const response = await api.get('/me/current-stay');
+    return response.data;
+  } catch (error: any) {
+    console.error('Lỗi khi lấy thông tin chỗ ở hiện tại:', error);
+    throw error;
+  }
+};

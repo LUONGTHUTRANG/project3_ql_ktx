@@ -239,7 +239,7 @@ const seed = async () => {
         "STUDYING",
       ],
     ];
-    
+
     await db.query(
       "INSERT INTO students (mssv, password_hash, full_name, email, phone_number, gender, class_name, student_status) VALUES ?",
       [students]
@@ -276,6 +276,11 @@ const seed = async () => {
       "INSERT INTO stay_records (student_id, room_id, semester_id, start_date, end_date, status) VALUES ?",
       [stayRecords]
     );
+
+    // 7.5 Clear Registrations (for demo - students will register fresh)
+    console.log("Clearing Registrations for fresh demo...");
+    await db.query("DELETE FROM registrations");
+    console.log("Registrations cleared - students can now register fresh!");
 
     // 8. Seed Service Prices
     console.log("Seeding Service Prices...");

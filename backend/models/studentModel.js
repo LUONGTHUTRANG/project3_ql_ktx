@@ -86,10 +86,46 @@ const Student = {
 
     values.push(id);
     const query = `UPDATE students SET ${setClause.join(', ')} WHERE id = ?`;
-    
+
     const [result] = await db.query(query, values);
     return result.affectedRows > 0;
+  },
+
+  // Get current active stay record with full details for renewal
+  getCurrentStay: async (studentId) => {
+    const query = `
+      SELECT 
+        sr.id as stay_id,
+        sr.student_id,
+        sr.room_id,
+        sr.semester_id,
+        sr.start_date,
+        sr.end_date,
+        sr.status as stay_status,
+        r.room_number,
+        r.floor,
+        r.max_capacity,
+        r.price_per_semester,
+        b.id as building_id,
+        b.name as building_name,
+        s.term,
+        s.academic_year,
+        s.start_date as semester_start,
+        s.end_date as semester_end,
+        DATEDIFF(CURDATE(), sr.start_date) as days_stayed,
+        TIMESTAMPDIFF(MONTH, sr.start_date, CURDATE()) as months_stayed
+      FROM stay_records sr
+      JOIN rooms r ON sr.room_id = r.id
+      JOIN buildings b ON r.building_id = b.id
+      JOIN semesters s ON sr.semester_id = s.id
+      WHERE sr.student_id = ? AND sr.status = 'ACTIVE'
+      ORDER BY sr.start_date DESC
+      LIMIT 1
+    `;
+    const [rows] = await db.query(query, [studentId]);
+    return rows[0] || null;
   },
 };
 
 export default Student;
+
