@@ -111,7 +111,7 @@ const NotificationList: React.FC = () => {
       <div className="layout-container flex h-full grow flex-col w-full mx-auto">
         <div className="flex flex-wrap justify-between items-end gap-4 mb-8">
           <div className="flex flex-col gap-2">
-            <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Danh sách Thông báo</h1>
+            <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-bold leading-tight tracking-tight">Danh sách Thông báo</h1>
             <p className="text-text-secondary dark:text-gray-400 text-base font-normal leading-normal">Cập nhật tin tức và sự kiện mới nhất từ ban quản lý ký túc xá</p>
           </div>
           <button className="group flex items-center justify-center gap-2 px-5 h-10 rounded-lg bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 text-primary transition-all">

@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spin, Modal } from 'antd';
-import { getMyNotifications } from '../api';
+import { getMyNotifications, markAsRead } from '../api';
 
 interface NotificationPopupProps {
   onClose: () => void;
+  onNotificationRead?: () => void;
 }
 
-const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
+const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose, onNotificationRead }) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadTime, setLoadTime] = useState<number>(0);
   const [selectedNotification, setSelectedNotification] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -18,7 +20,12 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
     const loadNotifications = async () => {
       try {
         setLoading(true);
+        const startTime = performance.now();
         const response = await getMyNotifications(1, 4);
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        setLoadTime(duration);
         const data = response.data || [];
         setNotifications(data);
       } catch (err) {
@@ -86,6 +93,30 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
   const handleNotificationClick = (notification: any) => {
     setSelectedNotification(notification);
     setIsModalOpen(true);
+    
+    // Mark as read when opening the modal
+    if (!notification.is_read) {
+      markAsRead(notification.id)
+        .then(() => {
+          // Update the notification in the list
+          setNotifications((prevNotifications) =>
+            prevNotifications.map((notif) =>
+              notif.id === notification.id
+                ? { ...notif, is_read: true, read_at: new Date().toISOString() }
+                : notif
+            )
+          );
+          // Update selected notification
+          setSelectedNotification((prev: any) => 
+            prev ? { ...prev, is_read: true, read_at: new Date().toISOString() } : prev
+          );
+          // Call the callback to update header unread count
+          onNotificationRead?.();
+        })
+        .catch((err) => {
+          console.error('Failed to mark notification as read:', err);
+        });
+    }
   };
 
   const handleModalClose = () => {
@@ -112,11 +143,11 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose }) => {
 
         {/* Popup Content: Notification List */}
         <div className="flex flex-col max-h-[400px] overflow-y-auto scrollbar-thin overscroll-contain bg-white dark:bg-[#1A2633]">
-          {loading ? (
+          {loading && loadTime >= 5 ? (
             <div className="flex items-center justify-center py-10">
               <Spin size="small" />
             </div>
-          ) : notifications.length === 0 ? (
+          ) : !loading && notifications.length === 0 ? (
             <div className="py-4 text-center text-text-secondary text-sm">Không có thông báo nào</div>
           ) : (
             notifications.map((item) => {

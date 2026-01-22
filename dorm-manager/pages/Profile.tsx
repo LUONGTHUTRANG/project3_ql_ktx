@@ -266,7 +266,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
             </div>
             <div className="flex flex-1 flex-col items-center text-center sm:items-start sm:text-left">
               <div className="mb-2 flex items-center gap-3 flex-wrap justify-center sm:justify-start">
-                <h2 className="text-2xl font-black text-text-main dark:text-white">{studentData?.full_name}</h2>
+                <h2 className="text-2xl font-bold text-text-main dark:text-white">{studentData?.full_name}</h2>
               </div>
               <div className="flex flex-col gap-1.5">
                 <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">MSSV: <span className="font-bold text-text-main dark:text-white">{studentData?.mssv}</span></p>
@@ -315,7 +315,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
           <div className="flex flex-col gap-6 lg:col-span-2">
             <div className="rounded-2xl border border-border-color bg-white dark:border-gray-700 dark:bg-surface-dark shadow-sm">
               <div className="border-b border-border-color px-6 py-5 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/20">
-                <h3 className="flex items-center gap-3 text-lg font-black text-text-main dark:text-white">
+                <h3 className="flex items-center gap-3 text-lg font-bold text-text-main dark:text-white">
                   <span className="material-symbols-outlined text-primary font-bold">badge</span>
                   Thông tin cơ bản
                 </h3>
@@ -394,7 +394,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
           <div className="flex flex-col gap-6">
             <div className="rounded-2xl border border-border-color bg-white dark:border-gray-700 dark:bg-surface-dark shadow-sm h-full flex flex-col">
               <div className="border-b border-border-color px-6 py-5 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/20">
-                <h3 className="flex items-center gap-3 text-lg font-black text-text-main dark:text-white">
+                <h3 className="flex items-center gap-3 text-lg font-bold text-text-main dark:text-white">
                   <span className="material-symbols-outlined text-primary font-bold">contact_phone</span>
                   Liên lạc
                 </h3>
@@ -460,13 +460,13 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                         type="button"
                         onClick={handleCancelEdit}
                         disabled={isSaving}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-color text-sm font-black p-2 text-text-main shadow-md hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-color text-sm font-bold p-2 text-text-main shadow-md hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <span className="material-symbols-outlined text-lg font-bold">close</span>
                         Hủy
                       </button>
                       <button 
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white p-2 shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" 
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white p-2 shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" 
                         type="submit"
                         disabled={isSaving}
                       >

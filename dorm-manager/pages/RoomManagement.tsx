@@ -105,7 +105,7 @@ const RoomManagement: React.FC = () => {
         {/* Page Heading & Actions */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-black tracking-tight text-text-main dark:text-white md:text-3xl">Quản lý Phòng</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-text-main dark:text-white md:text-3xl">Quản lý Phòng</h2>
             <p className="mt-1 text-sm text-text-secondary dark:text-gray-400 font-medium">Xem và cập nhật thông tin chi tiết các phòng ký túc xá.</p>
           </div>
           <div className="flex gap-3">
@@ -123,7 +123,7 @@ const RoomManagement: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest">Tổng số phòng</p>
-                <p className="mt-2 text-3xl font-black text-text-main dark:text-white">{totalRooms}</p>
+                <p className="mt-2 text-3xl font-bold text-text-main dark:text-white">{totalRooms}</p>
               </div>
               <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 p-4 text-primary">
                 <span className="material-symbols-outlined text-2xl font-bold">apartment</span>
@@ -136,8 +136,8 @@ const RoomManagement: React.FC = () => {
               <div>
                 <p className="text-sm font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest">Còn trống</p>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <p className="text-3xl font-black text-text-main dark:text-white">{availableRooms}</p>
-                  <span className="text-xs font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">{availablePercent}%</span>
+                  <p className="text-3xl font-bold text-text-main dark:text-white">{availableRooms}</p>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">{availablePercent}%</span>
                 </div>
               </div>
               <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 p-4 text-emerald-600">
@@ -151,8 +151,8 @@ const RoomManagement: React.FC = () => {
               <div>
                 <p className="text-sm font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest">Đã ở</p>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <p className="text-3xl font-black text-text-main dark:text-white">{occupiedRooms}</p>
-                  <span className="text-xs font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">{occupiedPercent}%</span>
+                  <p className="text-3xl font-bold text-text-main dark:text-white">{occupiedRooms}</p>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">{occupiedPercent}%</span>
                 </div>
               </div>
               <div className="rounded-xl bg-purple-50 dark:bg-purple-900/20 p-4 text-purple-600">
@@ -166,8 +166,8 @@ const RoomManagement: React.FC = () => {
               <div>
                 <p className="text-sm font-bold text-text-secondary dark:text-gray-400 uppercase tracking-widest">Bảo trì</p>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <p className="text-3xl font-black text-text-main dark:text-white">{maintenanceRooms}</p>
-                  <span className="text-xs font-black text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">0%</span>
+                  <p className="text-3xl font-bold text-text-main dark:text-white">{maintenanceRooms}</p>
+                  <span className="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">0%</span>
                 </div>
               </div>
               <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-4 text-red-600">

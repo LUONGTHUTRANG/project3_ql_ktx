@@ -19,6 +19,7 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
  */
 export const MANAGER_NAV_ITEMS: NavItem[] = [
   { label: 'Tổng quan', icon: 'dashboard', link: '/manager/home' },
+  { label: 'Hồ sơ cá nhân', icon: 'person', link: '/manager/profile' },
   { label: 'Quản lý Phòng', icon: 'meeting_room', link: '/manager/rooms' },
   { label: 'Quản lý Sinh viên', icon: 'school', link: '/manager/students' },
   { label: 'Quản lý Hóa đơn', icon: 'receipt_long', link: '/manager/invoices/room-fee' },

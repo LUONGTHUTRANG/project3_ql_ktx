@@ -209,7 +209,7 @@ const ManagerProfile: React.FC<ManagerProfileProps> = ({ isAdmin = false }) => {
             </div>
             <div className="flex flex-1 flex-col items-center text-center sm:items-start sm:text-left">
               <div className="mb-2 flex items-center gap-3 flex-wrap justify-center sm:justify-start">
-                <h2 className="text-2xl font-black text-text-main dark:text-white">{user?.name}</h2>
+                <h2 className="text-2xl font-bold text-text-main dark:text-white">{user?.name}</h2>
               </div>
               <div className="flex flex-col gap-1.5">
                 <p className="text-text-secondary dark:text-gray-400 text-sm font-medium flex items-center gap-2">
@@ -295,7 +295,7 @@ const ManagerProfile: React.FC<ManagerProfileProps> = ({ isAdmin = false }) => {
                       onClick={() => {
                         setIsEditMode(true);
                       }}
-                      className="text-md gap-2 flex justify-center items-center text-primary dark:text-blue-400 bg-white dark:bg-gray-800 px-2 py-1 rounded-md border border-primary/20 dark:border-blue-900/30 hover:bg-primary/5 dark:hover:bg-blue-900/20 transition-colors"
+                      className="text-md gap-2 bg-primary flex justify-center items-center text-white px-2 py-1 rounded-md border border-primary/20 dark:border-blue-900/30 hover:bg-primary/70 dark:hover:bg-blue-900/70 transition-colors"
                     >
                       <span className="material-symbols-outlined text-[18px]">edit</span>
                       Chỉnh sửa
@@ -380,18 +380,18 @@ const ManagerProfile: React.FC<ManagerProfileProps> = ({ isAdmin = false }) => {
                     <p className="text-sm text-text-secondary dark:text-gray-400 italic">
                       * Các thay đổi sẽ được lưu ngay lập tức.
                     </p>
-                    <div className="flex gap-3 w-full sm:w-auto">
+                    <div className="flex gap-3 w-full">
                       <button
                         type="button"
                         onClick={handleCancelEdit}
                         disabled={isSaving}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-color text-sm font-black p-2 text-text-main shadow-md hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border-color text-sm font-bold p-2 text-text-main shadow-md hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <span className="material-symbols-outlined text-lg font-bold">close</span>
                         Hủy
                       </button>
                       <button 
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-white p-2 shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" 
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white p-2 shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed" 
                         type="submit"
                         disabled={isSaving}
                       >

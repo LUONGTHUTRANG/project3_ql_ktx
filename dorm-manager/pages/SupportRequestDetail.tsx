@@ -175,7 +175,7 @@ const SupportRequestDetail: React.FC = () => {
         <div className="flex flex-col gap-2 mb-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-black leading-tight tracking-tight">Chi tiết yêu cầu #{requestData.id}</h1>
+              <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-bold leading-tight tracking-tight">Chi tiết yêu cầu #{requestData.id}</h1>
               <p className="text-text-secondary dark:text-gray-400 text-sm mt-1 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">calendar_today</span>
                 Ngày gửi: {createdDate} - {createdTime}

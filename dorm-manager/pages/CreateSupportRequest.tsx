@@ -154,7 +154,16 @@ const CreateSupportRequest: React.FC = () => {
               </button>
             </div>
           )}
-          <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-black leading-tight tracking-tight">
+          {!isEditMode && (<button
+            onClick={() => navigate('/student/requests')}
+            className="group flex items-center gap-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+          >
+            <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
+              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+            </div>
+            <span className="text-sm font-bold leading-normal">Quay lại danh sách yêu cầu</span>
+          </button>)}
+          <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-bold leading-tight tracking-tight">
             {isEditMode ? `Cập nhật yêu cầu #${id}` : 'Gửi yêu cầu hỗ trợ'}
           </h1>
           <p className="text-text-secondary dark:text-gray-400 text-sm md:text-base">

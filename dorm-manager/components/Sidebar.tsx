@@ -101,7 +101,11 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout }) => {
         {/* Navigation */}
         <nav className="flex flex-col gap-2 flex-1">
           {navItems.map((item, index) => {
-            const isActive = location.pathname.startsWith(item.link || '');
+            // Special handling for manager invoices routes
+            let isActive = location.pathname.startsWith(item.link || '');
+            if (item.link === '/manager/invoices/room-fee' && location.pathname.startsWith('/manager/invoices')) {
+              isActive = true;
+            }
             return (
               <Link 
                 key={index} 

@@ -239,7 +239,7 @@ const StudentRegistration: React.FC = () => {
       <div className="mx-auto flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Page Heading */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Đăng ký Chỗ ở</h1>
+          <h1 className="text-text-main dark:text-white text-3xl font-bold tracking-tight">Đăng ký Chỗ ở</h1>
           <p className="text-text-secondary dark:text-gray-400 text-base">
             Theo dõi trạng thái và thời gian mở đăng ký chỗ ở KTX năm học 2024-2025.
           </p>

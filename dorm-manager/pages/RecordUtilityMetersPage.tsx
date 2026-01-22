@@ -522,7 +522,7 @@ const RecordUtilityMetersPage: React.FC = () => {
         {/* Page Heading */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-text-main dark:text-white">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-text-main dark:text-white">
               {editMode ? 'Chỉnh Sửa Chỉ Số Điện Nước' : 'Ghi Chỉ Số Điện Nước'}
             </h1>
             <p className="text-text-secondary dark:text-gray-400 text-base">

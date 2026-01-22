@@ -211,7 +211,7 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
 
             {/* Title */}
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl md:text-3xl font-black text-text-main dark:text-white leading-tight tracking-[-0.015em]">
+              <h1 className="text-2xl md:text-3xl font-bold text-text-main dark:text-white leading-tight tracking-[-0.015em]">
                 {notification.title}
               </h1>
             </div>

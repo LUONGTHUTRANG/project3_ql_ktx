@@ -233,14 +233,14 @@ const CreateNotification: React.FC<CreateNotificationProps> = ({ mode = 'create'
         <div className="flex flex-col gap-2 mb-8">
           <div className="flex items-center gap-2 mb-2">
             <button 
-              onClick={() => navigate(mode === 'edit' ? `/manager/notifications` : '/manager/notifications')}
+              onClick={() => navigate(mode === 'edit' ? `/${user.role}/notifications` : `/${user.role}/notifications`)}
               className="flex items-center gap-1 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium"
             >
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>
               Quay lại danh sách
             </button>
           </div>
-          <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-[-0.033em]">
+          <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-bold leading-tight tracking-[-0.033em]">
             {mode === 'edit' ? 'Chỉnh sửa Thông báo' : 'Tạo Thông báo Mới'}
           </h1>
           <p className="text-text-secondary dark:text-gray-400 text-base font-normal leading-normal">

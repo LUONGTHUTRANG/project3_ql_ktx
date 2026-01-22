@@ -106,7 +106,7 @@ const NotificationManagement: React.FC = () => {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div className="flex flex-col gap-2">
-            <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">
+            <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-bold leading-tight tracking-tight">
               Quản lý Thông báo
             </h1>
             <p className="text-text-secondary dark:text-gray-400 text-base font-normal leading-normal">
@@ -114,7 +114,7 @@ const NotificationManagement: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => navigate('/notifications/create')}
+            onClick={() => navigate(`/${user.role}/notifications/create`)}
             className="flex items-center justify-center gap-2 px-6 h-11 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap"
           >
             <span className="material-symbols-outlined text-[20px]">add_circle</span>

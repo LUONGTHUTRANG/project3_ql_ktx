@@ -150,7 +150,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
           <div className="flex items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 size-10">
             <span className="material-symbols-outlined text-[20px]">{isEditMode ? 'edit' : 'add_circle'}</span>
           </div>
-          <span className="text-base font-bold text-text-main dark:text-white">{isEditMode ? 'Chỉnh sửa kỳ ở' : 'Thêm kỳ ở mới'}</span>
+          <span className="text-xl font-bold text-text-main dark:text-white">{isEditMode ? 'Chỉnh sửa kỳ ở' : 'Thêm kỳ ở mới'}</span>
         </div>
       }
       open={isVisible}
@@ -219,9 +219,9 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               Trạng thái <span className="text-red-500">*</span>
             </label>
             <Select
-              size="large"
               style={{ width: '100%' }}
               value={form.is_active}
+              className='h-10'
               onChange={(value) => setForm({ ...form, is_active: value })}
               options={[
                 { label: 'Đang hoạt động', value: 1 },
@@ -243,7 +243,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.start_date ? dayjs(form.start_date) : null}
               onChange={(date) => setForm({ ...form, start_date: date ? date.format('YYYY-MM-DD') : '' })}
               style={{ width: '100%' }}
-              size="large"
+              className='h-10'
             />
           </div>
 
@@ -257,7 +257,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.end_date ? dayjs(form.end_date) : null}
               onChange={(date) => setForm({ ...form, end_date: date ? date.format('YYYY-MM-DD') : '' })}
               style={{ width: '100%' }}
-              size="large"
+              className='h-10'
             />
           </div>
         </div>
@@ -275,7 +275,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.registration_open_date ? dayjs(form.registration_open_date) : null}
               onChange={(date) => setForm({ ...form, registration_open_date: date ? date.format('YYYY-MM-DD HH:mm:ss') : '' })}
               style={{ width: '100%' }}
-              size="large"
+              className='h-10'
             />
           </div>
           <div>
@@ -288,7 +288,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.registration_close_date ? dayjs(form.registration_close_date) : null}
               onChange={(date) => setForm({ ...form, registration_close_date: date ? date.format('YYYY-MM-DD HH:mm:ss') : '' })}
               style={{ width: '100%' }}
-              size="large"
+              className='h-10'
             />
           </div>
         </div>
@@ -306,7 +306,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.registration_special_open_date ? dayjs(form.registration_special_open_date) : null}
               onChange={(date) => setForm({ ...form, registration_special_open_date: date ? date.format('YYYY-MM-DD HH:mm:ss') : '' })}
               style={{ width: '100%' }}
-              size="large"
+              className='h-10'
             />
           </div>
 
@@ -321,7 +321,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.registration_special_close_date ? dayjs(form.registration_special_close_date) : null}
               onChange={(date) => setForm({ ...form, registration_special_close_date: date ? date.format('YYYY-MM-DD HH:mm:ss') : '' })}
               style={{ width: '100%' }}
-              size="large"
+              className='h-10'
             />
           </div>
         </div>
@@ -339,7 +339,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.renewal_open_date ? dayjs(form.renewal_open_date) : null}
               onChange={(date) => setForm({ ...form, renewal_open_date: date ? date.format('YYYY-MM-DD HH:mm:ss') : '' })}
               style={{ width: '100%' }}
-              size="large"
+              className='h-10'
             />
           </div>
 
@@ -354,7 +354,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.renewal_close_date ? dayjs(form.renewal_close_date) : null}
               onChange={(date) => setForm({ ...form, renewal_close_date: date ? date.format('YYYY-MM-DD HH:mm:ss') : '' })}
               style={{ width: '100%' }}
-              size="large"
+              className='h-10'
             />
           </div>
         </div>

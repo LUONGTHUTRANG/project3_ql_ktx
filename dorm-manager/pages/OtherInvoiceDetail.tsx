@@ -152,7 +152,7 @@ const OtherInvoiceDetail: React.FC = () => {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-text-main dark:text-white">
+            <h1 className="text-3xl font-bold tracking-tight text-text-main dark:text-white">
               {invoice.title}
             </h1>
             <p className="text-text-secondary dark:text-gray-400 mt-2 text-base">

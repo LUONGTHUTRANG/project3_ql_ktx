@@ -74,6 +74,7 @@ const AppContent: React.FC = () => {
         avatar: storedUser.avatar,
         email: storedUser.email || 'User',
         mssv: storedUser.mssv,
+        building_id: storedUser.building_id,
       });
     }
     // Kết thúc quá trình kiểm tra auth
@@ -95,6 +96,7 @@ const AppContent: React.FC = () => {
         avatar: userData.avatar,
         email: userData.email || 'User',
         mssv: userData.mssv,
+        building_id: userData.building_id,
       });
     } catch (err: any) {
       const errorMessage = err.message || 'Đăng nhập thất bại';
@@ -471,7 +473,7 @@ const AppContent: React.FC = () => {
         />
 
         <Route 
-          path="/notifications/create" 
+          path="/manager/notifications/create" 
           element={
             user && (user.role === UserRole.MANAGER || user.role === UserRole.ADMIN)
               ? <CreateNotification /> 

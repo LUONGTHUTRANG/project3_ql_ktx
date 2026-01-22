@@ -124,7 +124,7 @@ const StudentDashboard: React.FC = () => {
         <div className="rounded-2xl bg-white dark:bg-surface-dark p-6 md:p-8 shadow-sm border border-border-color dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden group">
           <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary/5 to-transparent pointer-events-none"></div>
           <div className="relative z-10 flex flex-col gap-2">
-            <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-black leading-tight tracking-tight">Xin chào, {user.name}! 👋</h1>
+            <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-bold leading-tight tracking-tight">Xin chào, {user.name}! 👋</h1>
             <p className="text-text-secondary dark:text-gray-400">Chào mừng bạn trở lại hệ thống quản lý ký túc xá.</p>
           </div>
           <div className="relative z-10">
@@ -254,46 +254,64 @@ const StudentDashboard: React.FC = () => {
           </div>
 
           {/* Request Card */}
-          <div className="flex flex-col rounded-xl bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-            <div className="p-5 flex flex-col gap-4 h-full justify-between">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center size-12 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
-                    <span className="material-symbols-outlined">build</span>
+          {latestRequest ? (
+            <div className="flex flex-col rounded-xl bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+              <div className="p-5 flex flex-col gap-4 h-full justify-between">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center size-12 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
+                      <span className="material-symbols-outlined">build</span>
+                    </div>
+                    <div>
+                      <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Yêu cầu sửa chữa</p>
+                      <p className="text-text-main dark:text-white text-xl font-bold mt-0.5">
+                        {latestRequest?.title}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Yêu cầu sửa chữa</p>
-                    <p className="text-text-main dark:text-white text-xl font-bold mt-0.5">
-                      {loading ? '...' : latestRequest?.title || 'Không có yêu cầu'}
-                    </p>
-                  </div>
-                </div>
-                <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
-                  latestRequest?.status === 'completed'
-                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 ring-green-600/10'
-                    : latestRequest?.status === 'in_progress'
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 ring-blue-600/10'
-                    : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20'
-                }`}>
-                  {latestRequest?.status === 'completed' ? 'Hoàn thành' : latestRequest?.status === 'in_progress' ? 'Đang xử lý' : 'Chờ xử lý'}
-                </span>
-              </div>
-              <div className="flex flex-col gap-3 pt-4 border-t border-dashed border-border-color dark:border-gray-700">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-secondary dark:text-gray-400 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">schedule</span> Ngày gửi:</span>
-                  <span className="font-medium text-text-main dark:text-white">
-                    {latestRequest?.created_at ? new Date(latestRequest.created_at).toLocaleDateString('vi-VN') : 'N/A'}
+                  <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                    latestRequest?.status === 'completed'
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 ring-green-600/10'
+                      : latestRequest?.status === 'in_progress'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 ring-blue-600/10'
+                      : 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 ring-yellow-600/20'
+                  }`}>
+                    {latestRequest?.status === 'completed' ? 'Hoàn thành' : latestRequest?.status === 'in_progress' ? 'Đang xử lý' : 'Chờ xử lý'}
                   </span>
                 </div>
+                <div className="flex flex-col gap-3 pt-4 border-t border-dashed border-border-color dark:border-gray-700">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-secondary dark:text-gray-400 flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">schedule</span> Ngày gửi: {latestRequest?.created_at ? new Date(latestRequest.created_at).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/student/requests')}
+                    className="w-full rounded-lg bg-white dark:bg-gray-800 border border-border-color dark:border-gray-600 py-2.5 text-sm font-semibold text-text-main dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Xem chi tiết
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col rounded-xl bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700 shadow-sm overflow-hidden">
+              <div className="p-5 flex flex-col items-center justify-center gap-3">
+                <div className="flex items-center justify-center size-16 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                  <span className="material-symbols-outlined text-[32px]">build</span>
+                </div>
+                <div className="flex flex-col gap-2 text-center">
+                  <p className="text-text-main dark:text-white text-lg font-bold">Không có yêu cầu sửa chữa</p>
+                  <p className="text-text-secondary dark:text-gray-400 text-sm">Bạn chưa gửi yêu cầu sửa chữa nào. Nếu cần hỗ trợ, vui lòng tạo yêu cầu mới.</p>
+                </div>
                 <button 
-                  onClick={() => navigate('/student/requests')}
-                  className="w-full rounded-lg bg-white dark:bg-gray-800 border border-border-color dark:border-gray-600 py-2.5 text-sm font-semibold text-text-main dark:text-white shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  onClick={() => navigate('/student/requests/create')}
+                  className="w-full mt-4 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-colors flex items-center justify-center gap-2"
                 >
-                  Xem chi tiết
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                  Tạo yêu cầu mới
                 </button>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Quick Access */}

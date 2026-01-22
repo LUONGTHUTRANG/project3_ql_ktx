@@ -40,22 +40,23 @@ export const createNotification = async (req, res) => {
     let recipients = [];
 
     if (target_scope === "INDIVIDUAL" && target_value) {
-      // Get individual student IDs
-      let studentIds = [];
-      if (Array.isArray(target_value)) studentIds = target_value;
+      // Get individual user IDs with role
+      let userIds = [];
+      if (Array.isArray(target_value)) userIds = target_value;
       else if (typeof target_value === "string") {
         try {
           const parsed = JSON.parse(target_value);
-          if (Array.isArray(parsed)) studentIds = parsed;
-          else studentIds = [parsed];
+          if (Array.isArray(parsed)) userIds = parsed;
+          else userIds = [parsed];
         } catch (e) {
-          studentIds = target_value.split(",").map((id) => id.trim());
+          userIds = target_value.split(",").map((id) => id.trim());
         }
       } else if (target_value) {
-        studentIds = [target_value];
+        userIds = [target_value];
       }
 
-      recipients = studentIds.map((id) => [notificationId, id, null, null]);
+      // Map to recipients with role_name set to 'student'
+      recipients = userIds.map((id) => [notificationId, id, 'student', null, null]);
     } else if (target_scope === "ROOM" && target_value) {
       // Get all students in the room(s)
       let roomIds = [];
@@ -83,6 +84,7 @@ export const createNotification = async (req, res) => {
       recipients = students.map((student) => [
         notificationId,
         student.id,
+        'student',
         null,
         null,
       ]);
@@ -114,18 +116,22 @@ export const createNotification = async (req, res) => {
       recipients = students.map((student) => [
         notificationId,
         student.id,
+        'student',
         null,
         null,
       ]);
     } else if (target_scope === "ALL") {
-      // Get all students
+      // Get all users (students, managers, admins)
       const [students] = await db.query("SELECT id FROM students");
-      recipients = students.map((student) => [
-        notificationId,
-        student.id,
-        null,
-        null,
-      ]);
+      const [managers] = await db.query("SELECT id FROM managers");
+      const [admins] = await db.query("SELECT id FROM admins");
+      
+      // Add students
+      recipients = [
+        ...students.map((student) => [notificationId, student.id, 'student', null, null]),
+        ...managers.map((manager) => [notificationId, manager.id, 'manager', null, null]),
+        ...admins.map((admin) => [notificationId, admin.id, 'admin', null, null]),
+      ];
     }
 
     if (recipients.length > 0) {
@@ -143,14 +149,15 @@ export const createNotification = async (req, res) => {
 
 export const getMyNotifications = async (req, res) => {
   try {
-    const studentId = req.user.id;
+    const userId = req.user.id;
+    const roleName = req.user.role || 'student'; // Default to 'student' if not provided
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const type = req.query.type;
     const offset = (page - 1) * limit;
 
-    // Get all notifications for the student
-    let allNotifications = await Notification.getForStudent(studentId);
+    // Get all notifications for the user
+    let allNotifications = await Notification.getForUser(userId, roleName);
 
     // Filter by type if provided
     if (type) {
@@ -187,9 +194,10 @@ export const getMyNotifications = async (req, res) => {
 
 export const markAsRead = async (req, res) => {
   try {
-    const studentId = req.user.id;
+    const userId = req.user.id;
+    const roleName = req.user.role || 'student';
     const notificationId = req.params.id;
-    await Notification.markAsRead(notificationId, studentId);
+    await Notification.markAsRead(notificationId, userId, roleName);
     res.json({ message: "Marked as read" });
   } catch (err) {
     console.error(err);
@@ -231,16 +239,17 @@ export const getManagerSentNotifications = async (req, res) => {
 export const getNotificationById = async (req, res) => {
   try {
     const notificationId = req.params.id;
-    const studentId = req.user?.id; // Get current user ID if available
+    const userId = req.user?.id; // Get current user ID if available
+    const roleName = req.user?.role || 'student';
     
     const notification = await Notification.getById(notificationId);
     if (!notification) {
       return res.status(404).json({ error: "Notification not found" });
     }
 
-    // Mark as read if user is a student
-    if (studentId && req.user?.role === 'student') {
-      await Notification.markAsRead(notificationId, studentId);
+    // Mark as read for current user
+    if (userId) {
+      await Notification.markAsRead(notificationId, userId, roleName);
     }
 
     const notificationWithUrl = {
@@ -270,7 +279,8 @@ export const getUnreadNotificationCount = async (req, res) => {
   try {
     console.log("Getting unread notification count for user:", req.user.id);
     const userId = req.user.id;
-    const result = await Notification.getUnreadNotificationCount(userId);
+    const roleName = req.user.role || 'student';
+    const result = await Notification.getUnreadNotificationCount(userId, roleName);
     res.json({ count: result, unread_count: result });
   } catch (err) {
     console.error(err);

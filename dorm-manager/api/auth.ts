@@ -40,7 +40,27 @@ export const loginUser = async (username: string, password: string, role: string
       role,
     });
     
-    const { token, user } = response.data;
+    let { token, user } = response.data;
+    
+    // Nếu role là manager, lấy building_id từ manager profile
+    if (role === 'manager' && user.id) {
+      try {
+        const managerApi = axios.create({
+          baseURL: API_ENDPOINTS.MANAGER,
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const managerResponse = await managerApi.get(`/${user.id}`);
+        const managerData = managerResponse.data || managerResponse.data.data;
+        if (managerData.building_id) {
+          user.building_id = managerData.building_id;
+        }
+      } catch (err) {
+        console.error('Failed to fetch manager building info:', err);
+        // Tiếp tục mà không lỗi, vì building_id là optional
+      }
+    }
     
     // Lưu token và user info vào localStorage
     localStorage.setItem('token', token);

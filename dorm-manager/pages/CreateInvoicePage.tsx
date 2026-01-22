@@ -381,7 +381,7 @@ const CreateInvoicePage: React.FC = () => {
             {/* PageHeading Component */}
             <div className="flex flex-wrap justify-between items-end gap-3">
               <div className="flex flex-col gap-1">
-                <h1 className="text-[#111418] dark:text-white text-3xl font-black leading-tight tracking-[-0.033em]">
+                <h1 className="text-[#111418] dark:text-white text-3xl font-bold leading-tight tracking-[-0.033em]">
                   {isEditMode ? 'Chỉnh sửa Hóa đơn' : 'Tạo Hóa đơn Mới'}
                 </h1>
                 <p className="text-[#617589] dark:text-slate-400 text-base font-normal">

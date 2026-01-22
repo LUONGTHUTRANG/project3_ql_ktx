@@ -113,7 +113,7 @@ const PaymentConfirmation: React.FC = () => {
                 <span className="material-symbols-outlined text-5xl">verified_user</span>
               </div>
               
-              <h1 className="text-3xl font-black text-text-main dark:text-white mb-2">Xác nhận Thanh toán</h1>
+              <h1 className="text-3xl font-bold text-text-main dark:text-white mb-2">Xác nhận Thanh toán</h1>
               <p className="text-text-secondary dark:text-gray-400 mb-8">Kiểm tra thông tin và xác nhận thanh toán</p>
 
               {/* Payment Details */}
@@ -125,7 +125,7 @@ const PaymentConfirmation: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center pb-4 border-b border-border-color dark:border-gray-700">
                     <span className="text-text-secondary dark:text-gray-400">Số tiền:</span>
-                    <span className="text-2xl font-black text-primary">
+                    <span className="text-2xl font-bold text-primary">
                       {paymentData?.amount?.toLocaleString('vi-VN')}₫
                     </span>
                   </div>

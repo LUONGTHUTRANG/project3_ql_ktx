@@ -191,7 +191,7 @@ const BillsAndPayments: React.FC = () => {
         {/* Header Section */}
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-black leading-tight tracking-tight text-text-main dark:text-white md:text-4xl">Hóa đơn & Thanh toán</h1>
+            <h1 className="text-text-main dark:text-white text-3xl font-bold tracking-tight">Hóa đơn & Thanh toán</h1>
             <p className="text-text-secondary text-base font-normal dark:text-gray-400">Quản lý các khoản phí sinh hoạt và ký túc xá của bạn</p>
           </div>
           <div className="flex items-center gap-3">

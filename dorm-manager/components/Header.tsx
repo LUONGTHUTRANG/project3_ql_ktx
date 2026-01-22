@@ -43,6 +43,11 @@ const Header: React.FC<HeaderProps> = ({ user, logout, placeholder = "Tìm kiế
     }
   };
 
+  const handleNotificationRead = () => {
+    // Decrement unread count when a notification is marked as read
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+  };
+
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border-color dark:border-gray-700 bg-white dark:bg-surface-dark px-6 md:px-8 z-20 sticky top-0">
       {/* Mobile Menu Button & Mobile Title */}
@@ -89,7 +94,7 @@ const Header: React.FC<HeaderProps> = ({ user, logout, placeholder = "Tìm kiế
           </button>
           
           {isNotificationsOpen && (
-            <NotificationPopup onClose={() => setIsNotificationsOpen(false)} />
+            <NotificationPopup onClose={() => setIsNotificationsOpen(false)} onNotificationRead={handleNotificationRead} />
           )}
         </div>
         

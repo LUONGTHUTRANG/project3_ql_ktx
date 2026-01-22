@@ -153,7 +153,7 @@ const SystemConfiguration: React.FC = () => {
         {/* Page Heading */}
         <div className="flex flex-col gap-2 pb-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-text-main dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">
+            <h1 className="text-text-main dark:text-white text-3xl sm:text-4xl font-bold leading-tight tracking-tight">
               Quản lý cấu hình hệ thống
             </h1>
             <Button

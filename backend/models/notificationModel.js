@@ -26,10 +26,10 @@ const Notification = {
     return result.insertId;
   },
 
-  addRecipient: async (notificationId, studentId) => {
+  addRecipient: async (notificationId, userId, roleName) => {
     await db.query(
-      "INSERT INTO notification_recipients (notification_id, student_id) VALUES (?, ?)",
-      [notificationId, studentId]
+      "INSERT INTO notification_recipients (notification_id, user_id, role_name) VALUES (?, ?, ?)",
+      [notificationId, userId, roleName]
     );
   },
 
@@ -44,8 +44,8 @@ const Notification = {
     
     try {
       // Build the INSERT query properly
-      const columns = "(notification_id, student_id, room_id, building_id)";
-      const placeholders = values.map(() => "(?, ?, ?, ?)").join(", ");
+      const columns = "(notification_id, user_id, role_name, room_id, building_id)";
+      const placeholders = values.map(() => "(?, ?, ?, ?, ?)").join(", ");
       const flatValues = values.flat();
       
       const sql = `INSERT INTO notification_recipients ${columns} VALUES ${placeholders}`;
@@ -66,19 +66,37 @@ const Notification = {
     }
   },
 
-  getForStudent: async (studentId) => {
-    // Get student's room and building info
-    const [studentInfo] = await db.query(
-      `SELECT sr.room_id, r.building_id 
-       FROM students s 
-       LEFT JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
-       LEFT JOIN rooms r ON sr.room_id = r.id 
-       WHERE s.id = ?`,
-      [studentId]
-    );
-
-    const roomId = studentInfo[0]?.room_id;
-    const buildingId = studentInfo[0]?.building_id;
+  getForUser: async (userId, roleName) => {
+    // Get user's room and building info (only for students)
+    let roomId = null;
+    let buildingId = null;
+    
+    if (roleName === 'student') {
+      const [userInfo] = await db.query(
+        `SELECT sr.room_id, r.building_id 
+         FROM students s 
+         LEFT JOIN stay_records sr ON s.id = sr.student_id AND sr.status = 'ACTIVE'
+         LEFT JOIN rooms r ON sr.room_id = r.id 
+         WHERE s.id = ?`,
+        [userId]
+      );
+      
+      if (userInfo.length > 0) {
+        roomId = userInfo[0]?.room_id;
+        buildingId = userInfo[0]?.building_id;
+      }
+    } else if (roleName === 'manager') {
+      const [userInfo] = await db.query(
+        `SELECT building_id 
+         FROM managers
+         WHERE id = ?`,
+        [userId]
+      );
+      
+      if (userInfo.length > 0) {
+        buildingId = userInfo[0]?.building_id;
+      }
+    }
 
     const query = `
       SELECT DISTINCT n.*, 
@@ -86,37 +104,39 @@ const Notification = {
              nr_read.read_at
       FROM notifications n
       -- Check for direct assignment or group assignment
-      LEFT JOIN notification_recipients nr_s ON n.id = nr_s.notification_id AND nr_s.student_id = ?
+      LEFT JOIN notification_recipients nr_u ON n.id = nr_u.notification_id AND nr_u.user_id = ? AND nr_u.role_name = ?
       LEFT JOIN notification_recipients nr_r ON n.id = nr_r.notification_id AND nr_r.room_id = ?
       LEFT JOIN notification_recipients nr_b ON n.id = nr_b.notification_id AND nr_b.building_id = ?
       -- Check for read status (individual row)
-      LEFT JOIN notification_recipients nr_read ON n.id = nr_read.notification_id AND nr_read.student_id = ?
+      LEFT JOIN notification_recipients nr_read ON n.id = nr_read.notification_id AND nr_read.user_id = ? AND nr_read.role_name = ?
       WHERE n.target_scope = 'ALL'
-         OR nr_s.id IS NOT NULL
+         OR nr_u.id IS NOT NULL
          OR (n.target_scope = 'ROOM' AND nr_r.id IS NOT NULL)
          OR (n.target_scope = 'BUILDING' AND nr_b.id IS NOT NULL)
       ORDER BY n.created_at DESC
     `;
     const [rows] = await db.query(query, [
-      studentId,
+      userId,
+      roleName,
       roomId,
       buildingId,
-      studentId,
+      userId,
+      roleName,
     ]);
     return rows;
   },
 
-  markAsRead: async (notificationId, studentId) => {
+  markAsRead: async (notificationId, userId, roleName) => {
     // Check if record exists
     const [exists] = await db.query(
-      "SELECT id FROM notification_recipients WHERE notification_id = ? AND student_id = ?",
-      [notificationId, studentId]
+      "SELECT id FROM notification_recipients WHERE notification_id = ? AND user_id = ? AND role_name = ?",
+      [notificationId, userId, roleName]
     );
 
     if (exists.length > 0) {
       await db.query(
-        "UPDATE notification_recipients SET is_read = TRUE, read_at = NOW() WHERE notification_id = ? AND student_id = ?",
-        [notificationId, studentId]
+        "UPDATE notification_recipients SET is_read = TRUE, read_at = NOW() WHERE notification_id = ? AND user_id = ? AND role_name = ?",
+        [notificationId, userId, roleName]
       );
     } else {
       // If it's an ALL, ROOM, or BUILDING notification, insert a record to track it's read
@@ -129,8 +149,8 @@ const Notification = {
         ["ALL", "ROOM", "BUILDING"].includes(notif[0].target_scope)
       ) {
         await db.query(
-          "INSERT INTO notification_recipients (notification_id, student_id, is_read, read_at) VALUES (?, ?, TRUE, NOW())",
-          [notificationId, studentId]
+          "INSERT INTO notification_recipients (notification_id, user_id, role_name, is_read, read_at) VALUES (?, ?, ?, TRUE, NOW())",
+          [notificationId, userId, roleName]
         );
       }
     }
@@ -192,10 +212,10 @@ const Notification = {
     await db.query("DELETE FROM notifications WHERE id = ?", [id]);
   },
 
-  getUnreadNotificationCount: async (studentId) => {
+  getUnreadNotificationCount: async (userId, roleName) => {
     const [result] = await db.query(
-          "SELECT COUNT(*) AS unreadCount FROM notification_recipients WHERE student_id = ? AND is_read = 0",
-          [studentId]
+          "SELECT COUNT(*) AS unreadCount FROM notification_recipients WHERE user_id = ? AND role_name = ? AND is_read = 0",
+          [userId, roleName]
         );
     return result[0]?.unreadCount || 0;
   }

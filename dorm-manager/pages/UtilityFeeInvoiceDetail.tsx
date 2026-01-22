@@ -139,7 +139,7 @@ const UtilityFeeInvoiceDetail: React.FC = () => {
         {/* Header Section */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-text-main dark:text-white">
+            <h2 className="text-3xl font-bold tracking-tight text-text-main dark:text-white">
               Tháng {month}/{year}
             </h2>
             <p className="text-text-secondary dark:text-gray-400 mt-1 text-base">

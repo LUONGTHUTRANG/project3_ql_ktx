@@ -293,7 +293,7 @@ const BuildingDetail: React.FC = () => {
       </button>
       <div className="mx-auto flex flex-col gap-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-text-main dark:text-white text-3xl font-black tracking-tight">Chi tiết Tòa nhà {building?.name}</h1>
+          <h1 className="text-text-main dark:text-white text-3xl font-bold tracking-tight">Chi tiết Tòa nhà {building?.name}</h1>
           <p className="text-text-secondary dark:text-gray-400 text-base">Thông tin tổng quan và danh sách phòng tại Tòa nhà {building?.name}</p>
         </div>
 

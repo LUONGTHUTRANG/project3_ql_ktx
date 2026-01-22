@@ -250,7 +250,7 @@ const ManagerDashboard: React.FC = () => {
           <div className="bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 flex flex-col">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Truy cập nhanh</h3>
             <div className="flex flex-col gap-3">
-              <button
+              {/* <button
                 onClick={() => navigate('/manager/rooms')}
                 className="flex items-center gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors text-left group"
               >
@@ -262,42 +262,45 @@ const ManagerDashboard: React.FC = () => {
                   <p className="text-xs text-slate-500 dark:text-slate-400">Xem danh sách, tình trạng phòng</p>
                 </div>
                 <span className="material-symbols-outlined text-primary ml-auto" style={{ fontSize: '20px' }}>arrow_forward</span>
-              </button>
+              </button> */}
               <button
                 onClick={() => navigate('/manager/students')}
-                className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
+                className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-left group border border-blue-200 dark:border-blue-800"
               >
-                <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm text-blue-500 group-hover:text-blue-600">
+                <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm text-blue-600 group-hover:text-blue-700">
                   <span className="material-symbols-outlined">school</span>
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">Quản lý Sinh viên</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Tra cứu thông tin, hồ sơ</p>
                 </div>
+                <span className="material-symbols-outlined text-blue-600 ml-auto" style={{ fontSize: '20px' }}>arrow_forward</span>
               </button>
               <button
                 onClick={() => navigate('/manager/requests')}
-                className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
+                className="flex items-center gap-3 p-4 rounded-xl bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-left group border border-orange-200 dark:border-orange-800"
               >
-                <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm text-orange-500 group-hover:text-orange-600">
+                <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm text-orange-600 group-hover:text-orange-700">
                   <span className="material-symbols-outlined">support_agent</span>
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">Xử lý Yêu cầu</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Báo hỏng, hỗ trợ sinh viên</p>
                 </div>
+                <span className="material-symbols-outlined text-orange-600 ml-auto" style={{ fontSize: '20px' }}>arrow_forward</span>
               </button>
               <button
                 onClick={() => navigate('/manager/notifications')}
-                className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
+                className="flex items-center gap-3 p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-left group border border-purple-200 dark:border-purple-800"
               >
-                <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm text-purple-500 group-hover:text-purple-600">
+                <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm text-purple-600 group-hover:text-purple-700">
                   <span className="material-symbols-outlined">add_alert</span>
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">Tạo thông báo mới</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Gửi tin đến sinh viên tòa A1</p>
                 </div>
+                <span className="material-symbols-outlined text-purple-600 ml-auto" style={{ fontSize: '20px' }}>arrow_forward</span>
               </button>
               <button
                 onClick={() => navigate('/manager/registrations')}
@@ -412,13 +415,13 @@ const ManagerDashboard: React.FC = () => {
       </div>
 
       {/* Floating Action Button */}
-      <button
+      {/* <button
         onClick={() => navigate('/student/requests/create')}
         className="fixed bottom-8 right-8 z-30 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-2xl px-5 py-4 shadow-lg shadow-primary/20 transition-all transform hover:scale-105 active:scale-95"
       >
         <span className="material-symbols-outlined">add</span>
         <span className="font-bold pr-1">Ghi nhận sự cố</span>
-      </button>
+      </button> */}
     </RoleBasedLayout>
   );
 };

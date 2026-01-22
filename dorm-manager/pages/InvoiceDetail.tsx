@@ -9,10 +9,12 @@ import { downloadOtherInvoiceFile } from '@/api/otherInvoiceApi';
 import { getMonthlyUsageById } from '../api/monthlyUsageApi';
 import { getStudentById } from '../api/studentApi';
 import { generateQRCode } from '../api/paymentApi';
+import { useSystemConfig } from '../contexts/SystemConfigContext';
 import formatters from '@/utils/formatters';
 
 const InvoiceDetail: React.FC = () => {
   const { user } = useContext(AuthContext);
+  const { systemConfig } = useSystemConfig();
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -285,15 +287,14 @@ const InvoiceDetail: React.FC = () => {
                     <div className="size-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                       <span className="material-symbols-outlined text-3xl font-bold">school</span>
                     </div>
-                    <h1 className="text-xl font-black text-text-main dark:text-white tracking-tight">Hệ thống Quản lý Ký túc xá</h1>
+                    <h1 className="text-xl font-bold text-text-main dark:text-white tracking-tight">{systemConfig?.system_name || 'Hệ thống Quản lý Ký túc xá'}</h1>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Demo - Bài tập lớn</p>
-                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Phiên bản: 1.0</p>
+                    <p className="text-text-secondary dark:text-gray-400 text-sm font-medium">Địa chỉ: {systemConfig?.address || 'Demo - Bài tập lớn'}</p>
                   </div>
                 </div>
                 <div className="text-left md:text-right">
-                  <h2 className="text-3xl font-black tracking-tight text-text-main dark:text-white mb-1">HÓA ĐƠN</h2>
+                  <h2 className="text-3xl font-bold tracking-tight text-text-main dark:text-white mb-1">HÓA ĐƠN</h2>
                   <p className="text-lg font-bold text-primary">#{invoice.invoice_code}</p>
                   <p className="text-sm text-text-secondary dark:text-gray-400 mt-2 font-medium">Ngày lập: {formatters.formatDateTime(invoice.created_at)}</p>
                 </div>
@@ -400,8 +401,8 @@ const InvoiceDetail: React.FC = () => {
                 </div>
                 <div className="w-full h-px bg-border-color dark:bg-gray-700 my-2 md:w-1/2"></div>
                 <div className="flex justify-between w-full md:w-1/2 items-end">
-                  <span className="text-base font-black text-text-main dark:text-white">TỔNG CỘNG:</span>
-                  <span className="text-3xl font-black text-primary">{total.toLocaleString()} đ</span>
+                  <span className="text-base font-bold text-text-main dark:text-white">TỔNG CỘNG:</span>
+                  <span className="text-3xl font-bold text-primary">{total.toLocaleString()} đ</span>
                 </div>
               </div>
             </div>
@@ -437,7 +438,7 @@ const InvoiceDetail: React.FC = () => {
                 <span className="material-symbols-outlined font-bold">info</span>
               </div>
               <div>
-                <p className="text-sm font-black text-orange-800 dark:text-orange-300">Lưu ý quan trọng</p>
+                <p className="text-sm font-bold text-orange-800 dark:text-orange-300">Lưu ý quan trọng</p>
                 <p className="text-sm text-orange-700 dark:text-orange-400/90 mt-1 leading-relaxed font-medium">
                   Vui lòng thanh toán trước ngày <strong>{formatters.formatDateTime(invoice.due_date)}</strong> để tránh bị tính phí phạt chậm thanh toán (2% trên tổng hóa đơn) và đảm bảo các quyền lợi lưu trú.
                 </p>
@@ -462,7 +463,7 @@ const InvoiceDetail: React.FC = () => {
                       ? 'bg-green-600 shadow-[0_0_8px_rgba(34,197,94,0.5)]' 
                       : 'bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]'
                   }`}></div>
-                  <p className={`text-sm font-black leading-normal ${
+                  <p className={`text-sm font-bold leading-normal ${
                     invoice.status === 'PAID' 
                       ? 'text-green-700 dark:text-green-400' 
                       : 'text-red-700 dark:text-red-400'
@@ -488,7 +489,7 @@ const InvoiceDetail: React.FC = () => {
 
             {/* Payment Method Card */}
             <div className="bg-white dark:bg-surface-dark p-8 rounded-2xl border border-border-color dark:border-gray-700 shadow-sm flex flex-col items-center text-center">
-              <h3 className="text-lg font-black text-text-main dark:text-white mb-1">Thanh toán</h3>
+              <h3 className="text-lg font-bold text-text-main dark:text-white mb-1">Thanh toán</h3>
               <p className="text-xs text-text-secondary dark:text-gray-400 mb-6 font-medium">
                 {invoice.status === 'PAID' ? 'Hóa đơn đã thanh toán' : qrCode ? 'Quét mã QR để thanh toán' : 'Nhấn nút bên dưới để tạo mã QR'}
               </p>
@@ -515,7 +516,7 @@ const InvoiceDetail: React.FC = () => {
                     />
                   </div>
                   <div className="absolute inset-0 bg-black/5 dark:bg-black/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <span className="bg-white/90 backdrop-blur-sm text-text-main text-[10px] font-black px-3 py-1.5 rounded-full shadow-sm uppercase tracking-tighter">Phóng to</span>
+                    <span className="bg-white/90 backdrop-blur-sm text-text-main text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm uppercase tracking-tighter">Phóng to</span>
                   </div>
                 </div>
               ) : (
@@ -555,7 +556,7 @@ const InvoiceDetail: React.FC = () => {
                   {qrCode ? (
                     <button 
                       onClick={handlePaymentClick}
-                      className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-black py-4 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
                     >
                       <span className="material-symbols-outlined text-[20px]">payment</span>
                       Thanh toán ngay
@@ -564,7 +565,7 @@ const InvoiceDetail: React.FC = () => {
                     <button 
                       onClick={handleGenerateQR}
                       disabled={isGeneratingQR}
-                      className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-black py-4 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50"
                     >
                       {isGeneratingQR ? (
                         <>
@@ -581,7 +582,7 @@ const InvoiceDetail: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <button className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-black py-4 px-4 rounded-xl transition-all shadow-lg shadow-green-600/20 active:scale-95">
+                <button className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-lg shadow-green-600/20 active:scale-95">
                   <span className="material-symbols-outlined text-[22px]">verified</span>
                   Đã thanh toán
                 </button>
@@ -599,9 +600,9 @@ const InvoiceDetail: React.FC = () => {
                 <span className="material-symbols-outlined text-xl">support_agent</span>
               </div>
               <div>
-                <p className="text-sm font-black text-text-main dark:text-white leading-tight">Cần hỗ trợ?</p>
+                <p className="text-sm font-bold text-text-main dark:text-white leading-tight">Cần hỗ trợ?</p>
                 <p className="text-xs text-text-secondary dark:text-gray-400 mt-1.5 mb-3 leading-relaxed font-medium">Nếu có sai sót về chỉ số điện nước hoặc phí, vui lòng báo ngay.</p>
-                <Link to="/student/requests/create" className="text-xs font-black text-primary hover:underline flex items-center gap-1">
+                <Link to="/student/requests/create" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
                   Gửi yêu cầu hỗ trợ <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                 </Link>
               </div>
@@ -638,7 +639,7 @@ const InvoiceDetail: React.FC = () => {
               includeMargin={true}
             />
             <div className="mt-8 text-center w-full">
-              <p className="text-text-main font-black text-xl mb-1">Mã QR Thanh toán</p>
+              <p className="text-text-main font-bold text-xl mb-1">Mã QR Thanh toán</p>
               <p className="text-text-secondary text-sm font-medium mb-4">Mã hóa đơn: <strong className="text-primary">{invoice.invoice_code}</strong></p>
               <p className="text-text-secondary text-xs font-medium">Hết hạn: {new Date(qrCode.expiresAt).toLocaleTimeString('vi-VN')}</p>
             </div>

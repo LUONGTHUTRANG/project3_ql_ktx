@@ -97,7 +97,7 @@ const Settings: React.FC = () => {
         
         {/* Page Heading */}
         <div className="flex flex-col gap-2 pb-6">
-          <h1 className="text-text-main dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">Cài đặt</h1>
+          <h1 className="text-text-main dark:text-white text-3xl sm:text-4xl font-bold leading-tight tracking-tight">Cài đặt</h1>
           <p className="text-text-secondary dark:text-gray-400 text-base font-normal leading-normal">Quản lý thông tin cá nhân và tùy chọn ứng dụng</p>
         </div>
 

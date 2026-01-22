@@ -155,10 +155,10 @@ const RoomDetail: React.FC = () => {
         {/* Page Header & Actions */}
         <div className="flex flex-col lg:flex-row justify-between gap-6 px-1 items-start lg:items-end border-b border-border-color dark:border-gray-700 pb-8">
           <div className="flex flex-col gap-3">
-            <h1 className="text-text-main dark:text-white text-3xl md:text-4xl font-black leading-tight tracking-tight">Phòng {room.room_number} - Tầng {room.floor}</h1>
+            <h1 className="text-text-main dark:text-white text-3xl font-bold tracking-tight">Phòng {room.room_number} - Tầng {room.floor}</h1>
             <div className="flex flex-wrap items-center gap-4 text-text-secondary dark:text-gray-400 text-sm md:text-base font-medium">
               <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[20px] text-primary">layers</span> Tầng {room.floor}</span>
-              <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black border uppercase tracking-widest ${
+              <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-widest ${
                 room.status === 'AVAILABLE' 
                   ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-100 dark:border-green-800' 
                   : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-100 dark:border-blue-800'
@@ -177,7 +177,7 @@ const RoomDetail: React.FC = () => {
               <span className="material-symbols-outlined text-[20px]">edit</span>
               Chỉnh sửa
             </button>
-            <button className="flex items-center justify-center gap-2 rounded-xl h-11 px-6 bg-primary text-white text-sm font-black shadow-lg shadow-primary/20 hover:bg-primary-hover transition-all active:scale-95">
+            <button className="flex items-center justify-center gap-2 rounded-xl h-11 px-6 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary-hover transition-all active:scale-95">
               <span className="material-symbols-outlined text-[20px]">person_add</span>
               Thêm sinh viên
             </button>
@@ -192,32 +192,32 @@ const RoomDetail: React.FC = () => {
               <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 rounded-xl text-primary">
                 <span className="material-symbols-outlined font-bold">info</span>
               </div>
-              <h3 className="text-lg font-black text-text-main dark:text-white tracking-tight">Thông tin chung</h3>
+              <h3 className="text-lg font-bold text-xl dark:text-white tracking-tight">Thông tin chung</h3>
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-6">
               <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] text-text-secondary dark:text-gray-500 font-black uppercase tracking-widest">Sức chứa</span>
+                <span className="text-[10px] text-text-secondary dark:text-gray-500 font-bold uppercase tracking-widest">Sức chứa</span>
                 <div className="flex items-center gap-2 text-text-main dark:text-white font-bold text-lg">
                   <span className="material-symbols-outlined text-text-secondary/50 text-xl">group</span>
                   {students.length}/{room.max_capacity}
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] text-text-secondary dark:text-gray-500 font-black uppercase tracking-widest">Tầng</span>
+                <span className="text-[10px] text-text-secondary dark:text-gray-500 font-bold uppercase tracking-widest">Tầng</span>
                 <div className="flex items-center gap-2 text-text-main dark:text-white font-bold text-lg">
                   <span className="material-symbols-outlined text-text-secondary/50 text-xl">layers</span>
                   {room.floor}
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] text-text-secondary dark:text-gray-500 font-black uppercase tracking-widest">Điều hòa</span>
+                <span className="text-[10px] text-text-secondary dark:text-gray-500 font-bold uppercase tracking-widest">Điều hòa</span>
                 <div className="flex items-center gap-2 text-text-main dark:text-white font-bold text-lg">
                   <span className="material-symbols-outlined text-text-secondary/50 text-xl">ac_unit</span>
                   {room.has_ac ? 'Có' : 'Không'}
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] text-text-secondary dark:text-gray-500 font-black uppercase tracking-widest">Nóng lạnh</span>
+                <span className="text-[10px] text-text-secondary dark:text-gray-500 font-bold uppercase tracking-widest">Nóng lạnh</span>
                 <div className="flex items-center gap-2 text-text-main dark:text-white font-bold text-lg">
                   <span className="material-symbols-outlined text-text-secondary/50 text-xl">hot_tub</span>
                   {room.has_heater ? 'Có' : 'Không'}
@@ -232,7 +232,7 @@ const RoomDetail: React.FC = () => {
               <div className="p-2.5 bg-green-50 dark:bg-green-900/30 rounded-xl text-green-600">
                 <span className="material-symbols-outlined font-bold">payments</span>
               </div>
-              <h3 className="text-lg font-black text-text-main dark:text-white tracking-tight">Chi phí hàng tháng</h3>
+              <h3 className="text-lg font-bold text-xl dark:text-white tracking-tight">Chi phí hàng tháng</h3>
             </div>
             <div className="flex flex-col gap-5">
               <div className="flex justify-between items-center">
@@ -240,7 +240,7 @@ const RoomDetail: React.FC = () => {
                   <span className="material-symbols-outlined text-[20px]">bedroom_parent</span>
                   <span className="text-sm font-bold">Giá phòng / kỳ</span>
                 </div>
-                <span className="text-text-main dark:text-white font-black text-base">{formatPrice(room.price_per_semester)}</span>
+                <span className="text-text-main dark:text-white font-bold text-base">{formatPrice(room.price_per_semester)}</span>
               </div>
               {servicePrices.length > 0 && (
                 <>
@@ -250,7 +250,7 @@ const RoomDetail: React.FC = () => {
                         <span className="material-symbols-outlined text-[20px]">flash_on</span>
                         <span className="text-sm font-bold">Giá điện / kWh</span>
                       </div>
-                      <span className="text-text-main dark:text-white font-black text-base">{formatPrice(servicePrices.find(p => p.service_name === 'ELECTRICITY')?.unit_price)}</span>
+                      <span className="text-text-main dark:text-white font-bold text-base">{formatPrice(servicePrices.find(p => p.service_name === 'ELECTRICITY')?.unit_price)}</span>
                     </div>
                   )}
                   {servicePrices.find(p => p.service_name === 'WATER') && (
@@ -259,7 +259,7 @@ const RoomDetail: React.FC = () => {
                         <span className="material-symbols-outlined text-[20px]">water_drop</span>
                         <span className="text-sm font-bold">Giá nước / m³</span>
                       </div>
-                      <span className="text-text-main dark:text-white font-black text-base">{formatPrice(servicePrices.find(p => p.service_name === 'WATER')?.unit_price)}</span>
+                      <span className="text-text-main dark:text-white font-bold text-base">{formatPrice(servicePrices.find(p => p.service_name === 'WATER')?.unit_price)}</span>
                     </div>
                   )}
                 </>
@@ -273,7 +273,7 @@ const RoomDetail: React.FC = () => {
               <div className="p-2.5 bg-purple-50 dark:bg-purple-900/30 rounded-xl text-purple-600">
                 <span className="material-symbols-outlined font-bold">chair</span>
               </div>
-              <h3 className="text-lg font-black text-text-main dark:text-white tracking-tight">Trang thiết bị</h3>
+              <h3 className="text-lg font-bold text-xl dark:text-white tracking-tight">Trang thiết bị</h3>
             </div>
             <div className="flex flex-wrap gap-2.5">
               {room.has_ac ? (
@@ -295,7 +295,7 @@ const RoomDetail: React.FC = () => {
                 </div>
               ) : null}
             </div>
-            <button className="mt-auto text-xs font-black text-text-secondary dark:text-gray-500 hover:text-primary transition-colors uppercase tracking-widest text-center">
+            <button className="mt-auto text-xs font-bold text-text-secondary dark:text-gray-500 hover:text-primary transition-colors uppercase tracking-widest text-center">
               Quản lý tài sản
             </button>
           </div>
@@ -305,7 +305,7 @@ const RoomDetail: React.FC = () => {
         <div className="flex flex-col gap-6 mt-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
             <div className="flex flex-col gap-1">
-              <h2 className="text-text-main dark:text-white tracking-tight text-xl font-black">Danh sách sinh viên hiện tại ({filteredStudents.length})</h2>
+              <h2 className="text-text-main dark:text-white tracking-tight text-xl font-bold">Danh sách sinh viên hiện tại ({filteredStudents.length})</h2>
               <p className="text-sm text-text-secondary dark:text-gray-400">Theo dõi thông tin và tình trạng cư trú của sinh viên</p>
             </div>
             <div className="relative min-w-[240px]">
