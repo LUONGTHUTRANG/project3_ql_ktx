@@ -1,4 +1,4 @@
-:where(.css-dev-only-do-not-override-iecf5o).ant-select:not(.ant-select-customize) .ant-select-input {
+:where(.css-dev-only-do-not-override-iecf5o).ant-select:not(.ant-select-customize) .ant-select-input, input#retentionValue {
     --tw-ring-shadow: none;
 }
 span.ant-input-wrapper.ant-input-group.css-dev-only-do-not-override-iecf5o, span.ant-input-wrapper.ant-input-group.css-dev-only-do-not-override-iecf5o > span {

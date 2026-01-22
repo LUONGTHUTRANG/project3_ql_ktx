@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
   MONTHLY_USAGE: `${API_BASE_URL}/monthly-usages`,
   SUPPORT_REQUESTS: `${API_BASE_URL}/support-requests`,
   PAYMENTS: `${API_BASE_URL}/payments`,
+  SYSTEM_CONFIG: `${API_BASE_URL}/system-config`,
 };
 
 export default API_BASE_URL;

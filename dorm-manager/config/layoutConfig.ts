@@ -42,6 +42,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Quản lý Đăng ký ở', icon: 'assignment_ind', link: '/admin/registrations' },
   { label: 'Yêu cầu hỗ trợ', icon: 'support_agent', link: '/admin/requests' },
   { label: 'Quản lý Thông báo', icon: 'notifications', link: '/admin/notifications' },
+  { label: 'Quản lý Cấu hình Hệ thống', icon: 'settings', link: '/admin/system-config' },
 //   { label: 'Cài đặt', icon: 'settings', link: '/admin/settings' },
 ];
 

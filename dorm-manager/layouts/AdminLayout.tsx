@@ -30,7 +30,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         user={user} 
         navItems={navItems} 
         logout={logout} 
-        title="Admin Panel"
       />
 
       {/* Main Content Area */}

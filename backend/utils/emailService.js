@@ -12,15 +12,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendManagerPassword = async (email, fullName, password) => {
+export const sendManagerPassword = async (email, fullName, password, systemName) => {
   try {
     const mailOptions = {
       from: process.env.GMAIL_EMAIL || "your-email@gmail.com",
       to: email,
-      subject: "Thông tin đăng nhập - Hệ thống quản lý ký túc xá",
+      subject: `Thông tin đăng nhập - ${systemName}`,
       html: `
         <h2>Chào ${fullName},</h2>
-        <p>Bạn đã được thêm vào hệ thống quản lý ký túc xá với vai trò là cán bộ quản lý.</p>
+        <p>Bạn đã được thêm vào ${systemName} với vai trò là cán bộ quản lý.</p>
         <p><strong>Thông tin đăng nhập của bạn:</strong></p>
         <ul>
           <li><strong>Email:</strong> ${email}</li>
@@ -28,7 +28,7 @@ export const sendManagerPassword = async (email, fullName, password) => {
         </ul>
         <p style="color: #d32f2f;"><strong>Lưu ý:</strong> Vui lòng đổi mật khẩu sau lần đăng nhập đầu tiên.</p>
         <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với quản trị viên.</p>
-        <p>Trân trọng,<br/>Hệ thống quản lý ký túc xá</p>
+        <p>Trân trọng,<br/>${systemName}</p>
       `,
     };
 

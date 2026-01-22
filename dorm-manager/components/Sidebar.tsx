@@ -3,15 +3,17 @@ import { Link, useLocation } from 'react-router-dom';
 import { User, NavItem, UserRole } from '../types';
 import { Modal } from 'antd';
 import { getAvatarUrl } from '../utils/avatarUtils';
+import { useSystemConfig } from '../contexts/SystemConfigContext';
 
 interface SidebarProps {
   user: User;
   navItems: NavItem[];
   logout: () => void;
-  title?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Hệ thống Quản lý Ký túc xá" }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout }) => {
+  const { systemConfig } = useSystemConfig();
+  const systemTitle = systemConfig?.system_name || "Hệ thống Quản lý Ký túc xá";
   const location = useLocation();
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -61,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Hệ
   };
 
   return (
-    <aside className={`flex-shrink-0 bg-white dark:bg-surface-dark border-r border-border-color dark:border-gray-700 flex flex-col hidden md:flex z-20 h-full overflow-y-auto transition-all duration-300 ${
+    <aside className={`z-50 flex-shrink-0 bg-white dark:bg-surface-dark border-r border-border-color dark:border-gray-700 flex flex-col hidden md:flex z-20 h-full overflow-y-auto transition-all duration-300 ${
       isCollapsed ? (hasScrollbar ? 'w-[90px]' : 'w-20') : 'w-72'
     }`}>
       <div className={`${isCollapsed ? 'p-3' : 'p-6'} flex flex-col gap-6 h-full`}>
@@ -78,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout, title = "Hệ
             </span>
           </div>
           {!isCollapsed && (
-            <h2 className="text-text-main dark:text-white text-xl font-bold leading-snug tracking-[-0.015em] group-hover:text-primary transition-colors whitespace-normal flex-1">{title}</h2>
+            <h2 className="text-text-main dark:text-white text-xl font-bold leading-snug tracking-[-0.015em] group-hover:text-primary transition-colors whitespace-normal flex-1">{systemTitle}</h2>
           )}
         </div>
         

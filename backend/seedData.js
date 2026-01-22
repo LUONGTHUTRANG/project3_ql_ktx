@@ -23,6 +23,25 @@ const seed = async () => {
       ["admin", adminPassword, "System Administrator"]
     );
 
+    // 1.5. Seed System Settings
+    console.log("Seeding System Settings...");
+    await db.query("DELETE FROM system_setting");
+    await db.query("ALTER TABLE system_setting AUTO_INCREMENT = 1");
+    await db.query(
+      `INSERT INTO system_setting 
+       (system_name, hotline, email, address, utility_start_day, utility_end_day, max_reservation_time) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "Hệ thống Quản lý Ký túc xá",
+        "+84 (0)123 456 789",
+        "support@dorm.edu.vn",
+        "Số 1, Giải Phóng, Hai Bà Trưng, Hà Nội",
+        27,
+        5,
+        72
+      ]
+    );
+
     // 2. Seed Buildings
     console.log("Seeding Buildings...");
     await db.query("DELETE FROM buildings");

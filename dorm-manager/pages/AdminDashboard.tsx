@@ -9,6 +9,7 @@ import {
   fetchBuildings 
 } from '../api';
 import { fetchBuildingOccupancyStats } from '../api/buildingApi';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 interface DashboardStats {
   totalStudents: number;
@@ -276,19 +277,49 @@ const AdminDashboard: React.FC = () => {
               </div>
               <button className="text-primary text-sm font-medium hover:underline">Chi tiết</button>
             </div>
-            <div className="flex-1 flex items-end justify-around gap-4 h-64 px-4 pt-4 border-b border-slate-100 dark:border-slate-800">
-              {buildingOccupancy.map((building, index) => (
-                <div key={index} className="flex flex-col items-center gap-2 w-full group cursor-pointer">
-                  <div className="relative w-full max-w-[60px] bg-slate-100 dark:bg-slate-800 rounded-t-lg h-48 overflow-hidden">
-                    <div 
-                      className="absolute bottom-0 w-full bg-primary/80 group-hover:bg-primary transition-all duration-300 rounded-t-lg" 
-                      style={{ height: `${building.occupancyRate}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{building.building}</span>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">{building.occupancyRate}%</span>
-                </div>
-              ))}
+            <div className="flex-1 w-full">
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart
+                  data={buildingOccupancy}
+                  margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="building" 
+                    stroke="#64748b"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis 
+                    stroke="#64748b"
+                    style={{ fontSize: '12px' }}
+                    label={{ value: 'Tỷ lệ (%)', angle: -90, position: 'insideLeft' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#1e293b',
+                      border: '1px solid #475569',
+                      borderRadius: '8px',
+                      color: '#f1f5f9'
+                    }}
+                    formatter={(value) => [`${value}%`, 'Tỷ lệ lấp đầy']}
+                    cursor={{ fill: '#3b82f6', opacity: 0.1 }}
+                  />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    formatter={() => 'Tỷ lệ lấp đầy'}
+                  />
+                  <Bar 
+                    dataKey="occupancyRate" 
+                    fill="#137fec"
+                    radius={[8, 8, 0, 0]}
+                    animationDuration={800}
+                  >
+                    {buildingOccupancy.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill="#137fec" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -426,13 +457,13 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Floating Action Button */}
-      <button 
+      {/* <button 
         onClick={() => navigate('/admin/notifications/create')}
         className="fixed bottom-8 right-8 z-30 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-2xl px-5 py-4 shadow-lg shadow-primary/30 transition-all transform hover:scale-105 active:scale-95"
       >
         <span className="material-symbols-outlined">add</span>
         <span className="font-bold pr-1">Tạo mới</span>
-      </button>
+      </button> */}
     </RoleBasedLayout>
   );
 };

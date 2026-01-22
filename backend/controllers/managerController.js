@@ -7,6 +7,7 @@ import Invoice from "../models/invoiceModel.js";
 import bcrypt from "bcryptjs";
 import { generateRandomPassword } from "../utils/passwordGenerator.js";
 import { sendManagerPassword } from "../utils/emailService.js";
+import db from "../config/db.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
@@ -80,9 +81,23 @@ export const createManager = async (req, res) => {
     // Create manager in database
     const newManager = await Manager.create(managerData);
 
+    // Fetch system name from database
+    let systemName = "Hệ thống quản lý ký túc xá";
+    try {
+      const [systemConfig] = await db.query(
+        "SELECT system_name FROM system_setting LIMIT 1"
+      );
+      if (systemConfig && systemConfig.length > 0) {
+        systemName = systemConfig[0].system_name;
+      }
+    } catch (configError) {
+      console.error("Failed to fetch system name:", configError);
+      // Continue with default name
+    }
+
     // Send password to email
     try {
-      await sendManagerPassword(email, full_name, password);
+      await sendManagerPassword(email, full_name, password, systemName);
     } catch (emailError) {
       console.error("Failed to send email:", emailError);
       // Continue anyway - manager is created even if email fails

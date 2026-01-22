@@ -35,6 +35,8 @@ import ManagerManagement from './pages/ManagerManagement';
 import { User, UserRole } from './types';
 import { loginUser, logout as logoutUser, getStoredUser } from './api/auth';
 import RegistrationManagement from './pages/RegistrationManagement';
+import SystemConfiguration from './pages/SystemConfiguration';
+import { SystemConfigProvider } from './contexts/SystemConfigContext';
 
 // Context to manage auth state
 interface AuthContextType {
@@ -532,6 +534,15 @@ const AppContent: React.FC = () => {
           } 
         />
 
+        <Route
+            path="/admin/registrations"
+            element={
+              user && user.role === UserRole.ADMIN
+                ? <RegistrationManagement />
+                : <Navigate to="/login" replace />
+            }
+          />
+
         <Route 
           path="/admin/students" 
           element={
@@ -648,6 +659,15 @@ const AppContent: React.FC = () => {
         />
 
         <Route 
+          path="/admin/system-config" 
+          element={
+            user && user.role === UserRole.ADMIN
+              ? <SystemConfiguration /> 
+              : <Navigate to="/login" replace />
+          } 
+        />
+
+        <Route 
           path="/admin/invoices" 
           element={
             user && user.role === UserRole.ADMIN
@@ -666,7 +686,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <AppContent />
+      <SystemConfigProvider>
+        <AppContent />
+      </SystemConfigProvider>
     </BrowserRouter>
   );
 };
