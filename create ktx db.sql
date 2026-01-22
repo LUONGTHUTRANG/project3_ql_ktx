@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS `invoices` (
   KEY `fk_created_manager` (`created_by_manager_id`),
   CONSTRAINT `fk_created_manager` FOREIGN KEY (`created_by_manager_id`) REFERENCES `managers` (`id`),
   CONSTRAINT `fk_paid_student` FOREIGN KEY (`paid_by_student_id`) REFERENCES `students` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   `type` enum('ANNOUNCEMENT','REMINDER') DEFAULT 'ANNOUNCEMENT',
   `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -104,21 +104,21 @@ CREATE TABLE IF NOT EXISTS `notifications` (
 CREATE TABLE IF NOT EXISTS `notification_recipients` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `notification_id` int(11) NOT NULL,
-  `student_id` int(11) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
   `room_id` int(11) DEFAULT NULL,
   `building_id` int(11) DEFAULT NULL,
   `is_read` tinyint(1) DEFAULT 0,
   `read_at` datetime DEFAULT NULL,
+  `role_name` enum('student','manager','admin') DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `notification_recipients_ibfk_1` (`notification_id`),
-  KEY `notification_recipients_ibfk_2` (`student_id`),
   KEY `notification_recipients_ibfk_3` (`room_id`),
   KEY `notification_recipients_ibfk_4` (`building_id`),
+  KEY `notification_recipients_ibfk_2` (`user_id`) USING BTREE,
   CONSTRAINT `notification_recipients_ibfk_1` FOREIGN KEY (`notification_id`) REFERENCES `notifications` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `notification_recipients_ibfk_2` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`),
   CONSTRAINT `notification_recipients_ibfk_3` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`),
   CONSTRAINT `notification_recipients_ibfk_4` FOREIGN KEY (`building_id`) REFERENCES `buildings` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS `other_invoices` (
   CONSTRAINT `fk_oi_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
   CONSTRAINT `fk_oi_room` FOREIGN KEY (`target_room_id`) REFERENCES `rooms` (`id`),
   CONSTRAINT `fk_oi_student` FOREIGN KEY (`target_student_id`) REFERENCES `students` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS `registrations` (
   CONSTRAINT `registrations_ibfk_2` FOREIGN KEY (`desired_room_id`) REFERENCES `rooms` (`id`),
   CONSTRAINT `registrations_ibfk_3` FOREIGN KEY (`desired_building_id`) REFERENCES `buildings` (`id`),
   CONSTRAINT `registrations_ibfk_4` FOREIGN KEY (`semester_id`) REFERENCES `semesters` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
@@ -301,7 +301,24 @@ CREATE TABLE IF NOT EXISTS `support_requests` (
   KEY `support_requests_ibfk_2` (`processed_by_manager_id`),
   CONSTRAINT `support_requests_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`),
   CONSTRAINT `support_requests_ibfk_2` FOREIGN KEY (`processed_by_manager_id`) REFERENCES `managers` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table dormitory_management.system_setting
+CREATE TABLE IF NOT EXISTS `system_setting` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `system_name` varchar(255) NOT NULL COMMENT 'Tên hệ thống',
+  `hotline` varchar(20) NOT NULL COMMENT 'Số điện thoại hotline',
+  `email` varchar(255) NOT NULL COMMENT 'Email hỗ trợ',
+  `address` varchar(500) NOT NULL COMMENT 'Địa chỉ hệ thống',
+  `utility_start_day` tinyint(4) NOT NULL COMMENT 'Ngày bắt đầu thu tiền điện nước (1–31)',
+  `utility_end_day` tinyint(4) NOT NULL COMMENT 'Ngày kết thúc thu tiền điện nước (1–31)',
+  `max_reservation_time` int(11) NOT NULL COMMENT 'Thời gian giữ chỗ tối đa để thanh toán (giờ)',
+  `created_at` datetime DEFAULT current_timestamp() COMMENT 'Thời điểm tạo',
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Thời điểm cập nhật',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Bảng cấu hình hệ thống (chỉ nên có 1 bản ghi)';
 
 -- Data exporting was unselected.
 
@@ -325,7 +342,7 @@ CREATE TABLE IF NOT EXISTS `utility_invoices` (
   CONSTRAINT `fk_cycle` FOREIGN KEY (`cycle_id`) REFERENCES `utility_invoice_cycles` (`id`),
   CONSTRAINT `fk_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
   CONSTRAINT `fk_room` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Data exporting was unselected.
 
