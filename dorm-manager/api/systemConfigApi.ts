@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { API_ENDPOINTS } from './config';
+import axios from "axios";
+import { API_ENDPOINTS } from "./config";
 
 const api = axios.create({
   baseURL: API_ENDPOINTS.SYSTEM_CONFIG,
@@ -7,7 +7,7 @@ const api = axios.create({
 
 // Attach token and handle 401
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -15,13 +15,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
+    // Don't redirect on 401 for system config - just reject the error
+    // The SystemConfigContext will handle it gracefully
     return Promise.reject(err);
-  }
+  },
 );
 
 export interface SystemConfig {
@@ -38,19 +35,25 @@ export interface SystemConfig {
 // Get system configuration
 export const getSystemConfig = async (): Promise<SystemConfig> => {
   try {
-    const response = await api.get('');
+    const response = await api.get("");
     return response.data.data || response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to fetch system configuration');
+    throw new Error(
+      error.response?.data?.message || "Failed to fetch system configuration",
+    );
   }
 };
 
 // Update system configuration
-export const updateSystemConfig = async (config: SystemConfig): Promise<SystemConfig> => {
+export const updateSystemConfig = async (
+  config: SystemConfig,
+): Promise<SystemConfig> => {
   try {
-    const response = await api.put('', config);
+    const response = await api.put("", config);
     return response.data.data || response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.message || 'Failed to update system configuration');
+    throw new Error(
+      error.response?.data?.message || "Failed to update system configuration",
+    );
   }
 };

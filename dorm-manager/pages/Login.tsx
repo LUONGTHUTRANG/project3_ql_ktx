@@ -64,7 +64,7 @@ const Login: React.FC = () => {
             <div className="bg-white/20 backdrop-blur-md p-2 rounded-lg">
               <span className="material-symbols-outlined text-white text-3xl">apartment</span>
             </div>
-            <h2 className="text-white text-2xl font-bold tracking-tight">Dormitory Manager</h2>
+            <h2 className="text-white text-2xl font-bold tracking-tight">Hệ thống quản lý ký túc xá</h2>
           </div>
           <h1 className="text-white text-4xl font-bold leading-tight mb-4">
             Quản lý ký túc xá<br />hiệu quả và tiện lợi
