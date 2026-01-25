@@ -46,7 +46,7 @@ export const loginUser = async (username: string, password: string, role: string
     if (role === 'manager' && user.id) {
       try {
         const managerApi = axios.create({
-          baseURL: API_ENDPOINTS.MANAGER,
+          baseURL: API_ENDPOINTS.MANAGERS,
           headers: {
             Authorization: `Bearer ${token}`
           }

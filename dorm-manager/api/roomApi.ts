@@ -1,18 +1,43 @@
 // api/roomApi.ts
-import axios from 'axios';
-import { API_ENDPOINTS } from './config';
+import axios from "axios";
+import { API_ENDPOINTS } from "./config";
 
 const BASE_URL = API_ENDPOINTS.ROOMS;
+
+// Create axios instance with interceptor for token
+const api = axios.create({
+  baseURL: BASE_URL,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    }
+    return Promise.reject(err);
+  },
+);
 
 /**
  * Fetch all rooms
  */
 export const fetchRooms = async () => {
   try {
-    const response = await axios.get(BASE_URL);
+    const response = await api.get("");
     return response.data;
   } catch (error) {
-    console.error('Error fetching rooms:', error);
+    console.error("Error fetching rooms:", error);
     throw error;
   }
 };
@@ -22,7 +47,7 @@ export const fetchRooms = async () => {
  */
 export const fetchRoomsByBuilding = async (buildingId: number | string) => {
   try {
-    const response = await axios.get(`${BASE_URL}?building_id=${buildingId}`);
+    const response = await api.get(`?building_id=${buildingId}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching rooms for building ${buildingId}:`, error);
@@ -35,7 +60,7 @@ export const fetchRoomsByBuilding = async (buildingId: number | string) => {
  */
 export const fetchRoomById = async (id: number | string) => {
   try {
-    const response = await axios.get(`${BASE_URL}/${id}`);
+    const response = await api.get(`/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching room ${id}:`, error);
@@ -48,10 +73,10 @@ export const fetchRoomById = async (id: number | string) => {
  */
 export const createRoom = async (data: any) => {
   try {
-    const response = await axios.post(BASE_URL, data);
+    const response = await api.post("", data);
     return response.data;
   } catch (error) {
-    console.error('Error creating room:', error);
+    console.error("Error creating room:", error);
     throw error;
   }
 };
@@ -61,7 +86,7 @@ export const createRoom = async (data: any) => {
  */
 export const updateRoom = async (id: number | string, data: any) => {
   try {
-    const response = await axios.put(`${BASE_URL}/${id}`, data);
+    const response = await api.put(`/${id}`, data);
     return response.data;
   } catch (error) {
     console.error(`Error updating room ${id}:`, error);
@@ -74,7 +99,7 @@ export const updateRoom = async (id: number | string, data: any) => {
  */
 export const deleteRoom = async (id: number | string) => {
   try {
-    const response = await axios.delete(`${BASE_URL}/${id}`);
+    const response = await api.delete(`/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error deleting room ${id}:`, error);

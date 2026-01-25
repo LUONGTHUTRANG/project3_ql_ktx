@@ -341,7 +341,7 @@ const AdminDashboard: React.FC = () => {
               </button> */}
               <button 
                 onClick={() => navigate('/admin/notifications')}
-                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
+                className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-800 hover:bg-orange-100 dark:hover:bg-orange-700 transition-colors text-left group border border-orange-200 dark:border-orange-800"
               >
                 <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm text-orange-500 group-hover:text-orange-600">
                   <span className="material-symbols-outlined">campaign</span>
@@ -353,7 +353,7 @@ const AdminDashboard: React.FC = () => {
               </button>
               <button 
                 onClick={() => navigate('/admin/rooms')}
-                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-left group"
+                className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 dark:bg-purple-800 hover:bg-purple-100 dark:hover:bg-purple-700 transition-colors text-left group border border-purple-200 dark:border-purple-800"
               >
                 <div className="bg-white dark:bg-slate-700 p-2 rounded-lg shadow-sm text-purple-500 group-hover:text-purple-600">
                   <span className="material-symbols-outlined">key</span>
