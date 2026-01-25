@@ -182,7 +182,7 @@ const SupportRequests: React.FC = () => {
               }}
               className={`flex h-11 items-center justify-center px-4 rounded-lg text-sm font-medium shadow-sm whitespace-nowrap transition-colors ${
                 statusFilter === '' 
-                  ? 'bg-text-main text-white dark:bg-white dark:text-text-main' 
+                  ? 'bg-primary text-white dark:bg-white dark:text-text-main' 
                   : 'bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300'
               }`}
             >
@@ -195,7 +195,7 @@ const SupportRequests: React.FC = () => {
               }}
               className={`flex h-11 items-center justify-center px-4 rounded-lg text-sm font-medium shadow-sm whitespace-nowrap transition-colors ${
                 statusFilter === 'pending' 
-                  ? 'bg-text-main text-white dark:bg-white dark:text-text-main' 
+                  ? 'bg-primary text-white dark:bg-white dark:text-text-main' 
                   : 'bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300'
               }`}
             >
@@ -208,7 +208,7 @@ const SupportRequests: React.FC = () => {
               }}
               className={`flex h-11 items-center justify-center px-4 rounded-lg text-sm font-medium shadow-sm whitespace-nowrap transition-colors ${
                 statusFilter === 'processing' 
-                  ? 'bg-text-main text-white dark:bg-white dark:text-text-main' 
+                  ? 'bg-primary text-white dark:bg-white dark:text-text-main' 
                   : 'bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300'
               }`}
             >

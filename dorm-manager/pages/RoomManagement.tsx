@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { message, Modal, Form, Input, InputNumber, Select } from "antd";
+import {
+  message,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Checkbox,
+} from "antd";
 import RoleBasedLayout from "../layouts/RoleBasedLayout";
 import RoomTable, { Room } from "../components/RoomTable";
 import { AuthContext } from "../App";
@@ -9,15 +17,17 @@ import {
   updateRoom,
   deleteRoom,
   createRoom,
+  fetchBuildings,
 } from "../api";
 
 const RoomManagement: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterFloor, setFilterFloor] = useState("");
+  const [filterBuilding, setFilterBuilding] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -25,22 +35,26 @@ const RoomManagement: React.FC = () => {
 
   // console.log('User role in RoomManagement:', user);
 
-  // Fetch rooms on mount
+  // Fetch rooms and buildings on mount
   useEffect(() => {
-    const fetchRooms = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const data = await getAllRooms();
-        setRooms(data);
+        const [roomsData, buildingsData] = await Promise.all([
+          getAllRooms(),
+          fetchBuildings(),
+        ]);
+        setRooms(roomsData);
+        setBuildings(buildingsData);
       } catch (error: any) {
-        message.error("Lỗi khi tải danh sách phòng");
-        console.error("Error fetching rooms:", error);
+        message.error("Lỗi khi tải dữ liệu");
+        console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchRooms();
+    fetchData();
   }, []);
 
   const handleEditRoom = async (updatedRoom: Room) => {
@@ -96,7 +110,16 @@ const RoomManagement: React.FC = () => {
   const handleCreateRoom = async (values: any) => {
     setIsSubmitting(true);
     try {
-      const newRoom = await createRoom(values);
+      // Convert checkbox boolean values to 0/1 for database
+      const roomData = {
+        ...values,
+        has_ac: values.has_ac ? 1 : 0,
+        has_heater: values.has_heater ? 1 : 0,
+        has_washer: values.has_washer ? 1 : 0,
+        status: values.status || "AVAILABLE",
+      };
+
+      const newRoom = await createRoom(roomData);
       message.success({
         content: `Đã thêm phòng ${values.room_number} thành công`,
         duration: 2,
@@ -126,9 +149,10 @@ const RoomManagement: React.FC = () => {
     const matchSearch = room.room_number
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchFloor = !filterFloor || room.floor.toString() === filterFloor;
+    const matchBuilding =
+      !filterBuilding || room.building_id.toString() === filterBuilding;
     const matchStatus = !filterStatus || room.status === filterStatus;
-    return matchSearch && matchFloor && matchStatus;
+    return matchSearch && matchBuilding && matchStatus;
   });
 
   // Calculate stats from real data
@@ -277,8 +301,9 @@ const RoomManagement: React.FC = () => {
           userRole={user?.role.toUpperCase()}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          filterFloor={filterFloor}
-          onFloorChange={setFilterFloor}
+          filterBuilding={filterBuilding}
+          onBuildingChange={setFilterBuilding}
+          buildings={buildings}
           filterStatus={filterStatus}
           onStatusChange={setFilterStatus}
         />
@@ -292,61 +317,115 @@ const RoomManagement: React.FC = () => {
           cancelText="Hủy"
           confirmLoading={isSubmitting}
           onOk={() => form.submit()}
+          width={600}
+          centered
         >
           <Form form={form} layout="vertical" onFinish={handleCreateRoom}>
             <Form.Item
-              label="Mã phòng"
-              name="room_number"
-              rules={[
-                { required: true, message: "Vui lòng nhập mã phòng" },
-                { min: 1, message: "Mã phòng không được để trống" },
-              ]}
-            >
-              <Input 
-                placeholder="Ví dụ: A101" 
-                prefix={<span className="hidden" />}
-                className="h-10"
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Tầng"
-              name="floor"
-              rules={[{ required: true, message: "Vui lòng nhập số tầng" }]}
-            >
-              <InputNumber 
-                min={1} 
-                placeholder="Ví dụ: 1" 
-                className="w-full h-10"
-              />
-            </Form.Item>
-
-            <Form.Item
-              label="Sức chứa"
-              name="capacity"
-              rules={[{ required: true, message: "Vui lòng nhập sức chứa" }]}
-            >
-              <InputNumber 
-                min={1} 
-                placeholder="Ví dụ: 4" 
-                className="w-full h-10"
-                />
-            </Form.Item>
-
-            <Form.Item
-              label="Trạng thái"
-              name="status"
-              rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
-              initialValue="AVAILABLE"
+              label="Tòa nhà"
+              name="building_id"
+              rules={[{ required: true, message: "Vui lòng chọn tòa nhà" }]}
             >
               <Select
-                options={[
-                  { label: "Còn trống", value: "AVAILABLE" },
-                  { label: "Đã ở", value: "FULL" },
-                ]}
+                placeholder="Chọn tòa nhà"
+                options={buildings.map((building: any) => ({
+                  value: building.id,
+                  label: building.name,
+                }))}
                 className="h-10"
               />
             </Form.Item>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Form.Item
+                label="Mã phòng"
+                name="room_number"
+                rules={[
+                  { required: true, message: "Vui lòng nhập mã phòng" },
+                  { min: 1, message: "Mã phòng không được để trống" },
+                ]}
+              >
+                <Input
+                  placeholder="Ví dụ: A101"
+                  className="h-10"
+                  prefix={<span className="hidden" />}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label="Tầng"
+                name="floor"
+                rules={[{ required: true, message: "Vui lòng nhập số tầng" }]}
+              >
+                <InputNumber
+                  min={1}
+                  placeholder="Ví dụ: 1"
+                  className="w-full h-10"
+                />
+              </Form.Item>
+            </div>
+
+            <Form.Item
+              label="Sức chứa (Người)"
+              name="max_capacity"
+              rules={[{ required: true, message: "Vui lòng nhập sức chứa" }]}
+            >
+              <InputNumber
+                min={1}
+                placeholder="Ví dụ: 4"
+                className="w-full h-10"
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Giá phòng/Kỳ (VND)"
+              name="price_per_semester"
+              rules={[{ required: true, message: "Vui lòng nhập giá phòng" }]}
+            >
+              <InputNumber
+                min={0}
+                placeholder="Ví dụ: 2000000"
+                className="w-full h-10"
+                formatter={(value) =>
+                  value ? value.toLocaleString("vi-VN") : ""
+                }
+                parser={(value: any) => (value ? value.replace(/\./g, "") : 0)}
+              />
+            </Form.Item>
+
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-text-main dark:text-white">
+                Tiện nghi
+              </p>
+              <div className="grid grid-cols-3 gap-4">
+                <Form.Item
+                  label={null}
+                  name="has_ac"
+                  valuePropName="checked"
+                  className="mb-0"
+                >
+                  <Checkbox>Có điều hòa</Checkbox>
+                </Form.Item>
+
+                <Form.Item
+                  label={null}
+                  name="has_heater"
+                  valuePropName="checked"
+                  className="mb-0"
+                >
+                  <Checkbox>Có nóng lạnh</Checkbox>
+                </Form.Item>
+
+                <Form.Item
+                  label={null}
+                  name="has_washer"
+                  valuePropName="checked"
+                  className="mb-0"
+                >
+                  <Checkbox>Có máy giặt</Checkbox>
+                </Form.Item>
+              </div>
+            </div>
           </Form>
         </Modal>
       </div>

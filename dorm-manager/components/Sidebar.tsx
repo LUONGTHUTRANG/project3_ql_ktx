@@ -24,7 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user, navItems, logout }) => {
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [hasScrollbar, setHasScrollbar] = useState(false);
 
-  const settingsLink = user.role === UserRole.STUDENT ? '/student/settings' : '/manager/settings';
+  const settingsLink = `/${user.role}/settings`;
   const isSettingsActive = location.pathname.startsWith(settingsLink);
 
   // Save collapsed state to localStorage whenever it changes

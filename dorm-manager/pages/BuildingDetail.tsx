@@ -110,7 +110,7 @@ const BuildingDetail: React.FC = () => {
             <p className="font-medium text-red-600 mb-2">Lỗi tải dữ liệu</p>
             <p className="text-sm text-text-secondary mb-4">{error || 'Không thể tải thông tin tòa nhà'}</p>
             <button 
-              onClick={() => navigate('/student/buildings')}
+              onClick={() => navigate(`/${user.role}/buildings`)}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
             >
               Quay lại danh sách
@@ -285,7 +285,7 @@ const BuildingDetail: React.FC = () => {
       headerTitle="Chi tiết Tòa nhà"
     >
       <button 
-        onClick={() => navigate('/student/buildings')}
+        onClick={() => navigate(`/${user.role}/buildings`)}
         className="flex items-center gap-1 mb-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium"
       >
         <span className="material-symbols-outlined text-[18px]">arrow_back</span>
@@ -400,7 +400,7 @@ const BuildingDetail: React.FC = () => {
                 options={floorOptions}
               />
               <Select 
-                className="h-11 flex-1 sm:min-w-[160px]"
+                className="h-11 flex-1 sm:min-w-[180px]"
                 value={filterStatus}
                 onChange={(val) => {
                   setFilterStatus(val);
@@ -408,7 +408,7 @@ const BuildingDetail: React.FC = () => {
                 }}
                 suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">filter_list</span>}
                 options={[
-                  { value: '', label: 'Trạng thái' },
+                  { value: '', label: 'Tất cả trạng thái' },
                   { value: 'AVAILABLE', label: 'Còn trống' },
                   { value: 'FULL', label: 'Đã đầy' },
                 ]}
@@ -418,7 +418,7 @@ const BuildingDetail: React.FC = () => {
         </div>
 
         {/* Room Table */}
-        <div className="bg-white dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm overflow-hidden mb-8 min-h-[400px]">
+        <div className="bg-white dark:bg-surface-dark rounded-xl border border-border-color dark:border-gray-700 shadow-sm overflow-hidden mb-8">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

@@ -198,14 +198,7 @@ const ManagerManagement: React.FC = () => {
                 }}
                 options={buildingOptions}
               />
-            </div>
-            <button
-              onClick={handleReset}
-              className="h-11 px-2 mt-6 text-text-secondary hover:text-primary hover:bg-background-light dark:hover:bg-gray-800 rounded-lg border border-border-light dark:border-border-dark transition-colors"
-              title="Reset"
-            >
-              <span className="material-symbols-outlined text-[20px]">restart_alt</span>
-            </button>
+            </div>  
           </div>
         </div>
 
