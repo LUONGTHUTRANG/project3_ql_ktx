@@ -4,7 +4,7 @@ import { User, UserRole } from '../types';
 import NotificationPopup from './NotificationPopup';
 import { Input } from 'antd';
 import { SearchOutlined } from "@ant-design/icons";
-import { getUnreadNotificationCount } from '../api/notificationApi';
+import { getUnreadNotificationCount } from '../api';
 import { getAvatarUrl } from '../utils/avatarUtils';
 
 interface HeaderProps {

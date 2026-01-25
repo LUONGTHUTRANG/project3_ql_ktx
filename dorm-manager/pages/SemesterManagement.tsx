@@ -5,7 +5,7 @@ import AddSemesterModal from '@/components/AddSemesterModal';
 import Pagination from '../components/Pagination';
 import { Input, Select, Spin, message, Modal } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { getAllSemesters, deleteSemester, Semester } from '../api/semesterApi';
+import { getAllSemesters, deleteSemester, Semester } from '../api';
 
 const SemesterManagement: React.FC = () => {
   const navigate = useNavigate();

@@ -33,7 +33,7 @@ import ServicePriceManagement from './pages/ServicePriceManagement';
 import SemesterManagement from './pages/SemesterManagement';
 import ManagerManagement from './pages/ManagerManagement';
 import { User, UserRole } from './types';
-import { loginUser, logout as logoutUser, getStoredUser } from './api/auth';
+import { loginUser, logout as logoutUser, getStoredUser } from './api';
 import RegistrationManagement from './pages/RegistrationManagement';
 import SystemConfiguration from './pages/SystemConfiguration';
 import { SystemConfigProvider } from './contexts/SystemConfigContext';

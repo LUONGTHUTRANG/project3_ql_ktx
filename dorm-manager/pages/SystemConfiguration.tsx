@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Form, Input, InputNumber, Select, App, Row, Col, message } from 'antd';
 import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { getSystemConfig, updateSystemConfig, SystemConfig as ISystemConfig } from '../api/systemConfigApi';
+import { getSystemConfig, updateSystemConfig, SystemConfig as ISystemConfig } from '../api';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 
 interface SystemConfig {

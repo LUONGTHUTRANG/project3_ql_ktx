@@ -9,7 +9,7 @@ import {
   updateRoom,
   deleteRoom,
   createRoom,
-} from "../api/roomApi";
+} from "../api";
 
 const RoomManagement: React.FC = () => {
   const navigate = useNavigate();

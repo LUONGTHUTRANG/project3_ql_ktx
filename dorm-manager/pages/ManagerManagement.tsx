@@ -4,7 +4,7 @@ import AddManagerModal from '@/components/AddManagerModal';
 import Pagination from '../components/Pagination';
 import { Input, Select, Spin, message, Modal } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { getAllManagers, deleteManager, ManagerProfile } from '../api/managerApi';
+import { getAllManagers, deleteManager, ManagerProfile } from '../api';
 import { fetchBuildings } from '@/api';
 
 const ManagerManagement: React.FC = () => {

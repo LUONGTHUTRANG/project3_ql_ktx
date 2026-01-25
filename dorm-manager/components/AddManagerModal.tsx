@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Input, Select, message, Spin } from 'antd';
-import { createManager, updateManager, getManagerById, ManagerProfile } from '../api/managerApi';
+import { createManager, updateManager, getManagerById, ManagerProfile } from '../api';
 
 interface NewManagerForm {
   full_name: string;

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { getOtherInvoiceById, downloadOtherInvoiceFile } from '../api/otherInvoiceApi';
+import { getOtherInvoiceById, downloadOtherInvoiceFile } from '../api';
 import { message, Spin, Button } from 'antd';
 
 interface OtherInvoice {

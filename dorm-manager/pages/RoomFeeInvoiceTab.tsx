@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { Select, Spin, message } from 'antd';
 import Pagination from '../components/Pagination';
-import { getRoomFeeInvoicesBySemester, getRoomFeeInvoicesBySemesterAndBuilding } from '../api/roomFeeInvoiceApi';
-import { getAllSemesters, Semester } from '../api/semesterApi';
+import { getRoomFeeInvoicesBySemester, getRoomFeeInvoicesBySemesterAndBuilding } from '../api';
+import { getAllSemesters, Semester } from '../api';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 

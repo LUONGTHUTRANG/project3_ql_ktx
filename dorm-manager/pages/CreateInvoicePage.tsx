@@ -4,10 +4,8 @@ import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { message, Input, Select, DatePicker, Spin } from 'antd';
 import dayjs from 'dayjs';
-import { createOtherInvoice, getOtherInvoiceById, updateOtherInvoice } from '../api/otherInvoiceApi';
-import { fetchBuildings } from '../api/buildingApi';
-import { fetchRoomsByBuilding } from '../api/roomApi';
-import { getStudentsByRoomId } from '../api/studentApi';
+import { createOtherInvoice, getOtherInvoiceById, updateOtherInvoice } from '../api';
+import { fetchBuildings, fetchRoomsByBuilding, getStudentsByRoomId } from '../api';
 import { UserRole } from '../types';
 
 interface CreateInvoiceForm {

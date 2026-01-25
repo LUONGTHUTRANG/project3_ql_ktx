@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, Input, Select, DatePicker, message, Spin } from 'antd';
 import dayjs from 'dayjs';
-import { createSemester, updateSemester, getSemesterById } from '../api/semesterApi';
+import { createSemester, updateSemester, getSemesterById } from '../api';
 
 interface NewSemesterForm {
   term: string;

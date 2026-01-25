@@ -1,8 +1,8 @@
 import React from 'react';
 import { Modal, Input, Select, DatePicker, message, Spin } from 'antd';
 import dayjs from 'dayjs';
-import { createServicePrice, updateServicePrice, getServicePriceById } from '../api/servicePriceApi';
-import { ServicePrice } from '../api/servicePriceApi';
+import { createServicePrice, updateServicePrice, getServicePriceById } from '../api';
+import { ServicePrice } from '../api';
 
 interface NewServiceForm {
   service_name: string;

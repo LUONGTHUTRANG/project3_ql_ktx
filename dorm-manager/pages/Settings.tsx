@@ -4,7 +4,7 @@ import { Select, Modal, Form, Input, App } from 'antd';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
-import { changePassword } from '../api/auth';
+import { changePassword } from '../api';
 import { getAvatarUrl } from '../utils/avatarUtils';
 
 const Settings: React.FC = () => {

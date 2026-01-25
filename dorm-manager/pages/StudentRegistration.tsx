@@ -2,10 +2,10 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { Select, Switch, message } from 'antd';
-import { createRegistration } from '../api/registrationApi';
-import { fetchBuildings } from '../api/buildingApi';
-import { getAllSemesters, Semester } from '../api/semesterApi';
-import { getCurrentStay, CurrentStayInfo } from '../api/studentApi';
+import { createRegistration } from '../api';
+import { fetchBuildings } from '../api';
+import { getAllSemesters, Semester } from '../api';
+import { getCurrentStay, CurrentStayInfo } from '../api';
 
 type RegistrationStatus = 'upcoming' | 'open' | 'closed';
 type ActiveTab = 'regular' | 'special' | 'extension';

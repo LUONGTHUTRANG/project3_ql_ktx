@@ -5,8 +5,7 @@ import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
 import { App } from 'antd';
 import { getAvatarUrl } from '../utils/avatarUtils';
-import { updateManagerContact } from '../api/managerApi';
-import { getContactInfo } from '../api/auth';
+import { updateManagerContact, getContactInfo } from '../api';
 
 interface ManagerProfileProps {
   isAdmin?: boolean;

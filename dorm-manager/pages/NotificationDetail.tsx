@@ -4,7 +4,7 @@ import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
 import { Spin, message } from 'antd';
-import { getNotificationById } from '../api/notificationApi';
+import { getNotificationById } from '../api';
 import { formatDateTime } from '../utils/formatters';
 
 interface NotificationDetailProps {

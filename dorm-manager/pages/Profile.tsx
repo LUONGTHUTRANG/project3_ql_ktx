@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { UserRole } from '../types';
-import { getStudentById, StudentProfile, updateStudentContact } from '../api/studentApi';
+import { getStudentById, StudentProfile, updateStudentContact } from '../api';
 import { App } from 'antd';
 import { getAvatarUrl } from '../utils/avatarUtils';
-import { getContactInfo } from '../api/auth';
+import { getContactInfo } from '../api';
 
 interface ProfileProps {
   isManager?: boolean;

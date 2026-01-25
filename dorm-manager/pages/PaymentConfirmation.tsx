@@ -4,7 +4,7 @@ import { message, Spin } from 'antd';
 import QRCode from 'react-qr-code';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { confirmPayment, verifyPaymentRef } from '../api/paymentApi';
+import { confirmPayment, verifyPaymentRef } from '../api';
 
 const PaymentConfirmation: React.FC = () => {
   const { user } = useContext(AuthContext);

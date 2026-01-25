@@ -4,10 +4,7 @@ import { Form, Input, Select, Button, Spin, message } from 'antd';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { SearchOutlined } from "@ant-design/icons";
-import { createNotification, getNotificationById } from '../api/notificationApi';
-import { fetchBuildings } from '../api/buildingApi';
-import { fetchRooms } from '../api/roomApi';
-import { getAllStudents } from '../api/studentApi';
+import { createNotification, getNotificationById, fetchBuildings, fetchRooms, getAllStudents } from '../api';
 
 type NotificationFormValues = {
   title: string;

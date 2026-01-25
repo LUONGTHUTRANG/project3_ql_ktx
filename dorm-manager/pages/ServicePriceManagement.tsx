@@ -5,7 +5,7 @@ import Pagination from '../components/Pagination';
 import AddServicePriceModal from '../components/AddServicePriceModal';
 import { Input, Select, Spin, message, DatePicker, App } from 'antd';
 import dayjs from 'dayjs';
-import { getServicePrices, updateServicePrice, deleteServicePrice } from '../api/servicePriceApi';
+import { getServicePrices, updateServicePrice, deleteServicePrice } from '../api';
 import { SearchOutlined } from '@ant-design/icons';
 import { formatPrice } from '../utils/formatters';
 

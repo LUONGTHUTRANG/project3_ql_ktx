@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { getSystemConfig, SystemConfig } from "../api/systemConfigApi";
+import { getSystemConfig, SystemConfig } from "../api";
 
 interface SystemConfigContextType {
   systemConfig: SystemConfig | null;

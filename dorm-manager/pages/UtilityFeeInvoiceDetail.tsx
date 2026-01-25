@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { getAllInvoices } from '../api/invoiceApi';
+import { getAllInvoices } from '../api';
 import { message, Input, Select, Spin } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import Pagination from '../components/Pagination';

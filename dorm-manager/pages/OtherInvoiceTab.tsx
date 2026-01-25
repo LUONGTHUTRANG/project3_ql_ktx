@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { Spin, message, Modal } from 'antd';
 import Pagination from '../components/Pagination';
-import { getAllOtherInvoices, deleteOtherInvoice } from '../api/otherInvoiceApi';
+import { getAllOtherInvoices, deleteOtherInvoice } from '../api';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 

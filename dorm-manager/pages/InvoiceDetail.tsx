@@ -4,11 +4,7 @@ import { Spin, message } from 'antd';
 import QRCode from 'react-qr-code';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { getInvoiceById } from '../api/invoiceApi';
-import { downloadOtherInvoiceFile } from '@/api/otherInvoiceApi';
-import { getMonthlyUsageById } from '../api/monthlyUsageApi';
-import { getStudentById } from '../api/studentApi';
-import { generateQRCode } from '../api/paymentApi';
+import { getInvoiceById, downloadOtherInvoiceFile, getMonthlyUsageById, getStudentById, generateQRCode } from '../api';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 import formatters from '@/utils/formatters';
 

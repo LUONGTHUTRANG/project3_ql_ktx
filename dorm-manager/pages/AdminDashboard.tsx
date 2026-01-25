@@ -6,9 +6,9 @@ import {
   getAllStudents, 
   getAllRooms, 
   getAllSupportRequests, 
-  fetchBuildings 
+  fetchBuildings,
+  fetchBuildingOccupancyStats
 } from '../api';
-import { fetchBuildingOccupancyStats } from '../api/buildingApi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 
 interface DashboardStats {

@@ -4,7 +4,7 @@ import { Modal, Spin, message } from 'antd';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
-import { getNotificationsByManager, deleteNotification } from '../api/notificationApi';
+import { getNotificationsByManager, deleteNotification } from '../api';
 
 type NotificationItem = {
   id: number;

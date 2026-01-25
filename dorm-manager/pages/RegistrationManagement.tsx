@@ -6,8 +6,8 @@ import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
 import { Input, Select, Spin, message } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { getAllRegistrations, updateRegistrationStatus, Registration } from '../api/registrationApi';
-import API_BASE_URL from '../api/config';
+import { getAllRegistrations, updateRegistrationStatus, Registration } from '../api';
+import API_BASE_URL from '../api_handlers/config';
 
 // Get backend base URL for file access (remove /api suffix)
 const BACKEND_URL = API_BASE_URL.replace('/api', '');

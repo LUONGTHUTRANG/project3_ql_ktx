@@ -6,8 +6,8 @@ import { Input, Select, Spin, message } from 'antd';
 import { SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import { AuthContext } from '../App';
 import { UserRole } from '../types';
-import { getAllStudents, getStudentsByBuildingId } from '../api/studentApi';
-import { fetchBuildings } from '../api/buildingApi';
+import { getAllStudents, getStudentsByBuildingId } from '../api';
+import { fetchBuildings } from '../api';
 
 interface Student {
   id: number;
