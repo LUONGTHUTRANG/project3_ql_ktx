@@ -111,3 +111,43 @@ export const deleteRoom = async (id: number | string) => {
  * Alias for fetchRooms for consistency
  */
 export const getAllRooms = fetchRooms;
+
+export interface AvailableRoom {
+    id: number;
+    building_id: number;
+    room_number: string;
+    floor: number;
+    max_capacity: number;
+    price_per_semester: number;
+    has_ac: number;
+    has_heater: number;
+    has_washer: number;
+    status: string;
+    building_name: string;
+    building_gender: 'MALE' | 'FEMALE' | 'MIXED';
+    current_occupancy: number;
+    available_slots: number;
+    current_genders: string | null;
+}
+
+/**
+ * Get available rooms for student registration
+ */
+export const getAvailableRooms = async (
+    semesterId: number,
+    buildingId?: number
+): Promise<AvailableRoom[]> => {
+    try {
+        const params: any = { semester_id: semesterId };
+        if (buildingId) {
+            params.building_id = buildingId;
+        }
+        
+        const response = await api.get('/available', { params });
+        return response.data;
+    } catch (error: any) {
+        console.error('Error fetching available rooms:', error);
+        throw error;
+    }
+};
+

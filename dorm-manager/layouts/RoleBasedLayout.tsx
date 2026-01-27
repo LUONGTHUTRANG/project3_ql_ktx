@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AuthContext } from '../App';
 import AdminLayout from './AdminLayout';
@@ -6,6 +6,7 @@ import ManagerLayout from './ManagerLayout';
 import StudentLayout from './StudentLayout';
 import { NavItem, UserRole } from '../types';
 import { getNavItemsByRole, getLayoutTitleByRole } from '../config/layoutConfig';
+import { getStudentById } from '../api';
 
 interface RoleBasedLayoutProps {
   children: React.ReactNode;
@@ -50,18 +51,36 @@ const RoleBasedLayout: React.FC<RoleBasedLayoutProps> = ({
 }) => {
   const { user } = useContext(AuthContext);
   const location = useLocation();
+  const [hasRoom, setHasRoom] = useState<boolean | undefined>(undefined);
 
-  if (!user) return null;
+  // Fetch student info to check if they have a room (only for students)
+  useEffect(() => {
+    if (user && user.role === UserRole.STUDENT) {
+      const checkStudentRoom = async () => {
+        try {
+          const studentData = await getStudentById(user.id);
+          setHasRoom(!!studentData?.current_room_id);
+        } catch (error) {
+          console.error('Error checking student room:', error);
+          setHasRoom(false);
+        }
+      };
+      checkStudentRoom();
+    }
+  }, [user?.id, user?.role]);
 
   // Get nav items: use custom if provided, otherwise use role-based defaults
   const navItems = useMemo(() => {
-    const items = customNavItems || getNavItemsByRole(user.role);
+    if (!user) return [];
+    const items = customNavItems || getNavItemsByRole(user.role, hasRoom);
     // Mark active items based on current pathname
     return items.map(item => ({
       ...item,
       isActive: item.link === location.pathname
     }));
-  }, [customNavItems, user.role, location.pathname]);
+  }, [customNavItems, user?.role, hasRoom, location.pathname]);
+
+  if (!user) return null;
 
   // Get default title if not provided
   const finalTitle = headerTitle || getLayoutTitleByRole(user.role);

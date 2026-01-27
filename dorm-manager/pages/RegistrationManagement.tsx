@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
-import { Input, Select, Spin, message } from 'antd';
+import { Input, Select, Spin, message, Modal } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { getAllRegistrations, updateRegistrationStatus, Registration } from '../api';
+import { getAllRegistrations, updateRegistrationStatus, Registration, autoAssignRooms } from '../api';
+import { getActiveSemester } from '../api_handlers/semesterApi';
 import API_BASE_URL from '../api_handlers/config';
 
 // Get backend base URL for file access (remove /api suffix)
@@ -571,6 +572,94 @@ const RegistrationManagement: React.FC = () => {
                                     </button>
                                 </>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Auto-assign Result Modal */}
+            {showAutoAssignModal && autoAssignResult && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-2xl">
+                            <h2 className="text-2xl font-bold">Kết quả phân phòng tự động</h2>
+                        </div>
+                        
+                        <div className="p-6 space-y-6">
+                            {/* Summary */}
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                                        {autoAssignResult.result.total}
+                                    </div>
+                                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Tổng số đơn</div>
+                                </div>
+                                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                                        {autoAssignResult.result.success}
+                                    </div>
+                                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Thành công</div>
+                                </div>
+                                <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 text-center">
+                                    <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                                        {autoAssignResult.result.failed}
+                                    </div>
+                                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">Thất bại</div>
+                                </div>
+                            </div>
+
+                            {/* Details */}
+                            {autoAssignResult.result.details && autoAssignResult.result.details.length > 0 && (
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Chi tiết phân phòng</h3>
+                                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                        {autoAssignResult.result.details.map((detail: any, index: number) => (
+                                            <div
+                                                key={index}
+                                                className={`p-3 rounded-lg border ${
+                                                    detail.status === 'SUCCESS'
+                                                        ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                                                        : 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <div className="font-medium text-gray-800 dark:text-gray-200">
+                                                            {detail.student_name} ({detail.mssv})
+                                                        </div>
+                                                        {detail.status === 'SUCCESS' ? (
+                                                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                                Phòng: {detail.assigned_room}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-sm text-red-600 dark:text-red-400">
+                                                                {detail.reason}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <span className={`material-symbols-outlined ${
+                                                        detail.status === 'SUCCESS' ? 'text-green-600' : 'text-red-600'
+                                                    }`}>
+                                                        {detail.status === 'SUCCESS' ? 'check_circle' : 'cancel'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 flex justify-end rounded-b-2xl">
+                            <button
+                                onClick={() => {
+                                    setShowAutoAssignModal(false);
+                                    setAutoAssignResult(null);
+                                }}
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                            >
+                                Đóng
+                            </button>
                         </div>
                     </div>
                 </div>

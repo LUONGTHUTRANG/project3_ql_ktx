@@ -15,6 +15,7 @@ import roomFeeInvoiceRoutes from "./roomFeeInvoiceRoutes.js";
 import otherInvoiceRoutes from "./otherInvoiceRoutes.js";
 import paymentRoutes from "./paymentRoutes.js";
 import systemConfigRoutes from "./systemConfigRoutes.js";
+import stayRoutes from "./stayRoutes.js";
 
 const router = express.Router();
 
@@ -34,5 +35,6 @@ router.use("/room-fee-invoices", roomFeeInvoiceRoutes);
 router.use("/other-invoices", otherInvoiceRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/system-config", systemConfigRoutes);
+router.use("/stays", stayRoutes);
 
 export default router;

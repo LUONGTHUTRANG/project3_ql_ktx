@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
   SUPPORT_REQUESTS: `${API_BASE_URL}/support-requests`,
   PAYMENTS: `${API_BASE_URL}/payments`,
   SYSTEM_CONFIG: `${API_BASE_URL}/system-config`,
+  STAYS: `${API_BASE_URL}/stays`,
 };
 
 export default API_BASE_URL;

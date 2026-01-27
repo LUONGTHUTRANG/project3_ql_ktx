@@ -108,6 +108,82 @@ const Room = {
     
     return { id };
   },
+
+  // Get available rooms for auto-assignment
+  getAvailableRoomsForAssignment: async (semesterId) => {
+    const [rows] = await db.query(
+      `SELECT 
+        r.id, r.room_number, r.max_capacity, r.building_id,
+        b.name AS building_name, b.gender_restriction AS building_gender,
+        COALESCE(COUNT(sr.id), 0) as current_occupancy
+      FROM rooms r
+      JOIN buildings b ON r.building_id = b.id
+      LEFT JOIN stay_records sr ON r.id = sr.room_id 
+        AND sr.semester_id = ? 
+        AND sr.status = 'ACTIVE'
+      WHERE r.status = 'AVAILABLE'
+      GROUP BY r.id, r.room_number, r.max_capacity, 
+               r.building_id, b.name, b.gender_restriction
+      HAVING current_occupancy < r.max_capacity
+      ORDER BY current_occupancy DESC`,
+      [semesterId]
+    );
+    return rows;
+  },
+
+  // Get room occupancy details
+  getRoomOccupancy: async (roomId, semesterId) => {
+    const [rows] = await db.query(
+      `SELECT 
+        COUNT(*) as count,
+        GROUP_CONCAT(s.gender) as genders
+      FROM stay_records sr
+      JOIN students s ON sr.student_id = s.id
+      WHERE sr.room_id = ?
+        AND sr.semester_id = ?
+        AND sr.status = 'ACTIVE'`,
+      [roomId, semesterId]
+    );
+    return rows[0] || { count: 0, genders: null };
+  },
+
+  // Get available rooms for student registration (with occupancy info)
+  getAvailableRoomsForRegistration: async (buildingId, semesterId) => {
+    const query = `
+      SELECT 
+        r.id,
+        r.building_id,
+        r.room_number,
+        r.floor,
+        r.max_capacity,
+        r.price_per_semester,
+        r.has_ac,
+        r.has_heater,
+        r.has_washer,
+        r.status,
+        b.name AS building_name,
+        b.gender_restriction AS building_gender,
+        COALESCE(COUNT(sr.id), 0) as current_occupancy,
+        (r.max_capacity - COALESCE(COUNT(sr.id), 0)) as available_slots,
+        GROUP_CONCAT(DISTINCT s.gender) as current_genders
+      FROM rooms r
+      JOIN buildings b ON r.building_id = b.id
+      LEFT JOIN stay_records sr ON r.id = sr.room_id 
+        AND sr.semester_id = ? 
+        AND sr.status = 'ACTIVE'
+      LEFT JOIN students s ON sr.student_id = s.id
+      WHERE r.status = 'AVAILABLE'
+        ${buildingId ? 'AND r.building_id = ?' : ''}
+      GROUP BY r.id, r.building_id, r.room_number, r.floor, r.max_capacity, 
+               r.price_per_semester, r.has_ac, r.has_heater, r.has_washer, 
+               r.status, b.name, b.gender_restriction
+      HAVING available_slots > 0
+      ORDER BY r.building_id, r.floor, r.room_number`;
+    
+    const params = buildingId ? [semesterId, buildingId] : [semesterId];
+    const [rows] = await db.query(query, params);
+    return rows;
+  },
 };
 
 export default Room;

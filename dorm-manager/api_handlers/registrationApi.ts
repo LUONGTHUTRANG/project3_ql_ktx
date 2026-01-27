@@ -67,7 +67,7 @@ export interface CreateRegistrationData {
  * Tạo đơn đăng ký mới
  * Sử dụng FormData để hỗ trợ upload file minh chứng
  */
-export const createRegistration = async (data: CreateRegistrationData): Promise<{ message: string; id: number }> => {
+export const createRegistration = async (data: CreateRegistrationData): Promise<{ message: string; id: number; invoice_id?: number | null }> => {
     try {
         const formData = new FormData();
 
@@ -179,6 +179,75 @@ export const updateRegistrationStatus = async (
         return response.data;
     } catch (error: any) {
         const message = error.response?.data?.message || 'Cập nhật trạng thái thất bại';
+        throw new Error(message);
+    }
+};
+
+/**
+ * Phân phòng tự động (Auto-assign) cho các đơn đăng ký NORMAL
+ */
+export const autoAssignRooms = async (semesterId: number): Promise<{
+    message: string;
+    result: {
+        total: number;
+        success: number;
+        failed: number;
+        details: Array<{
+            student_id: number;
+            student_name: string;
+            mssv: string;
+            status: 'SUCCESS' | 'FAILED';
+            assigned_room?: string;
+            room_id?: number;
+            reason?: string;
+        }>;
+    };
+}> => {
+    try {
+        const response = await api.post('/auto-assign', { semester_id: semesterId });
+        return response.data;
+    } catch (error: any) {
+        const message = error.response?.data?.message || 'Phân phòng tự động thất bại';
+        throw new Error(message);
+    }
+};
+
+/**
+ * Lấy báo cáo phân phòng
+ */
+export const getAssignmentReport = async (semesterId: number): Promise<{
+    semester_id: number;
+    registration_stats: {
+        total_registrations: number;
+        approved: number;
+        pending: number;
+        rejected: number;
+        normal_type: number;
+        priority_type: number;
+        renewal_type: number;
+    };
+    room_stats: {
+        total_rooms: number;
+        total_capacity: number;
+        current_occupancy: number;
+        full_rooms: number;
+        empty_rooms: number;
+    };
+    building_stats: Array<{
+        id: number;
+        name: string;
+        total_rooms: number;
+        total_capacity: number;
+        current_occupancy: number;
+    }>;
+}> => {
+    try {
+        const response = await api.get('/report/assignment', {
+            params: { semester_id: semesterId }
+        });
+        return response.data;
+    } catch (error: any) {
+        const message = error.response?.data?.message || 'Lấy báo cáo thất bại';
         throw new Error(message);
     }
 };

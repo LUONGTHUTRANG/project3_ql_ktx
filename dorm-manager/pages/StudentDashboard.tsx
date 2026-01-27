@@ -157,7 +157,8 @@ const StudentDashboard: React.FC = () => {
           </div> */}
         </div>
 
-        {/* Room Info Card */}
+        {/* Room Info Card - Only show if student has a room */}
+        {roomData && (
         <div className="rounded-xl bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700 shadow-sm p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="size-14 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
@@ -169,37 +170,31 @@ const StudentDashboard: React.FC = () => {
               <h3 className="text-text-main dark:text-white text-lg font-bold">
                 {loading
                   ? "Đang tải..."
-                  : roomData?.room_number
-                    ? `Phòng của tôi (${roomData.room_number})`
-                    : "Chưa có phòng"}
+                  : `Phòng của tôi (${roomData.room_number})`}
               </h3>
               <div className="flex items-center gap-3 text-sm text-text-secondary dark:text-gray-400 mt-1">
-                {roomData && (
-                  <>
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[18px]">
-                        group
-                      </span>
-                      {roommates.length + 1} thành viên
-                    </span>
-                    <span className="h-1 w-1 rounded-full bg-border-color"></span>
-                    <span
-                      className={
-                        roomData.capacity &&
-                        roomData.current_occupants &&
-                        roomData.current_occupants >= roomData.capacity
-                          ? "text-green-600 font-medium"
-                          : "text-orange-600 font-medium"
-                      }
-                    >
-                      {roomData.capacity &&
-                      roomData.current_occupants &&
-                      roomData.current_occupants >= roomData.capacity
-                        ? "Đã đủ người"
-                        : "Còn chỗ trống"}
-                    </span>
-                  </>
-                )}
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[18px]">
+                    group
+                  </span>
+                  {roommates.length + 1} thành viên
+                </span>
+                <span className="h-1 w-1 rounded-full bg-border-color"></span>
+                <span
+                  className={
+                    roomData.capacity &&
+                    roomData.current_occupants &&
+                    roomData.current_occupants >= roomData.capacity
+                      ? "text-green-600 font-medium"
+                      : "text-orange-600 font-medium"
+                  }
+                >
+                  {roomData.capacity &&
+                  roomData.current_occupants &&
+                  roomData.current_occupants >= roomData.capacity
+                    ? "Đã đủ người"
+                    : "Còn chỗ trống"}
+                </span>
               </div>
             </div>
           </div>
@@ -213,6 +208,7 @@ const StudentDashboard: React.FC = () => {
             Xem danh sách thành viên
           </button>
         </div>
+        )}
 
         {/* Notifications Banner */}
         <div className="rounded-xl bg-gradient-to-r from-[#137fec] to-[#0b5ac9] shadow-md text-white p-4 md:p-5">
@@ -533,8 +529,6 @@ const StudentDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-
-        <div className="h-10"></div>
       </div>
     </RoleBasedLayout>
   );
