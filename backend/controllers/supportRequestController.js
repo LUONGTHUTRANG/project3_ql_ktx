@@ -3,6 +3,51 @@ import Notification from "../models/notificationModel.js";
 import Stay from "../models/stayModel.js";
 import db from "../config/db.js";
 
+// Helper to send notification to building manager
+const sendNotificationToManager = async (studentId, title, content, notificationType) => {
+  try {
+    // Get student's building from active stay using Stay model
+    const buildingId = await Stay.getActiveBuildingId(studentId);
+
+    if (buildingId) {
+      // Get managers for this building
+      const [managers] = await db.query(
+        "SELECT id FROM managers WHERE building_id = ?",
+        [buildingId]
+      );
+
+      if (managers && managers.length > 0) {
+        // Create notification
+        const notificationId = await Notification.create({
+          title,
+          content,
+          sender_role: "STUDENT",
+          sender_id: studentId,
+          target_scope: "BUILDING",
+          type: notificationType,
+        });
+
+        // Add managers as recipients with building_id
+        const recipientValues = managers.map((manager) => [
+          notificationId,
+          manager.id,
+          "manager",
+          null,
+          buildingId,
+        ]);
+
+        await Notification.addRecipients(recipientValues);
+        console.log(
+          `Notification (${notificationType}) sent to ${managers.length} manager(s) for student #${studentId}`
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error sending notification:", error);
+    // Don't throw - notification error shouldn't break the main operation
+  }
+};
+
 // Helper to get full URL for local file
 const getFileUrl = (req, filename) => {
   if (!filename) return null;
@@ -39,46 +84,12 @@ export const createSupportRequest = async (req, res) => {
     });
 
     // Send notification to building manager
-    try {
-      // Get student's building from active stay using Stay model
-      const buildingId = await Stay.getActiveBuildingId(student_id);
-
-      if (buildingId) {
-        // Get managers for this building
-        const [managers] = await db.query(
-          "SELECT id FROM managers WHERE building_id = ?",
-          [buildingId]
-        );
-
-        if (managers && managers.length > 0) {
-          // Create notification
-          const notificationId = await Notification.create({
-            title: `Yêu cầu hỗ trợ mới: ${title}`,
-            content: `Sinh viên đã gửi yêu cầu hỗ trợ: ${content}`,
-            sender_role: "STUDENT",
-            sender_id: student_id,
-            target_scope: "BUILDING",
-            type: "ANNOUNCEMENT",
-          });
-
-          // Add managers as recipients with building_id
-          const recipientValues = managers.map((manager) => [
-            notificationId,
-            manager.id,
-            "manager",
-            null,
-            buildingId,
-          ]);
-
-          await Notification.addRecipients(recipientValues);
-          console.log(
-            `Notification sent to ${managers.length} manager(s) for support request #${requestId}`
-          );
-        }
-      }
-    } catch (notificationErr) {
-      console.error("Error sending notification:", notificationErr);
-    }
+    await sendNotificationToManager(
+      student_id,
+      `Yêu cầu hỗ trợ mới: ${title}`,
+      `Sinh viên đã gửi yêu cầu hỗ trợ: ${content}`,
+      "SUPPORT_REQUEST_CREATED"
+    );
 
     res.status(201).json({ message: "Support request created", id: requestId });
   } catch (err) {
@@ -192,6 +203,14 @@ export const deleteSupportRequest = async (req, res) => {
       return res.status(500).json({ message: "Failed to delete support request" });
     }
 
+    // Send notification to building manager
+    await sendNotificationToManager(
+      request.student_id,
+      `Yêu cầu hỗ trợ đã bị xóa: ${request.title}`,
+      `Sinh viên đã xóa yêu cầu hỗ trợ: ${request.content}`,
+      "ANNOUNCEMENT"
+    );
+
     res.json({ message: "Support request deleted successfully" });
   } catch (err) {
     console.error(err);
@@ -232,6 +251,14 @@ export const updateSupportRequest = async (req, res) => {
     if (!success) {
       return res.status(500).json({ message: "Failed to update support request" });
     }
+
+    // Send notification to building manager
+    await sendNotificationToManager(
+      request.student_id,
+      `Yêu cầu hỗ trợ đã được cập nhật: ${title}`,
+      `Sinh viên đã cập nhật yêu cầu hỗ trợ: ${content}`,
+      "ANNOUNCEMENT"
+    );
 
     res.json({ message: "Support request updated successfully" });
   } catch (err) {
