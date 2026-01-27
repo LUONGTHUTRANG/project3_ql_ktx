@@ -6,6 +6,8 @@ import {
   getAllSupportRequests,
   getSupportRequestById,
   updateSupportRequestStatus,
+  deleteSupportRequest,
+  updateSupportRequest,
 } from "../controllers/supportRequestController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
@@ -33,5 +35,7 @@ router.post("/", upload.single("attachment"), createSupportRequest);
 router.get("/", getAllSupportRequests);
 router.get("/:id", getSupportRequestById);
 router.put("/:id/status", updateSupportRequestStatus);
+router.put("/:id", upload.single("attachment"), updateSupportRequest);
+router.delete("/:id", deleteSupportRequest);
 
 export default router;

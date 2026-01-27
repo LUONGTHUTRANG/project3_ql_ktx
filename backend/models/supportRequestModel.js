@@ -127,6 +127,23 @@ const SupportRequest = {
     );
     return result.affectedRows > 0;
   },
+
+  delete: async (id) => {
+    const [result] = await db.query(
+      "DELETE FROM support_requests WHERE id = ?",
+      [id]
+    );
+    return result.affectedRows > 0;
+  },
+
+  update: async (id, data) => {
+    const { type, title, content, attachment_path } = data;
+    const [result] = await db.query(
+      "UPDATE support_requests SET type = ?, title = ?, content = ?, attachment_path = ? WHERE id = ?",
+      [type, title, content, attachment_path, id]
+    );
+    return result.affectedRows > 0;
+  },
 };
 
 export default SupportRequest;

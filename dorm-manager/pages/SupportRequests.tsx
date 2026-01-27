@@ -2,11 +2,11 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import Pagination from '../components/Pagination';
-import { Input, Spin } from 'antd';
+import { Input, Spin, Modal, message } from 'antd';
 import { SearchOutlined } from "@ant-design/icons";
 import { AuthContext } from '../App';
 import { UserRole } from '../types';
-import { getAllSupportRequests } from '../api';
+import { getAllSupportRequests, deleteSupportRequest } from '../api_handlers/supportRequestApi';
 
 const SupportRequests: React.FC = () => {
   const navigate = useNavigate();
@@ -135,6 +135,38 @@ const SupportRequests: React.FC = () => {
     }
   };
 
+  const handleEdit = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    navigate(`/student/requests/${id}/edit`);
+  };
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    Modal.confirm({
+      title: 'Xóa yêu cầu hỗ trợ',
+      content: 'Bạn có chắc chắn muốn xóa yêu cầu này? Hành động này không thể hoàn tác.',
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await deleteSupportRequest(id);
+          message.success('Yêu cầu hỗ trợ đã được xóa thành công');
+          // Reload the requests list
+          const response = await getAllSupportRequests(currentPage, itemsPerPage, {
+            status: statusFilter || undefined,
+          });
+          setRequests(response.data || []);
+          setTotalItems(response.meta?.total || 0);
+          setTotalPages(response.meta?.totalPages || 0);
+        } catch (error: any) {
+          message.error(error.response?.data?.error || 'Không thể xóa yêu cầu hỗ trợ');
+          console.error('Error deleting support request:', error);
+        }
+      },
+    });
+  };
+
   return (
     <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm yêu cầu, dịch vụ..."
@@ -214,6 +246,19 @@ const SupportRequests: React.FC = () => {
             >
               Đang xử lý
             </button>
+            <button 
+              onClick={() => {
+                setStatusFilter('completed');
+                setCurrentPage(1);
+              }}
+              className={`flex h-11 items-center justify-center px-4 rounded-lg text-sm font-medium shadow-sm whitespace-nowrap transition-colors ${
+                statusFilter === 'completed' 
+                  ? 'bg-primary text-white dark:bg-white dark:text-text-main' 
+                  : 'bg-white dark:bg-surface-dark border border-border-color dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-text-secondary dark:text-gray-300'
+              }`}
+            >
+              Đã hoàn thành
+            </button>
           </div>
         </div>
 
@@ -227,25 +272,26 @@ const SupportRequests: React.FC = () => {
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Chi tiết</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Ngày gửi</th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400">Trạng thái</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400"></th>
+                  {/* <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400"></th> */}
+                  {!isManager && <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-gray-400 text-center">Thao tác</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-color dark:divide-gray-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={!isManager ? 7 : 6} className="px-6 py-12 text-center">
                       <Spin tip="Đang tải yêu cầu hỗ trợ..." />
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-red-600">
+                    <td colSpan={!isManager ? 7 : 6} className="px-6 py-12 text-center text-red-600">
                       {error}
                     </td>
                   </tr>
                 ) : currentItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center text-text-secondary dark:text-gray-500">
+                    <td colSpan={!isManager ? 7 : 6} className="px-6 py-20 text-center text-text-secondary dark:text-gray-500">
                       Không tìm thấy yêu cầu nào.
                     </td>
                   </tr>
@@ -280,11 +326,41 @@ const SupportRequests: React.FC = () => {
                           {item.statusLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 align-middle text-right">
+                      {/* <td className="px-6 py-4 align-middle text-right">
                         <button className="text-text-secondary dark:text-gray-500 group-hover:text-primary transition-colors">
                           <span className="material-symbols-outlined">chevron_right</span>
                         </button>
-                      </td>
+                      </td> */}
+                      {!isManager && (
+                        <td className="px-6 py-4 align-middle">
+                          <div className="flex gap-2 justify-center">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(item.id);
+                              }}
+                              className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                              title="Xem yêu cầu"
+                            >
+                              <span className="material-symbols-outlined text-lg">visibility</span>
+                            </button>
+                            <button 
+                              onClick={(e) => handleEdit(e, item.id)}
+                              className="p-2 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded transition-colors"
+                              title="Sửa yêu cầu"
+                            >
+                              <span className="material-symbols-outlined text-lg">edit</span>
+                            </button>
+                            <button 
+                              onClick={(e) => handleDelete(e, item.id)}
+                              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                              title="Xóa yêu cầu"
+                            >
+                              <span className="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}

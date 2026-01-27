@@ -88,3 +88,31 @@ export const updateSupportRequestStatus = async (id: number | string, status: st
     throw error;
   }
 };
+
+export const deleteSupportRequest = async (id: number | string) => {
+  try {
+    const response = await api.delete(`/${id}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Error deleting support request:', error);
+    throw error;
+  }
+};
+
+export const updateSupportRequest = async (id: number | string, data: any, file?: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('type', data.type);
+    formData.append('title', data.title);
+    formData.append('content', data.content);
+    if (file) formData.append('attachment', file);
+    
+    const response = await api.put(`/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating support request:', error);
+    throw error;
+  }
+};

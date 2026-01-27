@@ -141,7 +141,7 @@ const RoomManagement: React.FC = () => {
   };
 
   const handleRoomClick = (roomId: number) => {
-    navigate(`/manager/rooms/${roomId}`);
+    navigate(`/${user.role}/rooms/${roomId}`);
   };
 
   // Filter rooms

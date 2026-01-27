@@ -153,7 +153,7 @@ export const getAllPriorityRegistrations = async (
 export const getAllRegistrations = async (
     page: number = 1,
     limit: number = 20,
-    filters?: { status?: string; search?: string; registration_type?: string }
+    filters?: { status?: string; search?: string; registration_type?: string; building_id?: number }
 ): Promise<{ data: Registration[]; meta: { total: number; page: number; limit: number; totalPages: number } }> => {
     try {
         const response = await api.get('/all', {

@@ -6,7 +6,6 @@ import { UserRole } from '../types';
 import { getStudentById, StudentProfile, updateStudentContact } from '../api';
 import { App } from 'antd';
 import { getAvatarUrl } from '../utils/avatarUtils';
-import { getContactInfo } from '../api';
 
 interface ProfileProps {
   isManager?: boolean;
@@ -42,29 +41,6 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
   // If URL has student ID (manager viewing), use that; otherwise use logged-in user's ID
   const studentId = studentIdFromUrl || user?.id;
 
-  // Load contact info từ API
-  useEffect(() => {
-    const loadContactInfo = async () => {
-      try {
-        const info = await getContactInfo();
-        setContactInfo(info);
-        setFormData({
-          phone: info.phone_number || '',
-          email: info.email || ''
-        });
-      } catch (err) {
-        console.error('Lỗi khi tải thông tin liên lạc:', err);
-        // Fallback - set empty form
-        setFormData({
-          phone: '',
-          email: ''
-        });
-      }
-    };
-
-    loadContactInfo();
-  }, []);
-
   // Load dữ liệu sinh viên từ API
   useEffect(() => {
     const loadStudentData = async () => {
@@ -85,6 +61,16 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
 
     loadStudentData();
   }, [studentId]);
+
+  // Update formData when studentData is loaded
+  useEffect(() => {
+    if (studentData) {
+      setFormData({
+        phone: studentData.phone_number || '',
+        email: studentData.email || ''
+      });
+    }
+  }, [studentData]);
 
   if (!user) return null;
 
@@ -223,13 +209,13 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
       headerTitle={isManager ? "Thông tin sinh viên" : "Thông tin cá nhân"}
     >
       {isManager && <button
-            onClick={() => navigate('/manager/students')}
+            onClick={() => navigate(-1)}
             className="group flex items-center gap-2 mb-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
           >
             <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
               <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             </div>
-            <span className="text-sm font-bold leading-normal">Quay lại danh sách</span>
+            <span className="text-sm font-bold leading-normal">Quay lại danh sách sinh viên</span>
           </button>}
       <div className="mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
           <>
@@ -276,7 +262,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                 </p>
               </div>
             </div>
-            {isManager && (
+            {/* {isManager && (
               <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
                 <button 
                   onClick={() => setShowChangeRoomModal(true)}
@@ -293,7 +279,7 @@ const Profile: React.FC<ProfileProps> = ({ isManager = false }) => {
                   <span>Xóa khỏi phòng</span>
                 </button>
               </div>
-            )}
+            )} */}
             {!isManager && !isEditMode  && (
               <div className="shrink-0">
                 <button 

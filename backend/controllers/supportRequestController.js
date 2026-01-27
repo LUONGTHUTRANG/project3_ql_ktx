@@ -1,4 +1,7 @@
 import SupportRequest from "../models/supportRequestModel.js";
+import Notification from "../models/notificationModel.js";
+import Stay from "../models/stayModel.js";
+import db from "../config/db.js";
 
 // Helper to get full URL for local file
 const getFileUrl = (req, filename) => {
@@ -34,6 +37,48 @@ export const createSupportRequest = async (req, res) => {
       content,
       attachment_path,
     });
+
+    // Send notification to building manager
+    try {
+      // Get student's building from active stay using Stay model
+      const buildingId = await Stay.getActiveBuildingId(student_id);
+
+      if (buildingId) {
+        // Get managers for this building
+        const [managers] = await db.query(
+          "SELECT id FROM managers WHERE building_id = ?",
+          [buildingId]
+        );
+
+        if (managers && managers.length > 0) {
+          // Create notification
+          const notificationId = await Notification.create({
+            title: `Yêu cầu hỗ trợ mới: ${title}`,
+            content: `Sinh viên đã gửi yêu cầu hỗ trợ: ${content}`,
+            sender_role: "STUDENT",
+            sender_id: student_id,
+            target_scope: "BUILDING",
+            type: "ANNOUNCEMENT",
+          });
+
+          // Add managers as recipients with building_id
+          const recipientValues = managers.map((manager) => [
+            notificationId,
+            manager.id,
+            "manager",
+            null,
+            buildingId,
+          ]);
+
+          await Notification.addRecipients(recipientValues);
+          console.log(
+            `Notification sent to ${managers.length} manager(s) for support request #${requestId}`
+          );
+        }
+      }
+    } catch (notificationErr) {
+      console.error("Error sending notification:", notificationErr);
+    }
 
     res.status(201).json({ message: "Support request created", id: requestId });
   } catch (err) {
@@ -121,6 +166,76 @@ export const updateSupportRequestStatus = async (req, res) => {
 
     res.json({ message: "Support request updated successfully" });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteSupportRequest = async (req, res) => {
+  try {
+    const requestId = req.params.id;
+    
+    // Get the support request to verify ownership (for students)
+    const request = await SupportRequest.getById(requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Support request not found" });
+    }
+
+    // Verify user can delete (only student who created it or admin/manager)
+    if (req.user.role === "student" && request.student_id !== req.user.id) {
+      return res.status(403).json({ message: "You can only delete your own support requests" });
+    }
+
+    // Delete the request
+    const success = await SupportRequest.delete(requestId);
+    
+    if (!success) {
+      return res.status(500).json({ message: "Failed to delete support request" });
+    }
+
+    res.json({ message: "Support request deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateSupportRequest = async (req, res) => {
+  try {
+    const requestId = req.params.id;
+    const { type, title, content } = req.body;
+    
+    // Get the support request to verify ownership
+    const request = await SupportRequest.getById(requestId);
+    if (!request) {
+      return res.status(404).json({ message: "Support request not found" });
+    }
+
+    // Verify user can update (only student who created it)
+    if (req.user.role === "student" && request.student_id !== req.user.id) {
+      return res.status(403).json({ message: "You can only update your own support requests" });
+    }
+
+    let attachment_path = request.attachment_path;
+    
+    // Handle new file upload
+    if (req.file) {
+      attachment_path = req.file.path.replace(/\\/g, "/");
+    }
+
+    const success = await SupportRequest.update(requestId, {
+      type,
+      title,
+      content,
+      attachment_path,
+    });
+
+    if (!success) {
+      return res.status(500).json({ message: "Failed to update support request" });
+    }
+
+    res.json({ message: "Support request updated successfully" });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };

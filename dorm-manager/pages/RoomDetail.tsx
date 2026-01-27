@@ -116,7 +116,7 @@ const RoomDetail: React.FC = () => {
 
   const isManager = user.role === UserRole.MANAGER || user.role === UserRole.ADMIN;
   const isStudent = user.role === UserRole.STUDENT;
-  const backLink = isManager ? '/manager/rooms' : '/student/home';
+  const backLink = isManager ? `/${user.role}/rooms` : '/student/home';
 
   return (
     <RoleBasedLayout 
@@ -130,7 +130,7 @@ const RoomDetail: React.FC = () => {
             <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
               <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             </div>
-            <span className="text-sm font-bold leading-normal">Quay lại danh sách</span>
+            <span className="text-sm font-bold leading-normal">Quay lại danh sách phòng</span>
           </button>)}
       {isLoading ? (
         <div className="flex items-center justify-center p-12">
@@ -168,7 +168,7 @@ const RoomDetail: React.FC = () => {
               </span>
             </div>
           </div>
-          {user.role === UserRole.ADMIN && <div className="flex gap-3 flex-wrap">
+          {/* {user.role === UserRole.ADMIN && <div className="flex gap-3 flex-wrap">
             <button className="flex items-center justify-center gap-2 rounded-xl h-11 px-5 bg-white dark:bg-gray-800 border border-border-color dark:border-gray-700 text-text-main dark:text-white text-sm font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95">
               <span className="material-symbols-outlined text-[20px]">settings</span>
               Cấu hình
@@ -181,7 +181,7 @@ const RoomDetail: React.FC = () => {
               <span className="material-symbols-outlined text-[20px]">person_add</span>
               Thêm sinh viên
             </button>
-          </div>}
+          </div>} */}
         </div>
 
         {/* Info Grid Cards */}
@@ -375,13 +375,16 @@ const RoomDetail: React.FC = () => {
                           </span>
                         </td>
                         {isManager && <td className="py-5 px-6 text-right">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                            <button className="size-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-primary/10 hover:text-primary text-text-secondary dark:text-gray-400 transition-all" title="Xem hồ sơ">
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              className="size-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-primary/10 hover:text-primary text-text-secondary dark:text-gray-400 transition-all" title="Xem hồ sơ"
+                              onClick={() => navigate(`/${user.role}/students/${student.id}`)}
+                            >
                               <span className="material-symbols-outlined text-[20px]">visibility</span>
                             </button>
-                            <button className="size-9 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 hover:bg-red-500 hover:text-white text-red-500 transition-all" title="Rời phòng">
+                            {/* <button className="size-9 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/20 hover:bg-red-500 hover:text-white text-red-500 transition-all" title="Rời phòng">
                               <span className="material-symbols-outlined text-[20px]">logout</span>
-                            </button>
+                            </button> */}
                           </div>
                         </td>}
                       </tr>

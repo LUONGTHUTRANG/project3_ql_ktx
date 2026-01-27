@@ -96,6 +96,24 @@ const Stay = {
       throw error;
     }
   },
+
+  // Get building_id from student's active stay
+  getActiveBuildingId: async (studentId) => {
+    try {
+      const [rows] = await db.query(
+        `SELECT r.building_id
+         FROM stay_records sr
+         JOIN rooms r ON sr.room_id = r.id
+         WHERE sr.student_id = ? AND sr.status = 'ACTIVE'
+         LIMIT 1`,
+        [studentId]
+      );
+      return rows.length > 0 ? rows[0].building_id : null;
+    } catch (error) {
+      console.error("Error getting active building id:", error);
+      throw error;
+    }
+  },
 };
 
 export default Stay;

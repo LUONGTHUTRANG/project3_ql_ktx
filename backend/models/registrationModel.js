@@ -157,6 +157,12 @@ const Registration = {
       params.push(`%${filters.search}%`, `%${filters.search}%`);
     }
 
+    // Filter by building - check desired building or current room's building
+    if (filters.building_id) {
+      query += " AND (r.desired_building_id = ? OR b2.id = ?)";
+      params.push(filters.building_id, filters.building_id);
+    }
+
     query += " ORDER BY r.created_at DESC LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
@@ -169,6 +175,11 @@ const Registration = {
       SELECT COUNT(*) as count
       FROM registrations r
       JOIN students s ON r.student_id = s.id
+      LEFT JOIN buildings b ON r.desired_building_id = b.id
+      LEFT JOIN stay_records sr ON r.student_id = sr.student_id 
+          AND sr.status = 'ACTIVE'
+      LEFT JOIN rooms rm ON sr.room_id = rm.id
+      LEFT JOIN buildings b2 ON rm.building_id = b2.id
       WHERE 1=1
     `;
     const params = [];
@@ -186,6 +197,12 @@ const Registration = {
     if (filters.search) {
       query += " AND (s.full_name LIKE ? OR s.mssv LIKE ?)";
       params.push(`%${filters.search}%`, `%${filters.search}%`);
+    }
+
+    // Filter by building - check desired building or current room's building
+    if (filters.building_id) {
+      query += " AND (r.desired_building_id = ? OR b2.id = ?)";
+      params.push(filters.building_id, filters.building_id);
     }
 
     const [rows] = await db.query(query, params);

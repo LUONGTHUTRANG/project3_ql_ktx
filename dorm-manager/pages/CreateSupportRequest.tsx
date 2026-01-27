@@ -2,7 +2,7 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { createSupportRequest, getSupportRequestById, updateSupportRequestStatus } from '../api';
+import { createSupportRequest, getSupportRequestById, updateSupportRequest } from '../api_handlers/supportRequestApi';
 import { message, Spin } from 'antd';
 
 const CreateSupportRequest: React.FC = () => {
@@ -98,12 +98,12 @@ const CreateSupportRequest: React.FC = () => {
       const fileToUpload = files.length > 0 ? files[0] : undefined;
       
       if (isEditMode && id) {
-        // Update existing request
-        await updateSupportRequestStatus(id, 'pending');
+        // Update existing request with all data
+        await updateSupportRequest(id, payload, fileToUpload);
         message.success('Yêu cầu hỗ trợ đã được cập nhật thành công!');
       } else {
         // Create new request
-        const response = await createSupportRequest(payload, fileToUpload);
+        await createSupportRequest(payload, fileToUpload);
         message.success('Yêu cầu hỗ trợ đã được gửi thành công!');
       }
       
@@ -143,26 +143,15 @@ const CreateSupportRequest: React.FC = () => {
         
         {/* Breadcrumbs & Title */}
         <div className="flex flex-col gap-2 mb-6">
-          {isEditMode && (
-            <div className="flex items-center gap-2 mb-1">
-              <button 
-                onClick={() => navigate(`/student/requests/${id}`)}
-                className="flex items-center gap-1 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors text-sm font-medium"
-              >
-                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                Quay lại chi tiết
-              </button>
-            </div>
-          )}
-          {!isEditMode && (<button
-            onClick={() => navigate('/student/requests')}
+          <button
+            onClick={() => navigate(`/${user.role}/requests`)}
             className="group flex items-center gap-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
           >
             <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
               <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             </div>
             <span className="text-sm font-bold leading-normal">Quay lại danh sách yêu cầu</span>
-          </button>)}
+          </button>
           <h1 className="text-text-main dark:text-white text-2xl md:text-3xl font-bold leading-tight tracking-tight">
             {isEditMode ? `Cập nhật yêu cầu #${id}` : 'Gửi yêu cầu hỗ trợ'}
           </h1>

@@ -275,6 +275,7 @@ export const getAllRegistrations = async (req, res) => {
       status: req.query.status,
       search: req.query.search,
       registration_type: req.query.registration_type,
+      building_id: req.query.building_id ? parseInt(req.query.building_id) : undefined,
     };
 
     // Manager chỉ xem đơn PRIORITY và RENEWAL
