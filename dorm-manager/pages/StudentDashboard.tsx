@@ -232,7 +232,7 @@ const StudentDashboard: React.FC = () => {
                 notifications.slice(0, 2).map((notif, index) => (
                   <div
                     key={notif.id || index}
-                    onClick={() => navigate("/notifications")}
+                    onClick={() => navigate("/student/notifications")}
                     className="flex items-center gap-3 bg-white/10 px-3 py-2 rounded-lg border border-white/10 hover:bg-white/20 transition-colors cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-yellow-300 text-[20px]">
@@ -255,7 +255,7 @@ const StudentDashboard: React.FC = () => {
               )}
             </div>
             <button
-              onClick={() => navigate("/notifications")}
+              onClick={() => navigate("/student/notifications")}
               className="text-sm font-medium text-blue-50 hover:text-white flex items-center gap-1 shrink-0 whitespace-nowrap"
             >
               Xem tất cả{" "}

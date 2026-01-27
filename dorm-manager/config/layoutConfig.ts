@@ -11,7 +11,7 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
   { label: 'Thông tin tòa nhà & phòng', icon: 'apartment', link: '/student/buildings' },
   { label: 'Hóa đơn & Công nợ', icon: 'receipt_long', link: '/student/bills' },
   { label: 'Yêu cầu hỗ trợ', icon: 'support_agent', link: '/student/requests' },
-  { label: 'Thông báo', icon: 'notifications', link: '/notifications' },
+  { label: 'Thông báo', icon: 'notifications', link: '/student/notifications' },
 ];
 
 /**

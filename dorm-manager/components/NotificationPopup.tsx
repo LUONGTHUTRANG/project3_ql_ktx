@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Spin, Modal } from 'antd';
 import { getMyNotifications, markAsRead } from '../api';
+import { AuthContext } from '@/App';
 
 interface NotificationPopupProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface NotificationPopupProps {
 
 const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose, onNotificationRead }) => {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadTime, setLoadTime] = useState<number>(0);
@@ -87,7 +89,7 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose, onNotifi
 
   const handleViewAll = () => {
     onClose();
-    navigate('/notifications');
+    navigate(`/${user.role}/notifications`);
   };
 
   const handleNotificationClick = (notification: any) => {
@@ -290,7 +292,7 @@ const NotificationPopup: React.FC<NotificationPopupProps> = ({ onClose, onNotifi
               <button
                 onClick={() => {
                   handleModalClose();
-                  navigate('/notifications');
+                  navigate(`/${user.role}/notifications/${selectedNotification.id}`);
                 }}
                 className="flex-1 h-10 rounded-lg bg-primary text-white font-medium hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
               >

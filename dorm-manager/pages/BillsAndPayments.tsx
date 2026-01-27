@@ -1,10 +1,12 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import QRCode from 'react-qr-code';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { Select, Spin } from 'antd';
+import { Select, Spin, message } from 'antd';
 import Pagination from '../components/Pagination';
 import { getInvoicesForStudent, getAllInvoices, getAllSemesters } from '../api';
+import { generateQRCodeForAll } from '../api_handlers/paymentApi';
 
 type TabType = 'unpaid' | 'paid' | 'overdue';
 
@@ -20,6 +22,10 @@ const BillsAndPayments: React.FC = () => {
   const [bills, setBills] = useState<any[]>([]);
   const [loadingBills, setLoadingBills] = useState(false);
   const [billsError, setBillsError] = useState<string | null>(null);
+  const [showPaymentQR, setShowPaymentQR] = useState(false);
+  const [paymentQRCode, setPaymentQRCode] = useState<any>(null);
+  const [isGeneratingPaymentQR, setIsGeneratingPaymentQR] = useState(false);
+  const [isQrZoomed, setIsQrZoomed] = useState(false);
 
   if (!user) return null;
 
@@ -181,6 +187,48 @@ const BillsAndPayments: React.FC = () => {
     navigate(`/student/bills/${id}`);
   };
 
+  const getTotalDebt = () => {
+    return bills
+      .filter(bill => bill.status?.toUpperCase() === 'PUBLISHED' || bill.status?.toUpperCase() === 'OVERDUE')
+      .reduce((sum, bill) => sum + Number(bill.total_amount || bill.amount || 0), 0);
+  };
+
+  const handleGeneratePaymentQR = async () => {
+    const totalDebt = getTotalDebt();
+    if (totalDebt === 0) {
+      message.info('Không có khoản nợ để thanh toán');
+      return;
+    }
+
+    setIsGeneratingPaymentQR(true);
+    try {
+      const qrData = await generateQRCodeForAll('all', user.id);
+      setPaymentQRCode(qrData);
+      setShowPaymentQR(true);
+      message.success('Mã QR được tạo thành công!');
+    } catch (err: any) {
+      message.error('Lỗi khi tạo mã QR');
+      console.error('Error:', err);
+    } finally {
+      setIsGeneratingPaymentQR(false);
+    }
+  };
+
+  const handlePaymentFromQR = () => {
+    if (!paymentQRCode) return;
+    // Pass unpaid invoices data via state
+    const unpaidInvoices = bills
+      .filter(bill => bill.status?.toUpperCase() === 'PUBLISHED' || bill.status?.toUpperCase() === 'OVERDUE')
+      .map(bill => ({
+        invoice_code: bill.invoice_code,
+        total_amount: parseFloat(bill.total_amount || bill.amount || 0),
+      }));
+    
+    navigate(`/student/payment-confirmation?ref=${paymentQRCode.paymentRef}&invoiceId=all`, {
+      state: { invoices: unpaidInvoices }
+    });
+  };
+
   return (
     <RoleBasedLayout 
       searchPlaceholder="Tìm kiếm hóa đơn..."
@@ -224,9 +272,22 @@ const BillsAndPayments: React.FC = () => {
                 <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30">Cần thanh toán</span>
               </div>
             </div>
-            <button className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98]">
-              <span className="material-symbols-outlined text-[20px]">payments</span>
-              Thanh toán tất cả
+            <button 
+              onClick={handleGeneratePaymentQR}
+              disabled={isGeneratingPaymentQR || getTotalDebt() === 0}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGeneratingPaymentQR ? (
+                <>
+                  <Spin size="small" style={{ color: 'white' }} />
+                  Đang tạo...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">payments</span>
+                  Thanh toán tất cả
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -373,6 +434,117 @@ const BillsAndPayments: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Payment QR Modal */}
+      {showPaymentQR && paymentQRCode && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200"
+          onClick={() => setShowPaymentQR(false)}
+        >
+          <button 
+            onClick={() => setShowPaymentQR(false)}
+            className="absolute top-6 right-6 size-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+          >
+            <span className="material-symbols-outlined text-3xl">close</span>
+          </button>
+          <div 
+            className="max-w-[500px] w-full bg-white dark:bg-surface-dark p-8 rounded-3xl animate-in zoom-in-95 duration-300 shadow-2xl shadow-primary/20 flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              className="p-6 bg-white rounded-2xl border-2 border-primary/20 shadow-xl mb-6 relative group cursor-zoom-in transition-all hover:scale-105 active:scale-95"
+              onClick={() => setIsQrZoomed(true)}
+            >
+              <div className="flex justify-center">
+                <QRCode 
+                  value={JSON.stringify({
+                    type: 'all',
+                    amount: getTotalDebt(),
+                    ref: paymentQRCode.paymentRef,
+                  })}
+                  size={200}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+              <div className="absolute inset-0 bg-black/5 dark:bg-black/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="bg-white/90 backdrop-blur-sm text-text-main text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm uppercase tracking-tighter">Phóng to</span>
+              </div>
+            </div>
+
+            {/* QR Info */}
+            <div className="text-center w-full mb-6">
+              <p className="text-text-main dark:text-white font-bold text-xl mb-1">Mã QR Thanh toán</p>
+              <p className="text-text-secondary dark:text-gray-400 text-sm font-medium mb-1">Tổng tiền</p>
+              <p className="text-3xl font-bold text-primary mb-3">{getTotalDebt().toLocaleString('vi-VN')}₫</p>
+              <p className="text-text-secondary dark:text-gray-400 text-xs font-medium">Hết hạn: {new Date(paymentQRCode.expiresAt).toLocaleTimeString('vi-VN')}</p>
+            </div>
+
+            {/* QR Expiry Alert */}
+            <div className="w-full bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-900/30 rounded-xl p-3 mb-6 text-center">
+              <p className="text-xs text-yellow-700 dark:text-yellow-400 font-bold">
+                ⏱️ Mã QR hết hạn trong: <span className="text-orange-600">{new Date(paymentQRCode.expiresAt).toLocaleTimeString('vi-VN')}</span>
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="w-full flex gap-3">
+              <button 
+                onClick={() => setShowPaymentQR(false)}
+                className="flex-1 flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-text-main dark:text-white font-bold py-3 px-4 rounded-xl transition-all"
+              >
+                Đóng
+              </button>
+              <button 
+                onClick={handlePaymentFromQR}
+                className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[20px]">payment</span>
+                Thanh toán ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Zoom Modal */}
+      {isQrZoomed && paymentQRCode && (
+        <div 
+          className="fixed inset-0 z-[101] flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200"
+          onClick={() => setIsQrZoomed(false)}
+        >
+          <button 
+            onClick={() => setIsQrZoomed(false)}
+            className="absolute top-6 right-6 size-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-all"
+          >
+            <span className="material-symbols-outlined text-3xl">close</span>
+          </button>
+          <div 
+            className="max-w-[600px] w-full bg-white dark:bg-surface-dark p-10 rounded-3xl animate-in zoom-in-95 duration-300 shadow-2xl shadow-primary/20 flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <QRCode 
+              value={JSON.stringify({
+                type: 'all',
+                amount: getTotalDebt(),
+                ref: paymentQRCode.paymentRef,
+              })}
+              size={350}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              level="H"
+              includeMargin={true}
+            />
+            <div className="mt-8 text-center w-full">
+              <p className="text-text-main dark:text-white font-bold text-xl mb-1">Mã QR Thanh toán Tất cả</p>
+              <p className="text-text-secondary dark:text-gray-400 text-sm font-medium mb-2">Tổng tiền: <strong className="text-primary">{getTotalDebt().toLocaleString('vi-VN')}₫</strong></p>
+              <p className="text-text-secondary dark:text-gray-400 text-xs font-medium">Hết hạn: {new Date(paymentQRCode.expiresAt).toLocaleTimeString('vi-VN')}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </RoleBasedLayout>
   );
 };

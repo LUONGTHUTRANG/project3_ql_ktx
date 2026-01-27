@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { message, Spin } from 'antd';
 import QRCode from 'react-qr-code';
 import { AuthContext } from '../App';
@@ -10,11 +10,13 @@ const PaymentConfirmation: React.FC = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   
   const [isLoading, setIsLoading] = useState(true);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invoices, setInvoices] = useState<any[]>([]);
 
   const paymentRef = searchParams.get('ref');
   const invoiceId = searchParams.get('invoiceId');
@@ -35,6 +37,11 @@ const PaymentConfirmation: React.FC = () => {
         const data = await verifyPaymentRef(paymentRef);
         setPaymentData(data);
         setError(null);
+
+        // Get invoices from location state if available (for batch payment)
+        if (location.state?.invoices) {
+          setInvoices(location.state.invoices);
+        }
       } catch (err: any) {
         setError(err.response?.data?.message || 'Lỗi xác thực thanh toán');
       } finally {
@@ -43,7 +50,7 @@ const PaymentConfirmation: React.FC = () => {
     };
 
     verifyPayment();
-  }, [paymentRef]);
+  }, [paymentRef, location.state]);
 
   const handleConfirmPayment = async () => {
     if (!paymentRef || !invoiceId) {
@@ -56,9 +63,15 @@ const PaymentConfirmation: React.FC = () => {
       const result = await confirmPayment(paymentRef, invoiceId, user.id);
       message.success('Thanh toán thành công!');
       
-      // Redirect back to invoice detail with success
+      // Redirect based on payment type
       setTimeout(() => {
-        navigate(`/student/bills/${invoiceId}?paymentSuccess=true`);
+        if (invoiceId === 'all') {
+          // Batch payment - return to bills list
+          navigate('/student/bills');
+        } else {
+          // Single invoice - return to invoice detail with success
+          navigate(`/student/bills/${invoiceId}?paymentSuccess=true`);
+        }
       }, 1500);
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Lỗi khi xác nhận thanh toán');
@@ -116,27 +129,58 @@ const PaymentConfirmation: React.FC = () => {
               <h1 className="text-3xl font-bold text-text-main dark:text-white mb-2">Xác nhận Thanh toán</h1>
               <p className="text-text-secondary dark:text-gray-400 mb-8">Kiểm tra thông tin và xác nhận thanh toán</p>
 
-              {/* Payment Details */}
-              <div className="bg-white dark:bg-gray-800/50 rounded-xl p-6 mb-8 text-left">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-4 border-b border-border-color dark:border-gray-700">
-                    <span className="text-text-secondary dark:text-gray-400">Mã Hóa đơn:</span>
-                    <span className="font-bold text-primary">{paymentData?.invoiceCode}</span>
+              {/* Payment Details - Batch Payment (Multiple Invoices) */}
+              {invoiceId === 'all' && invoices.length > 0 ? (
+                <div className="bg-white dark:bg-gray-800/50 rounded-xl p-6 mb-8 text-left">
+                  <h3 className="text-lg font-bold text-text-main dark:text-white mb-4">Danh sách hóa đơn</h3>
+                  <div className="space-y-3 mb-6">
+                    {invoices.map((invoice, index) => (
+                      <div key={index} className="flex justify-between items-center pb-3 border-b border-border-color dark:border-gray-700 last:border-b-0">
+                        <span className="text-text-secondary dark:text-gray-400">{invoice.invoice_code}</span>
+                        <span className="font-bold text-primary">
+                          {parseFloat(invoice.total_amount || 0).toLocaleString('vi-VN')}₫
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-border-color dark:border-gray-700">
-                    <span className="text-text-secondary dark:text-gray-400">Số tiền:</span>
-                    <span className="text-2xl font-bold text-primary">
-                      {paymentData?.amount?.toLocaleString('vi-VN')}₫
-                    </span>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-900/30">
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-700 dark:text-green-300 font-bold">Tổng tiền:</span>
+                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {invoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0).toLocaleString('vi-VN')}₫
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="mt-4 flex justify-between items-center text-sm">
                     <span className="text-text-secondary dark:text-gray-400">Hạn sử dụng:</span>
                     <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
                       {paymentData?.expiresAt ? new Date(paymentData.expiresAt).toLocaleTimeString('vi-VN') : 'N/A'}
                     </span>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* Payment Details - Single Invoice */
+                <div className="bg-white dark:bg-gray-800/50 rounded-xl p-6 mb-8 text-left">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center pb-4 border-b border-border-color dark:border-gray-700">
+                      <span className="text-text-secondary dark:text-gray-400">Mã Hóa đơn:</span>
+                      <span className="font-bold text-primary">{paymentData?.invoiceCode}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-4 border-b border-border-color dark:border-gray-700">
+                      <span className="text-text-secondary dark:text-gray-400">Số tiền:</span>
+                      <span className="text-2xl font-bold text-primary">
+                        {paymentData?.amount?.toLocaleString('vi-VN')}₫
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-text-secondary dark:text-gray-400">Hạn sử dụng:</span>
+                      <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                        {paymentData?.expiresAt ? new Date(paymentData.expiresAt).toLocaleTimeString('vi-VN') : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Warning */}
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-900/30 rounded-xl p-4 mb-8 flex gap-3">

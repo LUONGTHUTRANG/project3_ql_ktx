@@ -82,7 +82,13 @@ const CreateNotification: React.FC<CreateNotificationProps> = ({ mode = 'create'
       try {
         if (audience === 'building') {
           const response = await fetchBuildings();
-          const buildings = Array.isArray(response) ? response : response.data || [];
+          let buildings = Array.isArray(response) ? response : response.data || [];
+          
+          // Managers can only see their own building
+          if (user.role === 'manager' && user.building_id) {
+            buildings = buildings.filter((building: any) => building.id === user.building_id);
+          }
+          
           const options = buildings.map((building: any) => ({
             value: building.id,
             label: building.name
@@ -90,7 +96,13 @@ const CreateNotification: React.FC<CreateNotificationProps> = ({ mode = 'create'
           setTargetOptions(options);
         } else if (audience === 'room') {
           const response = await fetchRooms();
-          const rooms = Array.isArray(response) ? response : response.data || [];
+          let rooms = Array.isArray(response) ? response : response.data || [];
+          
+          // Managers can only see rooms in their building
+          if (user.role === 'manager' && user.building_id) {
+            rooms = rooms.filter((room: any) => room.building_id === user.building_id);
+          }
+          
           const options = rooms.map((room: any) => ({
             value: room.id,
             label: room.room_number
@@ -98,7 +110,13 @@ const CreateNotification: React.FC<CreateNotificationProps> = ({ mode = 'create'
           setTargetOptions(options);
         } else if (audience === 'student') {
           const response = await getAllStudents(1, 1000);
-          const students = Array.isArray(response) ? response : response.data || [];
+          let students = Array.isArray(response) ? response : response.data || [];
+          
+          // Managers can only see students in their building
+          if (user.role === 'manager' && user.building_id) {
+            students = students.filter((student: any) => student.building_id === user.building_id);
+          }
+          
           const options = students.map((student: any) => ({
             value: student.id,
             label: `${student.full_name} - MSSV: ${student.mssv}`
@@ -281,11 +299,15 @@ const CreateNotification: React.FC<CreateNotificationProps> = ({ mode = 'create'
               >
                 <Select
                   placeholder="--- Chọn phạm vi ---"
-                  options={[
+                  options={user.role === 'admin' ? [
                     { value: 'all', label: 'Tất cả sinh viên' },
                     { value: 'building', label: 'Tòa nhà' },
                     { value: 'room', label: 'Phòng' },
-                    {value: 'student', label: 'Sinh viên' }
+                    { value: 'student', label: 'Sinh viên' }
+                  ] : [
+                    { value: 'building', label: 'Tòa nhà' },
+                    { value: 'room', label: 'Phòng' },
+                    { value: 'student', label: 'Sinh viên' }
                   ]}
                   className='h-11 mb-1'
                   onChange={handleAudienceChange}

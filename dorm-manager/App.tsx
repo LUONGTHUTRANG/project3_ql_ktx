@@ -459,14 +459,14 @@ const AppContent: React.FC = () => {
         />
 
         <Route 
-          path="/notifications" 
+          path="/student/notifications" 
           element={
             user ? <NotificationList /> : <Navigate to="/login" replace />
           } 
         />
 
         <Route 
-          path="/notifications/:id" 
+          path="/student/notifications/:id" 
           element={
             user ? <NotificationDetail /> : <Navigate to="/login" replace />
           } 

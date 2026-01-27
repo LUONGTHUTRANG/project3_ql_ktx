@@ -34,6 +34,21 @@ export const generateQRCode = async (invoiceId: string, studentId: string) => {
   }
 };
 
+export const generateQRCodeForAll = async (type: string, studentId: string) => {
+  try {
+    // If type is 'all', call the new endpoint for all invoices
+    if (type === 'all') {
+      const response = await api.post('/qrcode/all');
+      return response.data;
+    }
+    // Otherwise, fall back to single invoice
+    return generateQRCode(type, studentId);
+  } catch (error: any) {
+    console.error('Error generating QR code for all:', error);
+    throw error;
+  }
+};
+
 export const confirmPayment = async (paymentRef: string, invoiceId: string, studentId: string) => {
   try {
     const response = await api.post('/confirm', {

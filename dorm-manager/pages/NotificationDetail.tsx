@@ -139,18 +139,18 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
         {/* Header Section with Back Button and Actions */}
         <div className="flex items-center justify-between mb-2 gap-2">
           <button
-            onClick={() => navigate(isManager ? '/manager/notifications' : '/notifications')}
+            onClick={() => navigate(`/${user.role}/notifications`)}
             className="group flex items-center gap-2 text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
           >
             <div className="flex items-center justify-center size-8 rounded-full group-hover:bg-primary/10 transition-colors">
               <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             </div>
-            <span className="text-sm font-bold leading-normal">Quay lại danh sách</span>
+            <span className="text-sm font-bold leading-normal">Quay lại danh sách thông báo</span>
           </button>
           <div className="flex items-center gap-2">
             {isManager && (
               <button
-                onClick={() => navigate(`/manager/notifications/${id}/edit`)}
+                onClick={() => navigate(`/${user.role}/notifications/${id}/edit`)}
                 className="flex items-center justify-center size-9 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                 title="Chỉnh sửa"
               >
@@ -233,32 +233,43 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({ isManager = fal
                 <span className="material-symbols-outlined text-[16px]">attachment</span>
                 Tệp đính kèm
               </h3>
-              <div className="flex items-center p-3 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-surface-dark hover:shadow-md hover:border-primary/30 transition-all group">
-                <div className={`flex items-center justify-center size-10 rounded ${getFileIconColor(getFileType(notification.attachment_path))} mr-3 shrink-0`}>
-                  <span className="material-symbols-outlined">{getFileIcon(getFileType(notification.attachment_path))}</span>
+              
+              {/* Image Display */}
+              {getFileType(notification.attachment_path) === 'image' ? (
+                  <img 
+                    src={notification.attachment_url} 
+                    alt={notification.attachment_path.split('/').pop() || 'Attachment'}
+                    className="max-w-full max-h-96 rounded-lg border border-border-color dark:border-gray-700 shadow-sm object-contain"
+                  />
+              ) : (
+                /* File Display (non-image) */
+                <div className="flex items-center p-3 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-surface-dark hover:shadow-md hover:border-primary/30 transition-all group">
+                  <div className={`flex items-center justify-center size-10 rounded ${getFileIconColor(getFileType(notification.attachment_path))} mr-3 shrink-0`}>
+                    <span className="material-symbols-outlined">{getFileIcon(getFileType(notification.attachment_path))}</span>
+                  </div>
+                  <div className="flex-1 min-w-0 mr-2">
+                    <p className="text-sm font-semibold text-text-main dark:text-gray-200 truncate group-hover:text-primary transition-colors">
+                      {notification.attachment_path.split('/').pop() || notification.attachment_path}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={handleView}
+                      className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      title="Xem"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">visibility</span>
+                    </button>
+                    <button
+                      onClick={handleDownload}
+                      className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      title="Tải xuống"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">download</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0 mr-2">
-                  <p className="text-sm font-semibold text-text-main dark:text-gray-200 truncate group-hover:text-primary transition-colors">
-                    {notification.attachment_path.split('/').pop() || notification.attachment_path}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={handleView}
-                    className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Xem"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">visibility</span>
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Tải xuống"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">download</span>
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>

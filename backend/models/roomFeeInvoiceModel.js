@@ -36,7 +36,7 @@ const RoomFeeInvoice = {
        JOIN rooms r ON rfi.room_id = r.id
        JOIN semesters sem ON rfi.semester_id = sem.id
        WHERE rfi.student_id = ?
-       ORDER BY rfi.created_at DESC`,
+       ORDER BY inv.created_at DESC`,
       [studentId]
     );
     return rows;

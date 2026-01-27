@@ -174,7 +174,7 @@ const NotificationList: React.FC = () => {
               return (
                 <div 
                   key={item.id} 
-                  onClick={() => navigate(`/notifications/${item.id}`)}
+                  onClick={() => navigate(`/${user.role}/notifications/${item.id}`)}
                   className={`group flex flex-col md:flex-row gap-4 bg-white dark:bg-surface-dark p-4 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${item.is_read ? 'border-transparent' : 'border-primary'}`}
                 >
                   <div className="flex flex-1 gap-4 items-start">

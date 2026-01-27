@@ -4,7 +4,10 @@ import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Generate QR code for invoice
+// Generate QR code for all unpaid invoices
+router.post("/qrcode/all", verifyToken, paymentController.generateQRCodeForAll);
+
+// Generate QR code for single invoice
 router.post("/qrcode/:invoiceId", verifyToken, paymentController.generateQRCode);
 
 // Confirm payment
