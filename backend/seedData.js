@@ -29,7 +29,7 @@ const seed = async () => {
     await db.query("ALTER TABLE system_setting AUTO_INCREMENT = 1");
     await db.query(
       `INSERT INTO system_setting 
-       (system_name, hotline, email, address, utility_start_day, utility_end_day, max_reservation_time) 
+       (system_name, hotline, email, address, utility_start_day, max_utility_time, max_reservation_time) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         "Hệ thống Quản lý Ký túc xá",

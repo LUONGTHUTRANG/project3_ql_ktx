@@ -40,7 +40,7 @@ export const SystemConfigProvider: React.FC<{ children: ReactNode }> = ({
         email: "",
         address: "",
         utility_start_day: 5,
-        utility_end_day: 25,
+        max_utility_time: 5,
         max_reservation_time: 72,
       });
       setLoading(false);
@@ -64,7 +64,7 @@ export const SystemConfigProvider: React.FC<{ children: ReactNode }> = ({
         email: "",
         address: "",
         utility_start_day: 5,
-        utility_end_day: 25,
+        max_utility_time: 5,
         max_reservation_time: 72,
       });
     } finally {

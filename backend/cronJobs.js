@@ -1,29 +1,49 @@
 import cron from "node-cron";
 import db from "./config/db.js";
 import UtilityInvoiceCycle from "./models/utilityInvoiceCycleModel.js";
-import UtilityInvoice from "./models/utilityInvoiceModel.js";
 
-/**
- * Initialize cron jobs for the application
- * - Create utility invoice cycle on the 27th of each month
- * - Create utility invoices for all rooms with old readings from previous cycle
- */
-export const initializeCronJobs = () => {
-  // Run at 00:00 (midnight) on the 27th of every month
-  // cron pattern: minute hour day month day-of-week
-  const cronPattern = "0 0 27 * *";
+export const initializeCronJobs = async () => {
+  try {
+    // Get utility_start_day from system_setting
+    const [systemSettings] = await db.query(
+      "SELECT utility_start_day FROM system_setting LIMIT 1"
+    );
 
-  cron.schedule(cronPattern, async () => {
-    console.log("[CRON] Starting utility invoice cycle creation job...");
-    try {
-      await createMonthlyUtilityInvoiceCycle();
-      console.log("[CRON] Utility invoice cycle creation job completed successfully");
-    } catch (error) {
-      console.error("[CRON] Error in utility invoice cycle creation job:", error);
+    let utilityStartDay = 27; // Default fallback
+    if (systemSettings && systemSettings.length > 0) {
+      utilityStartDay = systemSettings[0].utility_start_day;
     }
-  });
 
-  console.log("[CRON] Utility invoice cycle creation job scheduled for: 0 0 27 * * (27th of every month at 00:00)");
+    // Run at 00:00 (midnight) on the specified day of every month
+    // cron pattern: minute hour day month day-of-week
+    const cronPattern = `0 0 ${utilityStartDay} * *`;
+
+    cron.schedule(cronPattern, async () => {
+      console.log("[CRON] Starting utility invoice cycle creation job...");
+      try {
+        await createMonthlyUtilityInvoiceCycle();
+        console.log("[CRON] Utility invoice cycle creation job completed successfully");
+      } catch (error) {
+        console.error("[CRON] Error in utility invoice cycle creation job:", error);
+      }
+    });
+
+    console.log(`[CRON] Utility invoice cycle creation job scheduled for: 0 0 ${utilityStartDay} * * (${utilityStartDay}th of every month at 00:00)`);
+  } catch (error) {
+    console.error("[CRON] Error initializing cron jobs:", error);
+    // Fallback to day 27 if there's an error
+    const fallbackPattern = "0 0 27 * *";
+    cron.schedule(fallbackPattern, async () => {
+      console.log("[CRON] Starting utility invoice cycle creation job...");
+      try {
+        await createMonthlyUtilityInvoiceCycle();
+        console.log("[CRON] Utility invoice cycle creation job completed successfully");
+      } catch (error) {
+        console.error("[CRON] Error in utility invoice cycle creation job:", error);
+      }
+    });
+    console.log("[CRON] Fallback: Utility invoice cycle creation job scheduled for: 0 0 27 * * (27th of every month at 00:00)");
+  }
 };
 
 /**

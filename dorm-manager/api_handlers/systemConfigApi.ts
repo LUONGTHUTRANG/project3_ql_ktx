@@ -28,7 +28,7 @@ export interface SystemConfig {
   email: string;
   address: string;
   utility_start_day: number;
-  utility_end_day: number;
+  max_utility_time: number;
   max_reservation_time: number;
 }
 

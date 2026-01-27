@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Form, Input, InputNumber, Select, App, Row, Col, message } from 'antd';
-import { SaveOutlined, ReloadOutlined } from '@ant-design/icons';
+import { SaveOutlined } from '@ant-design/icons';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { getSystemConfig, updateSystemConfig, SystemConfig as ISystemConfig } from '../api';
 import { useSystemConfig } from '../contexts/SystemConfigContext';
 
 interface SystemConfig {
   billingStartDate: number;
-  billingEndDate: number;
-  billingEndDateMonth: 'current' | 'next';
+  maxUtilityTime: number;
   retentionValue: number;
   dormitoryName: string;
   hotlinePhone: string;
@@ -34,8 +33,7 @@ const SystemConfiguration: React.FC = () => {
         
         const formData: SystemConfig = {
           billingStartDate: apiData.utility_start_day || 5,
-          billingEndDate: apiData.utility_end_day || 25,
-          billingEndDateMonth: (apiData.utility_end_day || 25) >= (apiData.utility_start_day || 5) ? 'current' : 'next',
+          maxUtilityTime: apiData.max_utility_time || 5,
           retentionValue: apiData.max_reservation_time || 72,
           dormitoryName: apiData.system_name,
           hotlinePhone: apiData.hotline,
@@ -63,16 +61,6 @@ const SystemConfiguration: React.FC = () => {
   const handleSave = async (values: any) => {
     setLoading(true);
     try {
-      // Validate billing dates
-      if (values.billingEndDateMonth === 'current' && values.billingEndDate < values.billingStartDate) {
-        notification.error({
-          message: 'Lỗi xác thực',
-          description: 'Ngày kết thúc (tháng này) phải lớn hơn hoặc bằng ngày bắt đầu!',
-          duration: 4.5,
-        });
-        return;
-      }
-
       // Convert form data to API format
       const apiData: ISystemConfig = {
         system_name: values.dormitoryName,
@@ -80,7 +68,7 @@ const SystemConfiguration: React.FC = () => {
         email: values.supportEmail,
         address: values.dormitoryAddress,
         utility_start_day: values.billingStartDate,
-        utility_end_day: values.billingEndDate,
+        max_utility_time: values.maxUtilityTime,
         max_reservation_time: values.retentionValue,
       };
 
@@ -106,37 +94,6 @@ const SystemConfiguration: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleReset = () => {
-    setPageLoading(true);
-    const fetchAndReset = async () => {
-      try {
-        const apiData = await getSystemConfig();
-        const formData: SystemConfig = {
-          billingStartDate: apiData.utility_start_day || 5,
-          billingEndDate: apiData.utility_end_day || 25,
-          billingEndDateMonth: (apiData.utility_end_day || 25) >= (apiData.utility_start_day || 5) ? 'current' : 'next',
-          retentionValue: apiData.max_reservation_time || 72,
-          dormitoryName: apiData.system_name,
-          hotlinePhone: apiData.hotline,
-          supportEmail: apiData.email,
-          dormitoryAddress: apiData.address,
-        };
-        form.setFieldsValue(formData);
-        setBillingStartDate(formData.billingStartDate);
-        message.info('Đã khôi phục cấu hình từ database');
-      } catch (error: any) {
-        notification.error({
-          message: 'Lỗi khôi phục cấu hình',
-          description: error.message || 'Lỗi khi khôi phục cấu hình!',
-          duration: 4.5,
-        });
-      } finally {
-        setPageLoading(false);
-      }
-    };
-    fetchAndReset();
   };
 
   const dateOptions = Array.from({ length: 31 }, (_, i) => ({
@@ -275,59 +232,20 @@ const SystemConfiguration: React.FC = () => {
               </Col>
               <Col xs={24} lg={12}>
                 <Form.Item
-                  label="Ngày kết thúc thu hàng tháng"
-                  required
+                  label="Thời gian tối đa thu tiền (Ngày)"
+                  name="maxUtilityTime"
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập số ngày' },
+                    { type: 'number', min: 1, max: 31, message: 'Số ngày phải từ 1 đến 31' }
+                  ]}
                 >
-                  <div className="flex gap-3">
-                    <Form.Item
-                      name="billingEndDate"
-                      noStyle
-                      rules={[
-                        { required: true, message: 'Vui lòng chọn ngày' },
-                        {
-                          validator: (_, value) => {
-                            const billingEndDateMonth = form.getFieldValue('billingEndDateMonth');
-                            const billingStartDate = form.getFieldValue('billingStartDate');
-                            
-                            // Nếu chọn "tháng này" và billingStartDate chưa được set
-                            if (billingEndDateMonth === 'current' && !billingStartDate) {
-                              return Promise.reject(new Error('Vui lòng chọn ngày bắt đầu trước'));
-                            }
-                            
-                            // Nếu chọn "tháng này" và ngày kết thúc nhỏ hơn ngày bắt đầu
-                            if (billingEndDateMonth === 'current' && value < billingStartDate) {
-                              return Promise.reject(new Error(`Ngày kết thúc phải lớn hơn hoặc bằng ngày ${billingStartDate}`));
-                            }
-                            
-                            return Promise.resolve();
-                          }
-                        }
-                      ]}
-                    >
-                      <Select 
-                        placeholder="Chọn ngày"
-                        options={dateOptions}
-                        className={`flex-1 h-11 ${!isEditing && "pointer-events-none"}`}
-                      />
-                    </Form.Item>
-                    <Form.Item
-                      name="billingEndDateMonth"
-                      noStyle
-                      rules={[{ required: true, message: 'Vui lòng chọn tháng' }]}
-                    >
-                      <Select
-                        className={`w-28 ${!isEditing && "pointer-events-none"}`}
-                        options={[
-                          { label: 'Tháng này', value: 'current' },
-                          { label: 'Tháng sau', value: 'next' }
-                        ]}
-                        onChange={() => {
-                          // Trigger validation khi thay đổi tháng
-                          form.validateFields(['billingEndDate']);
-                        }}
-                      />
-                    </Form.Item>
-                  </div>
+                  <InputNumber 
+                    className={`w-full ${!isEditing && "pointer-events-none"}`}
+                    min={1} 
+                    max={31}
+                    size="large"
+                    placeholder="Nhập số ngày"
+                  />
                 </Form.Item>
               </Col>
             </Row>
@@ -336,13 +254,10 @@ const SystemConfiguration: React.FC = () => {
                 info
               </span>
               <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                Hệ thống sẽ tự động chốt số vào ngày cuối cùng của tháng trước và thông báo nợ vào ngày bắt đầu đã cấu hình.
-                {form.getFieldValue('billingEndDateMonth') === 'current' && (
-                  <>
-                    <br />
-                    <strong>Lưu ý:</strong> Ngày kết thúc tháng này phải từ {billingStartDate} trở lên.
-                  </>
-                )}
+                Thời gian tối đa để ghi nhận và thu tiền điện nước, tính từ ngày {billingStartDate} trở đi.
+                <br />
+                Nếu ngày bắt đầu là ngày {billingStartDate} và thời gian tối đa là {form.getFieldValue('maxUtilityTime') || 5} ngày,
+                hệ thống sẽ chốt số vào ngày {billingStartDate + (form.getFieldValue('maxUtilityTime') || 5) > 31 ? (billingStartDate + (form.getFieldValue('maxUtilityTime') || 5) - 31) : (billingStartDate + (form.getFieldValue('maxUtilityTime') || 5))}.
               </p>
             </div>
           </div>
@@ -389,15 +304,6 @@ const SystemConfiguration: React.FC = () => {
               isEditing ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
             }`}
           >
-            {/* <Button 
-              type="default" 
-              size="large"
-              icon={<ReloadOutlined />}
-              onClick={handleReset}
-              className="h-12"
-            >
-              Khôi phục mặc định
-            </Button> */}
             <Button 
               type="primary" 
               size="large"

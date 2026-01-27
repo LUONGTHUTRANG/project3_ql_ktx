@@ -4,7 +4,7 @@ import db from "../config/db.js";
 export const getSystemConfig = async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT id, system_name, hotline, email, address, utility_start_day, utility_end_day, max_reservation_time FROM system_setting LIMIT 1"
+      "SELECT id, system_name, hotline, email, address, utility_start_day, max_utility_time, max_reservation_time FROM system_setting LIMIT 1"
     );
 
     // if (!rows || rows.length === 0) {
@@ -31,10 +31,10 @@ export const getSystemConfig = async (req, res) => {
 // Update system configuration
 export const updateSystemConfig = async (req, res) => {
   try {
-    const { system_name, hotline, email, address, utility_start_day, utility_end_day, max_reservation_time } = req.body;
+    const { system_name, hotline, email, address, utility_start_day, max_utility_time, max_reservation_time } = req.body;
 
     // Validate required fields
-    if (!system_name || !hotline || !email || !address || utility_start_day === undefined || utility_end_day === undefined || max_reservation_time === undefined) {
+    if (!system_name || !hotline || !email || !address || utility_start_day === undefined || max_utility_time === undefined || max_reservation_time === undefined) {
       return res.status(400).json({
         success: false,
         message: "Vui lòng cung cấp đầy đủ thông tin",
@@ -42,7 +42,7 @@ export const updateSystemConfig = async (req, res) => {
     }
 
     // Validate dates
-    if (utility_start_day < 1 || utility_start_day > 31 || utility_end_day < 1 || utility_end_day > 31) {
+    if (utility_start_day < 1 || utility_start_day > 31 || max_utility_time < 1 || max_utility_time > 31) {
       return res.status(400).json({
         success: false,
         message: "Ngày phải từ 1 đến 31",
@@ -61,10 +61,10 @@ export const updateSystemConfig = async (req, res) => {
          email = ?, 
          address = ?, 
          utility_start_day = ?, 
-         utility_end_day = ?, 
+         max_utility_time = ?, 
          max_reservation_time = ? 
          WHERE id = ?`,
-        [system_name, hotline, email, address, utility_start_day, utility_end_day, max_reservation_time, existing[0].id]
+        [system_name, hotline, email, address, utility_start_day, max_utility_time, max_reservation_time, existing[0].id]
       );
 
       return res.status(200).json({
@@ -77,7 +77,7 @@ export const updateSystemConfig = async (req, res) => {
           email,
           address,
           utility_start_day,
-          utility_end_day,
+          max_utility_time,
           max_reservation_time,
         },
       });
@@ -85,9 +85,9 @@ export const updateSystemConfig = async (req, res) => {
       // Insert new record
       const [insertResult] = await db.query(
         `INSERT INTO system_setting 
-         (system_name, hotline, email, address, utility_start_day, utility_end_day, max_reservation_time) 
+         (system_name, hotline, email, address, utility_start_day, max_utility_time, max_reservation_time) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [system_name, hotline, email, address, utility_start_day, utility_end_day, max_reservation_time]
+        [system_name, hotline, email, address, utility_start_day, max_utility_time, max_reservation_time]
       );
 
       return res.status(201).json({
@@ -100,7 +100,7 @@ export const updateSystemConfig = async (req, res) => {
           email,
           address,
           utility_start_day,
-          utility_end_day,
+          max_utility_time,
           max_reservation_time,
         },
       });

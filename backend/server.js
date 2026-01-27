@@ -20,7 +20,13 @@ app.get("/", (req, res) => {
 });
 
 // Initialize cron jobs
-initializeCronJobs();
+(async () => {
+  try {
+    await initializeCronJobs();
+  } catch (error) {
+    console.error("Failed to initialize cron jobs:", error);
+  }
+})();
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

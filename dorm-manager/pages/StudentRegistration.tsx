@@ -615,10 +615,10 @@ const StudentRegistration: React.FC = () => {
                           suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
                         />
                       </div>
-                      <div className="flex flex-col gap-2 md:col-span-2">
+                      {/* <div className="flex flex-col gap-2 md:col-span-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Ghi chú / Yêu cầu bạn cùng phòng</span>
                         <textarea className="h-24 w-full rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-surface-dark p-4 text-text-main dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none transition-shadow" placeholder="VD: Mong muốn ở cùng bạn Nguyễn Văn B (MSSV: 2024...), cùng sở thích thể thao, yên tĩnh..."></textarea>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
 
