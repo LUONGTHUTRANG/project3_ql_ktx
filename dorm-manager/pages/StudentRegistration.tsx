@@ -63,7 +63,7 @@ const StudentRegistration: React.FC = () => {
   const [currentStayInfo, setCurrentStayInfo] = useState<CurrentStayInfo | null>(null);
   const [loadingCurrentStay, setLoadingCurrentStay] = useState(true);
   const [showLoadingSpinner, setShowLoadingSpinner] = useState(false); // Only show spinner after 5ms
-  
+
   // Check if student has active stay record (status = 'ACTIVE' in stay_records table)
   const [hasActiveRoom, setHasActiveRoom] = useState<boolean>(false);
   const [activeRoomInfo, setActiveRoomInfo] = useState<ActiveStayInfo | null>(null);
@@ -75,7 +75,7 @@ const StudentRegistration: React.FC = () => {
   // Registration period state - track for each registration type
   const [registrationStatus, setRegistrationStatus] = useState<'upcoming' | 'open' | 'closed'>('open');
   const [registrationMessage, setRegistrationMessage] = useState<string>('');
-  
+
   // Status for each registration type
   const [regularRegStatus, setRegularRegStatus] = useState<'upcoming' | 'open' | 'closed'>('open');
   const [specialRegStatus, setSpecialRegStatus] = useState<'upcoming' | 'open' | 'closed'>('open');
@@ -572,10 +572,10 @@ const StudentRegistration: React.FC = () => {
                     {activeTab === 'regular' && activeSemester?.registration_open_date
                       ? formatDateTime(activeSemester.registration_open_date)
                       : activeTab === 'special' && activeSemester?.registration_special_open_date
-                      ? formatDateTime(activeSemester.registration_special_open_date)
-                      : activeTab === 'extension' && activeSemester?.renewal_open_date
-                      ? formatDateTime(activeSemester.renewal_open_date)
-                      : '...'}
+                        ? formatDateTime(activeSemester.registration_special_open_date)
+                        : activeTab === 'extension' && activeSemester?.renewal_open_date
+                          ? formatDateTime(activeSemester.renewal_open_date)
+                          : '...'}
                   </span>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl border border-border-color dark:border-gray-700 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors">
@@ -587,10 +587,10 @@ const StudentRegistration: React.FC = () => {
                     {activeTab === 'regular' && activeSemester?.registration_close_date
                       ? formatDateTime(activeSemester.registration_close_date)
                       : activeTab === 'special' && activeSemester?.registration_special_close_date
-                      ? formatDateTime(activeSemester.registration_special_close_date)
-                      : activeTab === 'extension' && activeSemester?.renewal_close_date
-                      ? formatDateTime(activeSemester.renewal_close_date)
-                      : '...'}
+                        ? formatDateTime(activeSemester.registration_special_close_date)
+                        : activeTab === 'extension' && activeSemester?.renewal_close_date
+                          ? formatDateTime(activeSemester.renewal_close_date)
+                          : '...'}
                   </span>
                 </div>
               </div>
@@ -634,10 +634,10 @@ const StudentRegistration: React.FC = () => {
                     {activeTab === 'regular' && activeSemester?.registration_open_date
                       ? formatDateTime(activeSemester.registration_open_date)
                       : activeTab === 'special' && activeSemester?.registration_special_open_date
-                      ? formatDateTime(activeSemester.registration_special_open_date)
-                      : activeTab === 'extension' && activeSemester?.renewal_open_date
-                      ? formatDateTime(activeSemester.renewal_open_date)
-                      : '...'}
+                        ? formatDateTime(activeSemester.registration_special_open_date)
+                        : activeTab === 'extension' && activeSemester?.renewal_open_date
+                          ? formatDateTime(activeSemester.renewal_open_date)
+                          : '...'}
                   </span>
                 </div>
                 <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-xl border border-red-100 dark:border-red-900/30 flex flex-col items-center gap-2">
@@ -649,10 +649,10 @@ const StudentRegistration: React.FC = () => {
                     {activeTab === 'regular' && activeSemester?.registration_close_date
                       ? formatDateTime(activeSemester.registration_close_date)
                       : activeTab === 'special' && activeSemester?.registration_special_close_date
-                      ? formatDateTime(activeSemester.registration_special_close_date)
-                      : activeTab === 'extension' && activeSemester?.renewal_close_date
-                      ? formatDateTime(activeSemester.renewal_close_date)
-                      : '...'}
+                        ? formatDateTime(activeSemester.registration_special_close_date)
+                        : activeTab === 'extension' && activeSemester?.renewal_close_date
+                          ? formatDateTime(activeSemester.renewal_close_date)
+                          : '...'}
                   </span>
                 </div>
               </div>
@@ -767,7 +767,7 @@ const StudentRegistration: React.FC = () => {
                       <span className="material-symbols-outlined text-primary text-2xl font-bold">apartment</span>
                       <h2 className="text-text-main dark:text-white text-xl font-bold">Chọn phòng ở</h2>
                     </div>
-                    
+
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border border-blue-200 dark:border-blue-800 p-6 rounded-2xl">
                       <div className="flex flex-col gap-4">
                         <div className="flex items-start gap-3">
@@ -777,8 +777,8 @@ const StudentRegistration: React.FC = () => {
                               Chọn phòng cụ thể và thanh toán
                             </h3>
                             <p className="text-sm text-text-secondary dark:text-gray-400 leading-relaxed">
-                              Bạn có thể xem danh sách phòng trống và chọn phòng ưng ý. Sau khi chọn phòng, hệ thống sẽ tạo hóa đơn thanh toán. 
-                              <span className="font-semibold text-orange-600 dark:text-orange-400"> Bạn có 24 giờ để hoàn tất thanh toán</span>, 
+                              Bạn có thể xem danh sách phòng trống tại <span className="font-semibold text-blue-600 dark:text-blue-400">các tầng từ tầng 3 trở lên</span>. Sau khi chọn phòng, hệ thống sẽ tạo hóa đơn thanh toán.
+                              <span className="font-semibold text-orange-600 dark:text-orange-400"> Bạn có 24 giờ để hoàn tất thanh toán</span>,
                               sau đó sẽ được tự động thêm vào phòng.
                             </p>
                           </div>
@@ -849,7 +849,7 @@ const StudentRegistration: React.FC = () => {
                               <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-amber-600 text-[20px]">schedule</span>
                                 <p className="text-xs text-amber-800 dark:text-amber-200">
-                                  Sau khi đăng ký, bạn sẽ nhận được mã hóa đơn và có <strong>24 giờ</strong> để thanh toán. 
+                                  Sau khi đăng ký, bạn sẽ nhận được mã hóa đơn và có <strong>24 giờ</strong> để thanh toán.
                                   Nếu không thanh toán đúng hạn, đơn đăng ký sẽ bị tự động hủy.
                                 </p>
                               </div>
@@ -919,19 +919,18 @@ const StudentRegistration: React.FC = () => {
                       <span className="material-symbols-outlined text-primary text-2xl font-bold bg-primary/10 rounded-full p-1">bedroom_parent</span>
                       <h2 className="text-text-main dark:text-white text-xl font-bold">Chọn phòng ưu tiên</h2>
                     </div>
-                    
+
                     <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-800 p-6 rounded-2xl">
                       <div className="flex flex-col gap-4">
                         <div className="flex items-start gap-3">
                           <span className="material-symbols-outlined text-amber-600 text-3xl">star</span>
                           <div className="flex-1">
                             <h3 className="font-bold text-text-main dark:text-white text-base mb-2">
-                              Khu ưu tiên đặc biệt
+                              Quyền ưu tiên chọn phòng
                             </h3>
                             <p className="text-sm text-text-secondary dark:text-gray-400 leading-relaxed">
-                              Sinh viên thuộc diện ưu tiên sẽ được ở tại <span className="font-semibold text-amber-700 dark:text-amber-400">Khu P1 - Dãy ưu tiên</span> với:
-                              <span className="font-semibold text-green-600 dark:text-green-400"> Giá ưu đãi chỉ 2-2.5 triệu/kỳ</span>, 
-                              đầy đủ tiện nghi (điều hòa, nóng lạnh, máy giặt).
+                              Sinh viên thuộc diện ưu tiên được <span className="font-semibold text-amber-700 dark:text-amber-400">chọn phòng ở tất cả các tầng</span>, bao gồm cả các tầng thấp thuận tiện di chuyển.
+                              <span className="font-semibold text-green-600 dark:text-green-400">Đầy đủ tiện nghi</span> (điều hòa, nóng lạnh, máy giặt).
                             </p>
                           </div>
                         </div>
