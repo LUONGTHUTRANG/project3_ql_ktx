@@ -44,21 +44,9 @@ const RoomSelectionModal: React.FC<RoomSelectionModalProps> = ({
             // Get all buildings
             const buildingsData = await fetchBuildings();
             
-            // Filter buildings based on registration type
-            let filteredBuildings = buildingsData;
-            if (registrationType === 'NORMAL') {
-                // NORMAL students can only see C1, C2, C3 (not priority buildings P1-P4)
-                filteredBuildings = buildingsData.filter((b: any) => 
-                    b.name.startsWith('C')
-                );
-            } else if (registrationType === 'PRIORITY') {
-                // PRIORITY students can only see P1-P4 buildings
-                filteredBuildings = buildingsData.filter((b: any) => 
-                    b.name.startsWith('P')
-                );
-            }
-            
-            setBuildings(filteredBuildings);
+            // Both NORMAL and PRIORITY can see all buildings
+            // Floor-based filtering will be applied when loading rooms
+            setBuildings(buildingsData);
 
         } catch (error: any) {
             message.error('Lỗi khi tải dữ liệu: ' + error.message);
@@ -74,11 +62,21 @@ const RoomSelectionModal: React.FC<RoomSelectionModalProps> = ({
             setLoading(true);
             setSelectedBuildingId(buildingId);
             
-            const roomsData = await getAvailableRooms(semesterId, buildingId);
+            let roomsData = await getAvailableRooms(semesterId, buildingId);
+            
+            // Filter rooms by floor based on registration type
+            if (registrationType === 'NORMAL') {
+                // Normal registration: only mid-high floors (floor >= 3)
+                roomsData = roomsData.filter(room => room.floor >= 3);
+            }
+            // PRIORITY can see all rooms (no floor restriction)
+            
             setRooms(roomsData);
             
             if (roomsData.length === 0) {
-                message.info('Tòa nhà này không còn phòng trống');
+                message.info(registrationType === 'NORMAL' 
+                    ? 'Tòa nhà này không còn phòng trống ở tầng 3 trở lên'
+                    : 'Tòa nhà này không còn phòng trống');
             }
         } catch (error: any) {
             message.error('Lỗi khi tải danh sách phòng: ' + error.message);
