@@ -77,7 +77,7 @@ export const login = async (req, res) => {
       } else {
         // Check Manager
         const [managers] = await db.query(
-          "SELECT m.*, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.username = ?",
+          "SELECT m.*, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.email = ?",
           [username]
         );
         if (managers.length > 0) {
@@ -154,7 +154,7 @@ export const getMe = async (req, res) => {
       if (rows.length > 0) user = rows[0];
     } else if (role === "manager") {
       const [rows] = await db.query(
-        "SELECT m.id, m.username, m.email, m.full_name, m.phone_number, m.building_id, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.id = ?",
+        "SELECT m.id, m.email, m.full_name, m.phone_number, m.building_id, b.name as building_name FROM managers m LEFT JOIN buildings b ON m.building_id = b.id WHERE m.id = ?",
         [id]
       );
       if (rows.length > 0) user = rows[0];

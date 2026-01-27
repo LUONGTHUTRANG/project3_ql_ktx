@@ -58,3 +58,24 @@ export const deleteRoom = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Get available rooms for student registration
+export const getAvailableRoomsForRegistration = async (req, res) => {
+  try {
+    const { building_id, semester_id } = req.query;
+    
+    if (!semester_id) {
+      return res.status(400).json({ error: "semester_id is required" });
+    }
+
+    const rooms = await Room.getAvailableRoomsForRegistration(
+      building_id || null,
+      semester_id
+    );
+    
+    res.json(rooms);
+  } catch (err) {
+    console.error('Error getting available rooms:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

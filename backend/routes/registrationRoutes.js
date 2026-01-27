@@ -8,6 +8,8 @@ import {
   getAllRegistrations,
   getRegistrationById,
   updateRegistrationStatus,
+  autoAssignRooms,
+  getAssignmentReport,
 } from "../controllers/registrationController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
@@ -34,5 +36,11 @@ router.get("/priority", getAllPriorityRegistrations);
 router.get("/all", getAllRegistrations);  // For Manager to get all registrations
 router.get("/:id", getRegistrationById);
 router.put("/:id/status", updateRegistrationStatus);
+
+// Auto-assign rooms API (Manager only)
+router.post("/auto-assign", autoAssignRooms);
+
+// Get assignment report (Manager only)
+router.get("/report/assignment", getAssignmentReport);
 
 export default router;

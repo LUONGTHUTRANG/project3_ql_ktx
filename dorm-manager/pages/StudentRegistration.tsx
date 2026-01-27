@@ -1,11 +1,13 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
-import { Select, Switch, message } from 'antd';
+import { Select, Switch, message, Button } from 'antd';
 import { createRegistration } from '../api';
 import { fetchBuildings } from '../api';
 import { getAllSemesters, Semester } from '../api';
 import { getCurrentStay, CurrentStayInfo } from '../api';
+import RoomSelectionModal from '../components/RoomSelectionModal';
+import { AvailableRoom } from '../api_handlers/roomApi';
 
 type RegistrationStatus = 'upcoming' | 'open' | 'closed';
 type ActiveTab = 'regular' | 'special' | 'extension';
@@ -29,9 +31,6 @@ const StudentRegistration: React.FC = () => {
   const [isGroupReg, setIsGroupReg] = useState(false);
   const [selectedHabits, setSelectedHabits] = useState<string[]>(['Ngủ sớm']);
   const [activeTab, setActiveTab] = useState<ActiveTab>('regular');
-
-  // Trạng thái cổng đăng ký: 'upcoming' (Chưa mở), 'open' (Đang mở), 'closed' (Đã đóng)
-  const [registrationStatus, setRegistrationStatus] = useState<RegistrationStatus>('open');
 
   // Giả lập trạng thái sinh viên đã có chỗ ở hiện tại hay chưa để gia hạn
   const [hasCurrentStay, setHasCurrentStay] = useState<boolean>(false);
@@ -61,6 +60,14 @@ const StudentRegistration: React.FC = () => {
   const [currentStayInfo, setCurrentStayInfo] = useState<CurrentStayInfo | null>(null);
   const [loadingCurrentStay, setLoadingCurrentStay] = useState(false);
 
+  // Room selection modal states
+  const [roomSelectionModalVisible, setRoomSelectionModalVisible] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<AvailableRoom | null>(null);
+
+  // Registration period state
+  const [registrationStatus, setRegistrationStatus] = useState<'upcoming' | 'open' | 'closed'>('open');
+  const [registrationMessage, setRegistrationMessage] = useState<string>('');
+
   // Fetch buildings and semester on mount
   useEffect(() => {
     const loadInitialData = async () => {
@@ -74,6 +81,7 @@ const StudentRegistration: React.FC = () => {
         const active = semesters.find((s: Semester) => s.is_active === 1);
         if (active) {
           setActiveSemester(active);
+          checkRegistrationPeriod(active);
         }
 
         // Fetch current stay info for renewal tab
@@ -84,6 +92,26 @@ const StudentRegistration: React.FC = () => {
     };
     loadInitialData();
   }, []);
+
+  // Check if current time is within registration period
+  const checkRegistrationPeriod = (semester: Semester) => {
+    const now = new Date();
+    const semesterStart = new Date(semester.start_date);
+    const oneMonthBeforeStart = new Date(semesterStart);
+    oneMonthBeforeStart.setMonth(oneMonthBeforeStart.getMonth() - 1);
+
+    if (now < oneMonthBeforeStart) {
+      setRegistrationStatus('upcoming');
+      const daysUntilOpen = Math.ceil((oneMonthBeforeStart.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      setRegistrationMessage(`Đăng ký mở vào ${oneMonthBeforeStart.toLocaleDateString('vi-VN')} (còn ${daysUntilOpen} ngày)`);
+    } else if (now > semesterStart) {
+      setRegistrationStatus('closed');
+      setRegistrationMessage('Đã hết thời gian đăng ký cho kỳ học này');
+    } else {
+      setRegistrationStatus('open');
+      setRegistrationMessage('');
+    }
+  };
 
   // Load current stay info
   const loadCurrentStay = async () => {
@@ -110,6 +138,26 @@ const StudentRegistration: React.FC = () => {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('vi-VN');
+  };
+
+  // Format price helper
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(price);
+  };
+
+  // Handle room selection
+  const handleSelectRoom = (roomId: number, roomInfo: AvailableRoom) => {
+    setSelectedRoom(roomInfo);
+    message.success(`Đã chọn phòng ${roomInfo.room_number} - ${roomInfo.building_name}`);
+  };
+
+  // Clear selected room
+  const handleClearRoom = () => {
+    setSelectedRoom(null);
+    message.info('Đã bỏ chọn phòng');
   };
 
   if (!user) return null;
@@ -160,6 +208,18 @@ const StudentRegistration: React.FC = () => {
       return;
     }
 
+    // Check registration period
+    if (registrationStatus !== 'open') {
+      message.error(registrationMessage || 'Ngoài thời gian đăng ký');
+      return;
+    }
+
+    // For regular and priority registration, room must be selected
+    if ((activeTab === 'regular' || activeTab === 'special') && !selectedRoom) {
+      message.error('Vui lòng chọn phòng trước khi đăng ký');
+      return;
+    }
+
     setLoading(true);
     try {
       let registrationType: 'NORMAL' | 'PRIORITY' | 'RENEWAL' = 'NORMAL';
@@ -197,11 +257,11 @@ const StudentRegistration: React.FC = () => {
       // For renewal, use current room's building if available
       const buildingIdToSend = activeTab === 'extension' && currentStayInfo
         ? currentStayInfo.building_id
-        : selectedBuildingId;
+        : selectedRoom?.building_id || selectedBuildingId;
 
       const roomIdToSend = activeTab === 'extension' && currentStayInfo
         ? currentStayInfo.room_id
-        : null;
+        : selectedRoom?.id || null;
 
       // Call API
       const result = await createRegistration({
@@ -214,9 +274,18 @@ const StudentRegistration: React.FC = () => {
         evidence: evidenceFile,
       });
 
-      message.success(result.message || 'Đăng ký thành công!');
+      // Show success message and payment instruction
+      if (result.invoice_id) {
+        message.success(
+          `Đăng ký thành công! Vui lòng thanh toán hóa đơn trong vòng 24 giờ. Mã hóa đơn: ${result.invoice_id}`,
+          10
+        );
+      } else {
+        message.success(result.message || 'Đăng ký thành công!');
+      }
 
       // Reset form after success
+      setSelectedRoom(null);
       setSelectedBuildingId(null);
       setPriorityCategory('');
       setPriorityDescription('');
@@ -292,7 +361,7 @@ const StudentRegistration: React.FC = () => {
                 Cổng đăng ký chưa mở
               </h3>
               <p className="text-text-secondary dark:text-gray-400 text-base max-w-[500px] mb-10 leading-relaxed">
-                Hiện tại hệ thống chưa mở tiếp nhận đơn đăng ký chỗ ở cho học kỳ này. Vui lòng quay lại vào thời gian đăng ký dự kiến bên dưới.
+                {registrationMessage || 'Hiện tại hệ thống chưa mở tiếp nhận đơn đăng ký chỗ ở cho học kỳ này. Vui lòng quay lại vào thời gian đăng ký dự kiến bên dưới.'}
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mb-12">
@@ -301,14 +370,18 @@ const StudentRegistration: React.FC = () => {
                     <span className="material-symbols-outlined text-[20px]">schedule</span>
                     <span className="text-xs font-bold uppercase tracking-wider">Mở đăng ký</span>
                   </div>
-                  <span className="text-lg md:text-xl font-bold text-primary">08:00 - 20/08/2024</span>
+                  <span className="text-lg md:text-xl font-bold text-primary">
+                    {activeSemester ? new Date(new Date(activeSemester.start_date).setMonth(new Date(activeSemester.start_date).getMonth() - 1)).toLocaleDateString('vi-VN') : '...'}
+                  </span>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl border border-border-color dark:border-gray-700 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors">
                   <div className="flex items-center gap-2 text-text-secondary dark:text-gray-400">
                     <span className="material-symbols-outlined text-[20px]">event_busy</span>
                     <span className="text-xs font-bold uppercase tracking-wider">Đóng đăng ký</span>
                   </div>
-                  <span className="text-lg md:text-xl font-bold text-text-main dark:text-white">17:00 - 30/08/2024</span>
+                  <span className="text-lg md:text-xl font-bold text-text-main dark:text-white">
+                    {activeSemester ? new Date(activeSemester.start_date).toLocaleDateString('vi-VN') : '...'}
+                  </span>
                 </div>
               </div>
 
@@ -347,14 +420,18 @@ const StudentRegistration: React.FC = () => {
                     <span className="material-symbols-outlined text-[20px]">history</span>
                     <span className="text-xs font-bold uppercase tracking-wider">Đã mở đăng ký</span>
                   </div>
-                  <span className="text-lg md:text-xl font-bold text-text-secondary dark:text-gray-400">08:00 - 20/08/2024</span>
+                  <span className="text-lg md:text-xl font-bold text-text-secondary dark:text-gray-400">
+                    {activeSemester ? new Date(new Date(activeSemester.start_date).setMonth(new Date(activeSemester.start_date).getMonth() - 1)).toLocaleDateString('vi-VN') : '...'}
+                  </span>
                 </div>
                 <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-xl border border-red-100 dark:border-red-900/30 flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                     <span className="material-symbols-outlined text-[20px]">event_busy</span>
                     <span className="text-xs font-bold uppercase tracking-wider">Đã đóng đăng ký</span>
                   </div>
-                  <span className="text-lg md:text-xl font-bold text-red-700 dark:text-red-400">17:00 - 30/08/2024</span>
+                  <span className="text-lg md:text-xl font-bold text-red-700 dark:text-red-400">
+                    {activeSemester ? new Date(activeSemester.start_date).toLocaleDateString('vi-VN') : '...'}
+                  </span>
                 </div>
               </div>
 
@@ -427,119 +504,114 @@ const StudentRegistration: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Section 2: Lifestyle & Preferences */}
-                  <div className="flex flex-col gap-5">
-                    <div className="flex items-center gap-3 border-b border-dashed border-border-color dark:border-gray-700 pb-3">
-                      <span className="material-symbols-outlined text-primary text-2xl font-bold">interests</span>
-                      <h2 className="text-text-main dark:text-white text-xl font-bold">Sở thích & Thói quen</h2>
-                    </div>
-                    <p className="text-sm text-text-secondary dark:text-gray-400 -mt-2">Chọn các đặc điểm phù hợp với bạn để chúng tôi tìm bạn cùng phòng phù hợp nhất.</p>
-                    <div className="flex flex-wrap gap-3">
-                      {habits.map((habit) => (
-                        <button
-                          key={habit.label}
-                          onClick={() => toggleHabit(habit.label)}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-bold transition-all ${selectedHabits.includes(habit.label)
-                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/20 scale-105'
-                            : 'bg-white dark:bg-gray-800 border-border-color dark:border-gray-700 text-text-main dark:text-gray-200 hover:border-primary/50'
-                            }`}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">{habit.icon}</span>
-                          {habit.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Section 3: Room Requests */}
+                  {/* Section 3: Room Selection */}
                   <div className="flex flex-col gap-5">
                     <div className="flex items-center gap-3 border-b border-dashed border-border-color dark:border-gray-700 pb-3">
                       <span className="material-symbols-outlined text-primary text-2xl font-bold">apartment</span>
-                      <h2 className="text-text-main dark:text-white text-xl font-bold">Nguyện vọng phòng ở</h2>
+                      <h2 className="text-text-main dark:text-white text-xl font-bold">Chọn phòng ở</h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="flex flex-col gap-2">
-                        <span className="text-text-main dark:text-gray-200 text-sm font-bold">Loại phòng</span>
-                        <Select
-                          className="w-full h-11"
-                          defaultValue="4"
-                          options={[
-                            { value: '4', label: '4 Người (Tiêu chuẩn)' },
-                            { value: '6', label: '6 Người (Phổ thông)' },
-                            { value: '8', label: '8 Người (Tiết kiệm)' },
-                          ]}
-                          suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <span className="text-text-main dark:text-gray-200 text-sm font-bold">Tòa nhà mong muốn</span>
-                        <Select
-                          className="w-full h-11"
-                          placeholder="Chọn tòa nhà"
-                          value={selectedBuildingId}
-                          onChange={(value) => setSelectedBuildingId(value)}
-                          options={buildings.map(b => ({ value: b.id, label: b.name }))}
-                          suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <span className="text-text-main dark:text-gray-200 text-sm font-bold">Tầng ưu tiên</span>
-                        <Select
-                          className="w-full h-11"
-                          defaultValue="any"
-                          options={[
-                            { value: 'low', label: 'Tầng thấp (1-3)' },
-                            { value: 'mid', label: 'Tầng trung (4-7)' },
-                            { value: 'high', label: 'Tầng cao (8+)' },
-                            { value: 'any', label: 'Tầng bất kỳ' },
-                          ]}
-                          suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section 4: Group Registration */}
-                  <div className="flex flex-col gap-4 bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-dashed border-border-color dark:border-gray-700 transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="size-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <span className="material-symbols-outlined text-2xl font-bold">groups</span>
-                        </div>
-                        <div>
-                          <h3 className="text-text-main dark:text-white text-lg font-bold">Đăng ký theo nhóm</h3>
-                          <p className="text-xs text-text-secondary dark:text-gray-400">Bạn muốn ở cùng bạn bè? Hãy nhập MSSV của họ.</p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={isGroupReg}
-                        onChange={setIsGroupReg}
-                        className={isGroupReg ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}
-                      />
-                    </div>
-
-                    {isGroupReg && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 animate-in slide-in-from-top-2 duration-300">
-                        <div className="flex flex-col gap-2">
-                          <span className="text-text-main dark:text-gray-200 text-xs font-bold uppercase tracking-wider">MSSV Bạn cùng phòng 1</span>
-                          <div className="flex gap-2">
-                            <input className="flex-1 h-11 px-4 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white text-sm focus:ring-1 focus:ring-primary outline-none" placeholder="Nhập MSSV" />
-                            <button className="h-11 px-3 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors flex items-center justify-center">
-                              <span className="material-symbols-outlined">check_circle</span>
-                            </button>
+                    
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border border-blue-200 dark:border-blue-800 p-6 rounded-2xl">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3">
+                          <span className="material-symbols-outlined text-primary text-3xl">info</span>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-text-main dark:text-white text-base mb-2">
+                              Chọn phòng cụ thể và thanh toán
+                            </h3>
+                            <p className="text-sm text-text-secondary dark:text-gray-400 leading-relaxed">
+                              Bạn có thể xem danh sách phòng trống và chọn phòng ưng ý. Sau khi chọn phòng, hệ thống sẽ tạo hóa đơn thanh toán. 
+                              <span className="font-semibold text-orange-600 dark:text-orange-400"> Bạn có 24 giờ để hoàn tất thanh toán</span>, 
+                              sau đó sẽ được tự động thêm vào phòng.
+                            </p>
                           </div>
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <span className="text-text-main dark:text-gray-200 text-xs font-bold uppercase tracking-wider">MSSV Bạn cùng phòng 2</span>
-                          <div className="flex gap-2">
-                            <input className="flex-1 h-11 px-4 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-gray-800 text-text-main dark:text-white text-sm focus:ring-1 focus:ring-primary outline-none" placeholder="Nhập MSSV" />
-                            <button className="h-11 px-3 bg-gray-100 dark:bg-gray-700 text-text-secondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors flex items-center justify-center">
-                              <span className="material-symbols-outlined">add</span>
-                            </button>
+
+                        {selectedRoom ? (
+                          /* Display selected room */
+                          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-border-color dark:border-gray-700">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="size-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                  <span className="material-symbols-outlined text-green-600 text-2xl">check_circle</span>
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-text-main dark:text-white text-lg">
+                                    Phòng {selectedRoom.room_number}
+                                  </h4>
+                                  <p className="text-sm text-text-secondary dark:text-gray-400">
+                                    {selectedRoom.building_name} - Tầng {selectedRoom.floor}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={handleClearRoom}
+                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1 text-sm font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                                Bỏ chọn
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-text-secondary dark:text-gray-400">Sức chứa</span>
+                                <span className="font-semibold text-text-main dark:text-white">
+                                  {selectedRoom.current_occupancy}/{selectedRoom.max_capacity} người
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-text-secondary dark:text-gray-400">Còn trống</span>
+                                <span className="font-semibold text-green-600">
+                                  {selectedRoom.available_slots} chỗ
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-text-secondary dark:text-gray-400">Giá/kỳ</span>
+                                <span className="font-semibold text-blue-600">
+                                  {formatPrice(selectedRoom.price_per_semester)}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-text-secondary dark:text-gray-400">Tiện nghi</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  {selectedRoom.has_ac === 1 && (
+                                    <span className="px-2 py-0.5 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-xs rounded">AC</span>
+                                  )}
+                                  {selectedRoom.has_heater === 1 && (
+                                    <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs rounded">Nóng lạnh</span>
+                                  )}
+                                  {selectedRoom.has_washer === 1 && (
+                                    <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded">Máy giặt</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                              <div className="flex items-start gap-2">
+                                <span className="material-symbols-outlined text-amber-600 text-[20px]">schedule</span>
+                                <p className="text-xs text-amber-800 dark:text-amber-200">
+                                  Sau khi đăng ký, bạn sẽ nhận được mã hóa đơn và có <strong>24 giờ</strong> để thanh toán. 
+                                  Nếu không thanh toán đúng hạn, đơn đăng ký sẽ bị tự động hủy.
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          /* Button to select room */
+                          <Button
+                            type="primary"
+                            size="large"
+                            icon={<span className="material-symbols-outlined text-[20px]">search</span>}
+                            onClick={() => setRoomSelectionModalVisible(true)}
+                            className="w-full h-12 text-base font-semibold"
+                          >
+                            Xem danh sách phòng trống và chọn phòng
+                          </Button>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </>
               )}
@@ -584,40 +656,97 @@ const StudentRegistration: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Section 2: Preferences */}
+                  {/* Section 2: Room Selection for Priority */}
                   <div className="flex flex-col gap-5">
                     <div className="flex items-center gap-3 border-b border-dashed border-border-color dark:border-gray-700 pb-3">
                       <span className="material-symbols-outlined text-primary text-2xl font-bold bg-primary/10 rounded-full p-1">bedroom_parent</span>
-                      <h2 className="text-text-main dark:text-white text-xl font-bold">Nguyện vọng phòng ở</h2>
+                      <h2 className="text-text-main dark:text-white text-xl font-bold">Chọn phòng ưu tiên</h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="flex flex-col gap-2">
-                        <span className="text-text-main dark:text-gray-200 text-sm font-medium">Loại phòng <span className="text-red-500">*</span></span>
-                        <Select
-                          className="w-full h-11"
-                          placeholder="Chọn loại phòng"
-                          options={[
-                            { value: '4', label: 'Phòng 4 người (Chất lượng cao)' },
-                            { value: '6', label: 'Phòng 6 người' },
-                            { value: '8', label: 'Phòng 8 người (Tiêu chuẩn)' },
-                          ]}
-                          suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <span className="text-text-main dark:text-gray-200 text-sm font-medium">Tòa nhà mong muốn</span>
-                        <Select
-                          className="w-full h-11"
-                          placeholder="Chọn tòa nhà"
-                          value={selectedBuildingId}
-                          onChange={(value) => setSelectedBuildingId(value)}
-                          options={buildings.map(b => ({ value: b.id, label: b.name }))}
-                          suffixIcon={<span className="material-symbols-outlined text-[20px] text-text-secondary">expand_more</span>}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2 md:col-span-2">
-                        <span className="text-text-main dark:text-gray-200 text-sm font-medium">Ghi chú / Yêu cầu bạn cùng phòng</span>
-                        <textarea className="h-24 w-full rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-surface-dark p-4 text-text-main dark:text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none transition-shadow" placeholder="VD: Mong muốn ở cùng bạn Nguyễn Văn B (MSSV: 2024...), cùng sở thích thể thao, yên tĩnh..."></textarea>
+                    
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-800 p-6 rounded-2xl">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3">
+                          <span className="material-symbols-outlined text-amber-600 text-3xl">star</span>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-text-main dark:text-white text-base mb-2">
+                              Khu ưu tiên đặc biệt
+                            </h3>
+                            <p className="text-sm text-text-secondary dark:text-gray-400 leading-relaxed">
+                              Sinh viên thuộc diện ưu tiên sẽ được ở tại <span className="font-semibold text-amber-700 dark:text-amber-400">Khu P1 - Dãy ưu tiên</span> với:
+                              <span className="font-semibold text-green-600 dark:text-green-400"> Giá ưu đãi chỉ 2-2.5 triệu/kỳ</span>, 
+                              đầy đủ tiện nghi (điều hòa, nóng lạnh, máy giặt).
+                            </p>
+                          </div>
+                        </div>
+
+                        {selectedRoom ? (
+                          /* Display selected room */
+                          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-border-color dark:border-gray-700">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="size-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                  <span className="material-symbols-outlined text-green-600 text-2xl">check_circle</span>
+                                </div>
+                                <div>
+                                  <h4 className="font-bold text-text-main dark:text-white text-lg">
+                                    Phòng {selectedRoom.room_number}
+                                  </h4>
+                                  <p className="text-sm text-text-secondary dark:text-gray-400">
+                                    {selectedRoom.building_name} - Tầng {selectedRoom.floor}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={handleClearRoom}
+                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1 text-sm font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                                Bỏ chọn
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-text-secondary dark:text-gray-400">Sức chứa</span>
+                                <span className="font-semibold text-text-main dark:text-white">
+                                  {selectedRoom.current_occupancy}/{selectedRoom.max_capacity} người
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-text-secondary dark:text-gray-400">Còn trống</span>
+                                <span className="font-semibold text-green-600">
+                                  {selectedRoom.available_slots} chỗ
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-text-secondary dark:text-gray-400">Giá ưu đãi/kỳ</span>
+                                <span className="font-semibold text-amber-600">
+                                  {formatPrice(selectedRoom.price_per_semester)}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-xs text-text-secondary dark:text-gray-400">Tiện nghi</span>
+                                <div className="flex gap-1 flex-wrap">
+                                  <span className="px-2 py-0.5 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-xs rounded">AC</span>
+                                  <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs rounded">Nóng lạnh</span>
+                                  <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded">Máy giặt</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Button to select room */
+                          <Button
+                            type="primary"
+                            size="large"
+                            icon={<span className="material-symbols-outlined text-[20px]">search</span>}
+                            onClick={() => setRoomSelectionModalVisible(true)}
+                            className="w-full h-12 text-base font-semibold"
+                            style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+                          >
+                            Xem phòng khu ưu tiên P1
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -933,6 +1062,14 @@ const StudentRegistration: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Room Selection Modal */}
+      <RoomSelectionModal
+        visible={roomSelectionModalVisible}
+        onClose={() => setRoomSelectionModalVisible(false)}
+        onSelectRoom={handleSelectRoom}
+        registrationType={activeTab === 'regular' ? 'NORMAL' : activeTab === 'special' ? 'PRIORITY' : 'RENEWAL'}
+      />
     </RoleBasedLayout>
   );
 };

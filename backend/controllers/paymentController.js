@@ -117,6 +117,64 @@ export const confirmPayment = async (req, res) => {
       return res.status(400).json({ message: "Failed to update invoice status" });
     }
 
+    // Check if this is a room fee invoice from registration
+    const [roomFeeInvoice] = await db.query(
+      `SELECT rfi.*, r.student_id, r.desired_room_id, r.semester_id, r.registration_type
+       FROM room_fee_invoices rfi
+       JOIN registrations r ON r.invoice_id = rfi.invoice_id
+       WHERE rfi.invoice_id = ?`,
+      [invoiceId]
+    );
+
+    // Auto-add student to room if this is a registration payment
+    if (roomFeeInvoice && roomFeeInvoice.length > 0) {
+      const regInfo = roomFeeInvoice[0];
+      
+      // Get semester dates
+      const [semester] = await db.query(
+        'SELECT start_date, end_date FROM semesters WHERE id = ?',
+        [regInfo.semester_id]
+      );
+
+      if (semester && semester.length > 0) {
+        // Create stay record
+        await db.query(
+          `INSERT INTO stay_records 
+           (student_id, room_id, semester_id, start_date, end_date, status) 
+           VALUES (?, ?, ?, ?, ?, 'ACTIVE')`,
+          [
+            regInfo.student_id,
+            regInfo.desired_room_id,
+            regInfo.semester_id,
+            semester[0].start_date,
+            semester[0].end_date
+          ]
+        );
+
+        // Update registration status to COMPLETED
+        await db.query(
+          `UPDATE registrations 
+           SET status = 'COMPLETED' 
+           WHERE invoice_id = ?`,
+          [invoiceId]
+        );
+
+        // Create notification
+        await db.query(
+          `INSERT INTO notifications 
+           (target_type, target_user_id, title, content, is_read) 
+           VALUES ('STUDENT', ?, ?, ?, 0)`,
+          [
+            regInfo.student_id,
+            'Thanh toán thành công',
+            'Bạn đã thanh toán thành công và được phân phòng. Vui lòng kiểm tra thông tin phòng ở của bạn.'
+          ]
+        );
+
+        console.log(`[PAYMENT] Auto-assigned student ${regInfo.student_id} to room ${regInfo.desired_room_id}`);
+      }
+    }
+
     // Remove QR code from store
     qrCodeStore.delete(paymentRef);
 

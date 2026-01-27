@@ -82,10 +82,21 @@ export const deleteSemester = async (id: number | string): Promise<any> => {
   }
 };
 
+export const getActiveSemester = async (): Promise<Semester | null> => {
+  try {
+    const response = await api.get('/active');
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching active semester:', error);
+    throw error;
+  }
+};
+
 export default {
   getAllSemesters,
   getSemesterById,
   createSemester,
   updateSemester,
   deleteSemester,
+  getActiveSemester,
 };

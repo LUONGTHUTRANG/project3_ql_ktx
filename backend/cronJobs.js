@@ -24,6 +24,18 @@ export const initializeCronJobs = () => {
   });
 
   console.log("[CRON] Utility invoice cycle creation job scheduled for: 0 0 27 * * (27th of every month at 00:00)");
+
+  // Auto-reject unpaid registrations after 24h - run every hour
+  cron.schedule("0 * * * *", async () => {
+    console.log("[CRON] Checking for expired pending registrations...");
+    try {
+      await autoRejectExpiredRegistrations();
+    } catch (error) {
+      console.error("[CRON] Error in auto-reject job:", error);
+    }
+  });
+
+  console.log("[CRON] Auto-reject expired registrations job scheduled to run every hour");
 };
 
 /**
@@ -121,6 +133,60 @@ async function createMonthlyUtilityInvoiceCycle() {
 }
 
 /**
+ * Auto-reject PENDING NORMAL registrations that are older than 24 hours
+ */
+async function autoRejectExpiredRegistrations() {
+  try {
+    const [expiredRegistrations] = await db.query(
+      `SELECT id, student_id 
+       FROM registrations 
+       WHERE registration_type = 'NORMAL' 
+         AND status = 'PENDING'
+         AND desired_room_id IS NOT NULL
+         AND created_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)`
+    );
+
+    if (expiredRegistrations.length === 0) {
+      console.log("[CRON] No expired registrations found");
+      return;
+    }
+
+    console.log(`[CRON] Found ${expiredRegistrations.length} expired registrations to reject`);
+
+    // Update status to REJECTED
+    const registrationIds = expiredRegistrations.map(r => r.id);
+    await db.query(
+      `UPDATE registrations 
+       SET status = 'REJECTED', 
+           admin_note = 'Tự động từ chối do quá thời hạn thanh toán (24h)' 
+       WHERE id IN (?)`,
+      [registrationIds]
+    );
+
+    // Create notifications for students
+    const notifications = expiredRegistrations.map(r => [
+      'STUDENT',
+      r.student_id,
+      'Đơn đăng ký bị từ chối',
+      'Đơn đăng ký chỗ ở của bạn đã bị từ chối do quá thời hạn thanh toán (24 giờ). Vui lòng đăng ký lại nếu còn phòng trống.',
+      0 // unread
+    ]);
+
+    if (notifications.length > 0) {
+      await db.query(
+        `INSERT INTO notifications (target_type, target_user_id, title, content, is_read) VALUES ?`,
+        [notifications]
+      );
+    }
+
+    console.log(`[CRON] Rejected ${expiredRegistrations.length} expired registrations`);
+  } catch (error) {
+    console.error("[CRON] Error in autoRejectExpiredRegistrations:", error);
+    throw error;
+  }
+}
+
+/**
  * Optional: Manual trigger function to create cycle (useful for testing or admin operations)
  */
 export const manuallyCreateUtilityInvoiceCycle = async () => {
@@ -132,3 +198,8 @@ export const manuallyCreateUtilityInvoiceCycle = async () => {
     throw error;
   }
 };
+
+// Export for testing (ES module syntax)
+export { autoRejectExpiredRegistrations };
+
+

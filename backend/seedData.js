@@ -50,6 +50,10 @@ const seed = async () => {
       ["C1", "Khu ký túc xá – Dãy C1", "MIXED"],
       ["C2", "Khu ký túc xá – Dãy C2", "MIXED"],
       ["C3", "Khu ký túc xá – Dãy C3", "MIXED"],
+      ["P1", "Khu ưu tiên – Dãy P1", "MIXED"], // Priority buildings
+      ["P2", "Khu ưu tiên – Dãy P2", "MIXED"],
+      ["P3", "Khu ưu tiên – Dãy P3", "MIXED"],
+      ["P4", "Khu ưu tiên – Dãy P4", "MIXED"],
     ];
     await db.query(
       "INSERT INTO buildings (name, location, gender_restriction) VALUES ?",
@@ -103,6 +107,62 @@ const seed = async () => {
       [3, "P309", 3, 4, 3000000.00, 0, 0, 0, "AVAILABLE"],
       [3, "P310", 3, 4, 3000000.00, 0, 0, 0, "AVAILABLE"],
       [3, "P311", 3, 4, 3000000.00, 0, 0, 0, "AVAILABLE"],
+      
+      // Building P1 (building_id = 4) - Priority students only
+      [4, "PP101", 1, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP102", 1, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP103", 1, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP104", 1, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP105", 1, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP106", 1, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP201", 2, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP202", 2, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP203", 2, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP204", 2, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP205", 2, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [4, "PP206", 2, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      
+      // Building P2 (building_id = 5) - Priority students only
+      [5, "PP301", 3, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP302", 3, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP303", 3, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP304", 3, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP305", 3, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP306", 3, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP401", 4, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP402", 4, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP403", 4, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP404", 4, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP405", 4, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [5, "PP406", 4, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      
+      // Building P3 (building_id = 6) - Priority students only
+      [6, "PP501", 5, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP502", 5, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP503", 5, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP504", 5, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP505", 5, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP506", 5, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP601", 6, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP602", 6, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP603", 6, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP604", 6, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP605", 6, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [6, "PP606", 6, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      
+      // Building P4 (building_id = 7) - Priority students only
+      [7, "PP701", 7, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP702", 7, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP703", 7, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP704", 7, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP705", 7, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP706", 7, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP801", 8, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP802", 8, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP803", 8, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP804", 8, 6, 2500000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP805", 8, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
+      [7, "PP806", 8, 4, 2000000.00, 1, 1, 1, "AVAILABLE"],
     ];
     await db.query(
       "INSERT INTO rooms (building_id, room_number, floor, max_capacity, price_per_semester, has_ac, has_heater, has_washer, status) VALUES ?",
@@ -257,6 +317,36 @@ const seed = async () => {
         "DT1",
         "STUDYING",
       ],
+      [
+        "20225006",
+        studentPassword,
+        "Nguyen Van F",
+        "sv006@student.com",
+        "0912345676",
+        "MALE",
+        "CNTT3",
+        "STUDYING",
+      ],
+      [
+        "20225007",
+        studentPassword,
+        "Tran Thi G",
+        "sv007@student.com",
+        "0912345677",
+        "FEMALE",
+        "KT2",
+        "STUDYING",
+      ],
+      [
+        "20225008",
+        studentPassword,
+        "Le Van H",
+        "sv008@student.com",
+        "0912345678",
+        "MALE",
+        "CNTT4",
+        "STUDYING",
+      ],
     ];
 
     await db.query(
@@ -266,7 +356,7 @@ const seed = async () => {
 
     // Get inserted student IDs
     const [insertedStudents] = await db.query(
-      "SELECT id FROM students ORDER BY id ASC LIMIT 5"
+      "SELECT id FROM students ORDER BY id ASC LIMIT 8"
     );
     const studentIds = insertedStudents.map(s => s.id);
 
@@ -299,7 +389,26 @@ const seed = async () => {
     // 7.5 Clear Registrations (for demo - students will register fresh)
     console.log("Clearing Registrations for fresh demo...");
     await db.query("DELETE FROM registrations");
-    console.log("Registrations cleared - students can now register fresh!");
+    await db.query("ALTER TABLE registrations AUTO_INCREMENT = 1");
+    
+    // Create test registrations: NORMAL, PRIORITY, RENEWAL
+    console.log("Creating test registrations (NORMAL, PRIORITY, RENEWAL)...");
+    const testRegistrations = [
+      // Student 6: NORMAL registration (no priority, no desired room)
+      [studentIds[5], activeSemesterId, 'NORMAL', null, null, 'NONE', null, null, 'PENDING'],
+      // Student 7: PRIORITY registration (poor household with evidence)
+      [studentIds[6], activeSemesterId, 'PRIORITY', null, 1, 'POOR_HOUSEHOLD', 'Hộ nghèo theo quyết định của UBND xã, cần hỗ trợ chỗ ở', 'uploads/evidence/hogheo-20225007.pdf', 'PENDING'],
+      // Student 1 (đang ở phòng): RENEWAL registration for next semester
+      [studentIds[0], activeSemesterId, 'RENEWAL', 1, 1, 'NONE', 'Gia hạn phòng 101 tòa C1', null, 'PENDING'],
+    ];
+    
+    await db.query(
+      `INSERT INTO registrations 
+       (student_id, semester_id, registration_type, desired_room_id, desired_building_id, priority_category, priority_description, evidence_file_path, status) 
+       VALUES ?`,
+      [testRegistrations]
+    );
+    console.log("Created 3 test registrations: 1 NORMAL, 1 PRIORITY, 1 RENEWAL!");
 
     // 8. Seed Service Prices
     console.log("Seeding Service Prices...");

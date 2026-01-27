@@ -55,3 +55,15 @@ export const deleteSemester = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+export const getActiveSemester = async (req, res) => {
+  try {
+    const semester = await Semester.getActiveSemester();
+    if (!semester) {
+      return res.status(404).json({ message: "No active semester found" });
+    }
+    res.json(semester);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
