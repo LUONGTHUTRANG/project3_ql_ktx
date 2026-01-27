@@ -49,14 +49,20 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
 
 /**
  * Get nav items based on user role
+ * @param role - User role
+ * @param hasRoom - Optional: whether student has a current room (only for STUDENT role)
  */
-export const getNavItemsByRole = (role: UserRole): NavItem[] => {
+export const getNavItemsByRole = (role: UserRole, hasRoom?: boolean): NavItem[] => {
   switch (role) {
     case UserRole.ADMIN:
       return ADMIN_NAV_ITEMS;
     case UserRole.MANAGER:
       return MANAGER_NAV_ITEMS;
     case UserRole.STUDENT:
+      // Filter out 'Phòng của tôi' if student doesn't have a room
+      if (hasRoom === false) {
+        return STUDENT_NAV_ITEMS.filter(item => item.link !== '/student/my-room');
+      }
       return STUDENT_NAV_ITEMS;
     default:
       return STUDENT_NAV_ITEMS;

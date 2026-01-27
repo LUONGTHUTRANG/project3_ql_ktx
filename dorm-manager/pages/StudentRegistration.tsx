@@ -8,6 +8,7 @@ import { getAllSemesters, Semester } from '../api';
 import { getCurrentStay, CurrentStayInfo } from '../api';
 import RoomSelectionModal from '../components/RoomSelectionModal';
 import { AvailableRoom } from '../api_handlers/roomApi';
+import { useNavigate } from 'react-router-dom';
 
 type RegistrationStatus = 'upcoming' | 'open' | 'closed';
 type ActiveTab = 'regular' | 'special' | 'extension';
@@ -28,6 +29,7 @@ interface Building {
 
 const StudentRegistration: React.FC = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [isGroupReg, setIsGroupReg] = useState(false);
   const [selectedHabits, setSelectedHabits] = useState<string[]>(['Ngủ sớm']);
   const [activeTab, setActiveTab] = useState<ActiveTab>('regular');
@@ -274,24 +276,23 @@ const StudentRegistration: React.FC = () => {
         evidence: evidenceFile,
       });
 
-      // Show success message and payment instruction
-      if (result.invoice_id) {
-        message.success(
-          `Đăng ký thành công! Vui lòng thanh toán hóa đơn trong vòng 24 giờ. Mã hóa đơn: ${result.invoice_id}`,
-          10
-        );
+      // For NORMAL registration, navigate to payment page
+      if (result.requires_payment && result.invoice_id) {
+        message.success('Đăng ký thành công! Chuyển đến trang thanh toán...', 2);
+        setTimeout(() => {
+          navigate(`/student/invoices?invoice_id=${result.invoice_id}`);
+        }, 2000);
       } else {
         message.success(result.message || 'Đăng ký thành công!');
+        // Reset form after success
+        setSelectedRoom(null);
+        setSelectedBuildingId(null);
+        setPriorityCategory('');
+        setPriorityDescription('');
+        setExtensionReason('');
+        setSpecialFiles([]);
+        setExtensionFiles([]);
       }
-
-      // Reset form after success
-      setSelectedRoom(null);
-      setSelectedBuildingId(null);
-      setPriorityCategory('');
-      setPriorityDescription('');
-      setExtensionReason('');
-      setSpecialFiles([]);
-      setExtensionFiles([]);
 
     } catch (error: any) {
       message.error(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
