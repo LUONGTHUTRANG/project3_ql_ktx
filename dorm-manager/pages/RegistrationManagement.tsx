@@ -476,62 +476,86 @@ const RegistrationManagement: React.FC = () => {
                                         <div>
                                             <p className="text-xs text-purple-600 dark:text-purple-400">Diện ưu tiên</p>
                                             <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                {getPriorityCategoryLabel(detailRegistration.priority_category)}
+                                                {detailRegistration.priority_description || getPriorityCategoryLabel(detailRegistration.priority_category)}
                                             </p>
                                         </div>
-                                        {detailRegistration.priority_description && (
-                                            <div>
-                                                <p className="text-xs text-purple-600 dark:text-purple-400">Mô tả</p>
-                                                <p className="text-sm text-gray-700 dark:text-gray-300">
-                                                    {detailRegistration.priority_description}
-                                                </p>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             )}
 
                             {/* Evidence File Section */}
-                            {detailRegistration.evidence_file_path && (
-                                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-                                    <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-sm">attach_file</span>
-                                        Minh chứng đính kèm
-                                    </h4>
-                                    <div className="space-y-3">
-                                        {/* Check if it's an image or PDF */}
-                                        {detailRegistration.evidence_file_path.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                            <div className="rounded-lg overflow-hidden border border-blue-200 dark:border-blue-700">
-                                                <img
-                                                    src={getEvidenceUrl(detailRegistration.evidence_file_path)}
-                                                    alt="Minh chứng"
-                                                    className="w-full max-h-[400px] object-contain bg-white"
-                                                />
-                                            </div>
-                                        ) : detailRegistration.evidence_file_path.match(/\.pdf$/i) ? (
-                                            <div className="flex flex-col items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                                                <span className="material-symbols-outlined text-5xl text-red-500">picture_as_pdf</span>
-                                                <p className="text-sm text-gray-600 dark:text-gray-300">Tệp PDF đính kèm</p>
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                                                <span className="material-symbols-outlined text-5xl text-gray-400">description</span>
-                                                <p className="text-sm text-gray-600 dark:text-gray-300">Tệp đính kèm</p>
-                                            </div>
-                                        )}
+                            {detailRegistration.evidence_file_path && (() => {
+                                const getFileType = (filename: string): 'pdf' | 'image' | 'document' => {
+                                    const extension = filename.split('.').pop()?.toLowerCase();
+                                    if (extension === 'pdf') return 'pdf';
+                                    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension || '')) return 'image';
+                                    return 'document';
+                                };
 
-                                        <a
-                                            href={getEvidenceUrl(detailRegistration.evidence_file_path)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">open_in_new</span>
-                                            Mở file trong tab mới
-                                        </a>
+                                const getFileIcon = (type: string) => {
+                                    switch (type) {
+                                        case 'pdf':
+                                            return 'picture_as_pdf';
+                                        case 'image':
+                                            return 'image';
+                                        default:
+                                            return 'description';
+                                    }
+                                };
+
+                                const getFileIconColor = (type: string) => {
+                                    switch (type) {
+                                        case 'pdf':
+                                            return 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400';
+                                        case 'image':
+                                            return 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400';
+                                        default:
+                                            return 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400';
+                                    }
+                                };
+
+                                const fileType = getFileType(detailRegistration.evidence_file_path);
+                                const fileName = detailRegistration.evidence_file_path.split('/').pop() || detailRegistration.evidence_file_path;
+                                const fileUrl = getEvidenceUrl(detailRegistration.evidence_file_path);
+
+                                return (
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                                        <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-sm">attach_file</span>
+                                            Minh chứng đính kèm
+                                        </h4>
+                                        <div className="flex items-center p-3 rounded-lg border border-border-color dark:border-gray-700 bg-white dark:bg-surface-dark hover:shadow-md hover:border-primary/30 transition-all group">
+                                            <div className={`flex items-center justify-center size-10 rounded ${getFileIconColor(fileType)} mr-3 shrink-0`}>
+                                                <span className="material-symbols-outlined">{getFileIcon(fileType)}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0 mr-2">
+                                                <p className="text-sm font-semibold text-text-main dark:text-gray-200 truncate group-hover:text-primary transition-colors">
+                                                    {fileName}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <a
+                                                    href={fileUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                    title="Xem"
+                                                >
+                                                    <span className="material-symbols-outlined text-[20px]">visibility</span>
+                                                </a>
+                                                <a
+                                                    href={fileUrl}
+                                                    download
+                                                    className="p-1.5 text-gray-400 hover:text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                    title="Tải xuống"
+                                                >
+                                                    <span className="material-symbols-outlined text-[20px]">download</span>
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
 
                             {/* Admin Note */}
                             {detailRegistration.admin_note && (
