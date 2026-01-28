@@ -157,7 +157,7 @@ const SemesterManagement: React.FC = () => {
   return (
     <RoleBasedLayout
       headerTitle="Danh sách Kỳ ở"
-      headerSubtitle="Quản lý thông tin và thời gian lưu trú của các kỳ học."
+      // headerSubtitle="Quản lý thông tin và thời gian lưu trú của các kỳ học."
     >
       <div className="space-y-6">
         {/* Page Header with Add Button */}
@@ -183,7 +183,7 @@ const SemesterManagement: React.FC = () => {
         {/* Filter Toolbar */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
           {/* Search */}
-          <div className="w-full sm:max-w-xs">
+          {/* <div className="w-full sm:max-w-xs">
             <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-2">
               Tìm kiếm
             </label>
@@ -197,7 +197,7 @@ const SemesterManagement: React.FC = () => {
               }}
               className="h-11 gap-3 pl-1 flex-1"
             />
-          </div>
+          </div> */}
 
           {/* Filter Dropdown */}
           <div className="flex items-center gap-2 w-full sm:w-auto">

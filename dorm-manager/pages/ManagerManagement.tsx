@@ -150,7 +150,7 @@ const ManagerManagement: React.FC = () => {
   return (
     <RoleBasedLayout
       headerTitle="Danh sách Cán bộ"
-      headerSubtitle="Quản lý thông tin cán bộ quản lý tòa nhà."
+      // headerSubtitle="Quản lý thông tin cán bộ quản lý tòa nhà."
     >
       <div className="space-y-6">
         {/* Page Header with Add Button */}

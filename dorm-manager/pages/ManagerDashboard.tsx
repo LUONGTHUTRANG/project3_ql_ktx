@@ -151,9 +151,9 @@ const ManagerDashboard: React.FC = () => {
 
   return (
     <RoleBasedLayout
-      searchPlaceholder="Tìm sinh viên, phòng tại Tòa A1..."
-      headerTitle="Tòa nhà A1"
-      headerSubtitle="Khu ký túc xá Đại học Quốc gia"
+      searchPlaceholder="Tìm sinh viên, phòng tại Tòa C1..."
+      // headerTitle="Tòa nhà A1"
+      // headerSubtitle="Khu ký túc xá Đại học Quốc gia"
     >
       <div className="flex flex-col gap-8">
         {/* Stats Grid */}
@@ -542,8 +542,6 @@ const ManagerDashboard: React.FC = () => {
             </table>
           </div>
         </div>
-
-        <div className="h-10"></div>
       </div>
 
       {/* Floating Action Button */}

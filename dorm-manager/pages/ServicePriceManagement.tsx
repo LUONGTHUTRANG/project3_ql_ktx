@@ -186,6 +186,17 @@ const ServicePriceManagement: React.FC = () => {
     setCurrentPage(1);
   };
 
+  // Get service display name
+  const getServiceDisplayName = (serviceName: string): string => {
+    const name = serviceName.toUpperCase();
+    if (name === 'ELECTRICITY') return 'Tiền điện';
+    if (name === 'WATER') return 'Tiền nước';
+    if (name.includes('INTERNET') || name.includes('WIFI')) return 'Tiền Internet';
+    if (name.includes('CLEANING')) return 'Vệ sinh';
+    if (name.includes('PARKING')) return 'Gửi xe';
+    return serviceName;
+  };
+
   // Get service icon based on service name
   const getServiceIcon = (serviceName: string): string => {
     const name = serviceName.toLowerCase();
@@ -221,7 +232,7 @@ const ServicePriceManagement: React.FC = () => {
   return (
     <RoleBasedLayout
       headerTitle="Quản lý Giá Dịch vụ"
-      headerSubtitle="Quản lý đơn giá điện, nước, internet và các dịch vụ khác trong ký túc xá."
+      // headerSubtitle="Quản lý đơn giá điện, nước, internet và các dịch vụ khác trong ký túc xá."
     >
       <div className="space-y-6">
         {/* Page Header with Add Button */}
@@ -245,7 +256,7 @@ const ServicePriceManagement: React.FC = () => {
             <div className="w-full sm:max-w-xs">
               <label className="block text-xs font-medium text-text-secondary dark:text-gray-400 mb-2">Tìm kiếm</label>
               <Input
-                  placeholder="Nhập tên hoặc MSSV..."
+                  placeholder="Nhập tên dịch vụ để tìm kiếm"
                   prefix={<SearchOutlined />}
                   value={searchText}
                   onChange={(e) => {
@@ -274,13 +285,13 @@ const ServicePriceManagement: React.FC = () => {
                   ]}
                 />
               </div>
-              <button
+              {/* <button
                 onClick={handleReset}
                 className="h-11 px-2 mt-6 text-text-secondary hover:text-primary hover:bg-background-light dark:hover:bg-gray-800 rounded-lg border border-border-light dark:border-border-dark transition-colors"
                 title="Reset"
               >
                 <span className="material-symbols-outlined text-[20px]">restart_alt</span>
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -335,7 +346,7 @@ const ServicePriceManagement: React.FC = () => {
                               <span className="material-symbols-outlined">{icon}</span>
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-text-main dark:text-white">{price.service_name}</div>
+                              <div className="text-sm font-medium text-text-main dark:text-white">{getServiceDisplayName(price.service_name)}</div>
                             </div>
                           </div>
                         </td>

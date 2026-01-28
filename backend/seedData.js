@@ -398,8 +398,6 @@ const seed = async () => {
       [studentIds[5], activeSemesterId, 'NORMAL', null, null, 'NONE', null, null, 'PENDING'],
       // Student 7: PRIORITY registration (poor household with evidence)
       [studentIds[6], activeSemesterId, 'PRIORITY', null, 1, 'POOR_HOUSEHOLD', 'Hộ nghèo theo quyết định của UBND xã, cần hỗ trợ chỗ ở', 'uploads/evidence/hogheo-20225007.pdf', 'PENDING'],
-      // Student 1 (đang ở phòng): RENEWAL registration for next semester
-      [studentIds[0], activeSemesterId, 'RENEWAL', 1, 1, 'NONE', 'Gia hạn phòng 101 tòa C1', null, 'PENDING'],
     ];
     
     await db.query(

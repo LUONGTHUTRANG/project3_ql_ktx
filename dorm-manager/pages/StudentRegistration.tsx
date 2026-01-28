@@ -326,6 +326,27 @@ const StudentRegistration: React.FC = () => {
   };
 
   // ===== SUBMIT HANDLER =====
+  // Reload registrations data
+  const reloadRegistrations = async () => {
+    try {
+      const registrations = await getMyRegistrations();
+      setMyRegistrations(registrations);
+      
+      // Check if there's a pending/awaiting payment registration for current semester
+      if (activeSemester && registrations.length > 0) {
+        const currentSemesterReg = registrations.find(reg => 
+          reg.semester_id === activeSemester.id && 
+          ['PENDING', 'AWAITING_PAYMENT', 'APPROVED', 'RETURN'].includes(reg.status)
+        );
+        if (currentSemesterReg) {
+          setSubmittedRegistration(currentSemesterReg);
+        }
+      }
+    } catch (error) {
+      console.error('Error reloading registrations:', error);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       message.error('Vui lòng đăng nhập để tiếp tục');
@@ -432,6 +453,9 @@ const StudentRegistration: React.FC = () => {
         priority_description: priorityDesc,
         evidence: evidenceFile,
       });
+
+      // Reload registrations to update UI
+      await reloadRegistrations();
 
       // For NORMAL registration, navigate to payment page if invoice was created
       if (result.invoice_id) {
@@ -1169,7 +1193,7 @@ const StudentRegistration: React.FC = () => {
                             style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
                           >
                             <span className="material-symbols-outlined text-[20px]">search</span>
-                            Xem phòng khu ưu tiên P1
+                            Xem danh sách phòng trống và chọn phòng
                           </Button>
                         )}
                       </div>

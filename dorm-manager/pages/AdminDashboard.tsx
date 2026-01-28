@@ -452,8 +452,6 @@ const AdminDashboard: React.FC = () => {
             </table>
           </div>
         </div>
-
-        <div className="h-10"></div>
       </div>
 
       {/* Floating Action Button */}
