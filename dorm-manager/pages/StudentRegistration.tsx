@@ -2,7 +2,7 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AuthContext } from '../App';
 import RoleBasedLayout from '../layouts/RoleBasedLayout';
 import { Select, Switch, message, Button, Input } from 'antd';
-import { createRegistration } from '../api';
+import { createRegistration, getMyRegistrations, Registration } from '../api';
 import { fetchBuildings } from '../api';
 import { getAllSemesters, Semester } from '../api';
 import { getCurrentStay, CurrentStayInfo } from '../api';
@@ -55,7 +55,7 @@ const StudentRegistration: React.FC = () => {
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
   const [selectedRoomType, setSelectedRoomType] = useState<string>('4');
   const [selectedFloor, setSelectedFloor] = useState<string>('any');
-  const [priorityCategory, setPriorityCategory] = useState<string>('');
+  const [priorityCategory, setPriorityCategory] = useState<string>(null);
   const [priorityDescription, setPriorityDescription] = useState<string>('');
   const [extensionReason, setExtensionReason] = useState<string>('');
 
@@ -81,6 +81,11 @@ const StudentRegistration: React.FC = () => {
   const [specialRegStatus, setSpecialRegStatus] = useState<'upcoming' | 'open' | 'closed'>('open');
   const [renewalRegStatus, setRenewalRegStatus] = useState<'upcoming' | 'open' | 'closed'>('open');
 
+  // Track existing registrations for current semester
+  const [myRegistrations, setMyRegistrations] = useState<Registration[]>([]);
+  const [loadingMyRegistrations, setLoadingMyRegistrations] = useState(true);
+  const [submittedRegistration, setSubmittedRegistration] = useState<Registration | null>(null);
+
   // Fetch buildings and semester on mount
   useEffect(() => {
     const loadInitialData = async () => {
@@ -99,6 +104,28 @@ const StudentRegistration: React.FC = () => {
 
         // Fetch current stay info for renewal tab
         await loadCurrentStay();
+
+        // Fetch existing registrations to check if already submitted
+        try {
+          setLoadingMyRegistrations(true);
+          const registrations = await getMyRegistrations();
+          setMyRegistrations(registrations);
+          
+          // Check if there's a pending/awaiting payment registration for current semester
+          if (active && registrations.length > 0) {
+            const currentSemesterReg = registrations.find(reg => 
+              reg.semester_id === active.id && 
+              ['PENDING', 'AWAITING_PAYMENT', 'APPROVED', 'RETURN'].includes(reg.status)
+            );
+            if (currentSemesterReg) {
+              setSubmittedRegistration(currentSemesterReg);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading registrations:', error);
+        } finally {
+          setLoadingMyRegistrations(false);
+        }
       } catch (error) {
         console.error('Error loading initial data:', error);
       }
@@ -432,6 +459,122 @@ const StudentRegistration: React.FC = () => {
   };
   console.log("checkcheck", loadingCurrentStay)
 
+  // Render submitted registration message
+  const renderSubmittedMessage = (registration: Registration) => {
+    const isNormalType = registration.registration_type === 'NORMAL';
+    
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-6 text-center animate-in fade-in zoom-in-95 duration-500">
+        <div className={`size-28 rounded-full flex items-center justify-center mb-8 shadow-sm ${
+          isNormalType
+            ? 'bg-blue-50 dark:bg-blue-900/20'
+            : 'bg-amber-50 dark:bg-amber-900/20'
+        }`}>
+          <span className={`material-symbols-outlined text-[56px] ${
+            isNormalType
+              ? 'text-blue-600'
+              : 'text-amber-600'
+          }`}>
+            {isNormalType ? 'receipt_long' : 'schedule'}
+          </span>
+        </div>
+        
+        <h3 className="text-text-main dark:text-white text-2xl md:text-3xl font-bold mb-4 tracking-tight">
+          Đã gửi đơn đăng ký
+        </h3>
+        
+        <div className="mb-8 max-w-[500px]">
+          {isNormalType ? (
+            <p className="text-text-secondary dark:text-gray-400 text-base leading-relaxed">
+              Bạn đã gửi đơn đăng ký thông thường thành công. Vui lòng thanh toán học phí để hoàn tất quá trình đăng ký và được phân phòng.
+            </p>
+          ) : (
+            <p className="text-text-secondary dark:text-gray-400 text-base leading-relaxed">
+              Bạn đã gửi đơn {registration.registration_type === 'PRIORITY' ? 'ưu tiên / đặc biệt' : 'gia hạn'} thành công. Vui lòng đợi cán bộ quản lý phê duyệt yêu cầu của bạn.
+            </p>
+          )}
+        </div>
+
+        <div className="w-full max-w-2xl mb-12">
+          <div className={`border-l-4 rounded-r-lg p-6 ${
+            isNormalType
+              ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500'
+              : 'bg-amber-50 dark:bg-amber-900/20 border-l-amber-500'
+          }`}>
+            <div className="flex flex-col gap-3 text-left">
+              <div className="flex justify-between items-start">
+                <span className={`text-sm font-bold uppercase tracking-wider ${
+                  isNormalType
+                    ? 'text-blue-700 dark:text-blue-300'
+                    : 'text-amber-700 dark:text-amber-300'
+                }`}>
+                  Loại đơn
+                </span>
+                <span className="text-text-main dark:text-white font-bold">
+                  {registration.registration_type === 'NORMAL' ? 'Đơn đăng ký thông thường' 
+                    : registration.registration_type === 'PRIORITY' ? 'Đơn ưu tiên / đặc biệt'
+                    : 'Đơn gia hạn'}
+                </span>
+              </div>
+              <div className="flex justify-between items-start">
+                <span className={`text-sm font-bold uppercase tracking-wider ${
+                  isNormalType
+                    ? 'text-blue-700 dark:text-blue-300'
+                    : 'text-amber-700 dark:text-amber-300'
+                }`}>
+                  Trạng thái
+                </span>
+                <span className="text-text-main dark:text-white font-bold">
+                  {registration.status === 'PENDING' && 'Chờ xử lý'}
+                  {registration.status === 'AWAITING_PAYMENT' && 'Chờ thanh toán'}
+                  {registration.status === 'APPROVED' && 'Được phê duyệt'}
+                  {registration.status === 'RETURN' && 'Chờ sửa đổi'}
+                </span>
+              </div>
+              {registration.created_at && (
+                <div className="flex justify-between items-start pt-2 border-t border-current border-opacity-10">
+                  <span className={`text-sm font-bold uppercase tracking-wider ${
+                    isNormalType
+                      ? 'text-blue-700 dark:text-blue-300'
+                      : 'text-amber-700 dark:text-amber-300'
+                  }`}>
+                    Ngày gửi
+                  </span>
+                  <span className="text-text-main dark:text-white font-bold">
+                    {formatDate(registration.created_at)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+          {isNormalType && (
+            <button
+              onClick={() => navigate('/student/bills')}
+              className="flex-1 flex items-center justify-center gap-2 px-6 h-12 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined">payment</span>
+              Thanh toán ngay
+            </button>
+          )}
+          {/* <button
+            onClick={() => navigate('/student/dashboard')}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 h-12 rounded-xl font-bold transition-all ${
+              isNormalType
+                ? 'bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/20'
+            }`}
+          >
+            <span className="material-symbols-outlined">home</span>
+            {isNormalType ? 'Về trang chủ' : 'Theo dõi'}
+          </button> */}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <RoleBasedLayout
       searchPlaceholder="Tìm kiếm..."
@@ -710,7 +853,12 @@ const StudentRegistration: React.FC = () => {
                 </div>
               </div>
 
-              {!loadingCurrentStay && activeTab === 'regular' && !hasActiveRoom && !activeRoomInfo && registrationStatus === 'open' && (
+              {!loadingCurrentStay && activeTab === 'regular' && !hasActiveRoom && !activeRoomInfo && registrationStatus === 'open' && submittedRegistration?.registration_type === 'NORMAL' && (
+                /* REGULAR - SUBMITTED MESSAGE */
+                renderSubmittedMessage(submittedRegistration)
+              )}
+
+              {!loadingCurrentStay && activeTab === 'regular' && !hasActiveRoom && !activeRoomInfo && registrationStatus === 'open' && !submittedRegistration && (
                 /* REGULAR FORM CONTENT */
                 <>
                   {/* Section 1: Personal Info */}
@@ -726,9 +874,9 @@ const StudentRegistration: React.FC = () => {
                         <Input
                           readOnly
                           value={user.mssv || ''}
-                          prefix={<span className="material-symbols-outlined text-gray-400 text-lg">lock</span>}
-                          disabled
-                          className="h-11"
+                          prefix={<span className="hidden"/>}
+                          // disabled
+                          className="h-11 pointer-events-none"
                         />
                       </div>
                       <div className="flex flex-col gap-2">
@@ -736,9 +884,9 @@ const StudentRegistration: React.FC = () => {
                         <Input
                           readOnly
                           value={user.name}
-                          prefix={<span className="material-symbols-outlined text-gray-400 text-lg">lock</span>}
-                          disabled
-                          className="h-11"
+                          prefix={<span className="hidden"/>}
+                          // disabled
+                          className="h-11 pointer-events-none"
                         />
                       </div>
                       {/* <div className="flex flex-col gap-2">
@@ -873,7 +1021,12 @@ const StudentRegistration: React.FC = () => {
                 </>
               )}
 
-              {activeTab === 'special' && (
+              {activeTab === 'special' && submittedRegistration?.registration_type === 'PRIORITY' && (
+                /* SPECIAL - SUBMITTED MESSAGE */
+                renderSubmittedMessage(submittedRegistration)
+              )}
+
+              {activeTab === 'special' && !submittedRegistration && (
                 /* SPECIAL FORM CONTENT */
                 <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-top-4 duration-500">
                   {/* Alert Banner */}
@@ -896,19 +1049,35 @@ const StudentRegistration: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Họ và tên</span>
-                        <Input disabled value={user.name} className="h-11" />
+                        <Input 
+                          // disabled 
+                          value={user.name} 
+                          className="h-11 pointer-events-none" 
+                          prefix={<span className="hidden" />}/>
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Mã số sinh viên</span>
-                        <Input disabled value={user.mssv || ''} className="h-11" />
+                        <Input 
+                          // disabled 
+                          value={user.mssv || ''} 
+                          className="h-11 pointer-events-none" 
+                          prefix={<span className="hidden" />}/>
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Lớp sinh hoạt</span>
-                        <Input disabled value="K65 - Công nghệ thông tin 01" className="h-11" />
+                        <Input 
+                          // disabled 
+                          value="K65 - Công nghệ thông tin 01" 
+                          className="h-11 pointer-events-none" 
+                          prefix={<span className="hidden" />}/>
                       </div>
                       <div className="flex flex-col gap-2">
                         <span className="text-text-main dark:text-gray-200 text-sm font-medium">Giới tính</span>
-                        <Input disabled value="Nam" className="h-11" />
+                        <Input 
+                          // disabled 
+                          value="Nam" 
+                          className="h-11 pointer-events-none" 
+                          prefix={<span className="hidden" />}/>
                       </div>
                     </div>
                   </div>
@@ -995,11 +1164,11 @@ const StudentRegistration: React.FC = () => {
                           <Button
                             type="primary"
                             size="large"
-                            icon={<span className="material-symbols-outlined text-[20px]">search</span>}
                             onClick={() => setRoomSelectionModalVisible(true)}
                             className="w-full h-12 text-base font-semibold"
                             style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
                           >
+                            <span className="material-symbols-outlined text-[20px]">search</span>
                             Xem phòng khu ưu tiên P1
                           </Button>
                         )}
@@ -1089,7 +1258,12 @@ const StudentRegistration: React.FC = () => {
                 </div>
               )}
 
-              {activeTab === 'extension' && (
+              {activeTab === 'extension' && submittedRegistration?.registration_type === 'RENEWAL' && (
+                /* EXTENSION - SUBMITTED MESSAGE */
+                renderSubmittedMessage(submittedRegistration)
+              )}
+
+              {activeTab === 'extension' && !submittedRegistration && (
                 /* EXTENSION TAB CONTENT */
                 loadingCurrentStay ? (
                   /* LOADING STATE */
@@ -1287,6 +1461,7 @@ const StudentRegistration: React.FC = () => {
               )}
 
               {/* Actions */}
+              {!submittedRegistration && (
               <div className="flex flex-col sm:flex-row items-center justify-end gap-4 pt-6 border-t border-border-color dark:border-gray-700">
                 <button className="w-full sm:w-auto px-6 py-3 rounded-xl text-sm font-bold text-text-secondary dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   {activeTab === 'extension' ? 'Hủy' : 'Hủy bỏ'}
@@ -1312,6 +1487,7 @@ const StudentRegistration: React.FC = () => {
                   )}
                 </button>
               </div>
+              )}
             </div>
           )}
         </div>

@@ -263,6 +263,24 @@ const CreateInvoicePage: React.FC = () => {
     navigate(-1);
   };
 
+  // Helper function to get building name from ID
+  const getBuildingName = (buildingId: string) => {
+    const building = buildings.find((b: any) => String(b.id) === buildingId);
+    return building?.name || buildingId;
+  };
+
+  // Helper function to get room number from room ID
+  const getRoomNumber = (roomId: string) => {
+    const room = rooms.find((r: any) => String(r.id) === roomId);
+    return room?.room_number || roomId;
+  };
+
+  // Helper function to get student name from student ID
+  const getStudentName = (studentId: string) => {
+    const student = students.find((s: any) => String(s.id) === studentId);
+    return student?.full_name || studentId;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -632,11 +650,11 @@ const CreateInvoicePage: React.FC = () => {
                     Hệ thống sẽ tạo hóa đơn cho{' '}
                     <strong>
                       {formData.student !== 'all' && formData.student
-                        ? 'sinh viên được chọn'
+                        ? `${getStudentName(formData.student)}`
                         : formData.room !== 'all'
-                          ? `phòng ${formData.room}`
+                          ? `phòng ${getRoomNumber(formData.room)}`
                           : formData.building !== 'all'
-                            ? `tất cả phòng trong tòa ${formData.building}`
+                            ? `tất cả phòng trong tòa ${getBuildingName(formData.building)}`
                             : 'tất cả tòa'}
                     </strong>
                     .

@@ -113,7 +113,7 @@ const Settings: React.FC = () => {
               <p className="text-text-secondary dark:text-gray-400 text-base font-medium">
                 {isManager ? `Email: ${user.email}` : `MSSV: ${user.mssv || user.id}`}
               </p>
-              <p className="text-text-secondary dark:text-gray-400 text-sm">{isManager ? `Tòa nhà quản lý: ${user.building_id}` : `${user.subtitle}`}</p>
+              <p className="text-text-secondary dark:text-gray-400 text-sm">{isManager ? `Tòa nhà quản lý: ${user.building_id}` : `Email: ${user.email}`}</p>
             </div>
             <div className="flex items-center self-center sm:self-start mt-2 sm:mt-0">
               <button 

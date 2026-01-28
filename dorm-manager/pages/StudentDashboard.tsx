@@ -342,7 +342,7 @@ const StudentDashboard: React.FC = () => {
                   </span>
                 </div>
                 <button
-                  onClick={() => navigate("/student/bills")}
+                  onClick={() => navigate(`/student/bills/${latestInvoice?.id}`)}
                   className="w-full rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500 transition-colors"
                 >
                   Thanh toán ngay

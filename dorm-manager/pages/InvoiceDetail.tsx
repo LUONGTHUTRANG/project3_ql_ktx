@@ -469,9 +469,10 @@ const InvoiceDetail: React.FC = () => {
               <div className="space-y-4 pt-4 border-t border-border-color dark:border-gray-700">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-medium text-text-secondary dark:text-gray-400">Hạn thanh toán:</span>
-                  <span className="text-sm font-bold text-red-600">{formatters.formatDateTime(invoice.due_date) || '-'}</span>
+                  <span className="text-sm font-bold text-red-600">{formatters.formatDateTime(invoice.deadline_at) || '-'}</span>
                 </div>
-                <div className="flex justify-between items-center">
+                {invoice.invoice_category?.toUpperCase() !== 'OTHER' && (
+                  <div className="flex justify-between items-center">
                   <span className="text-xs font-medium text-text-secondary dark:text-gray-400">Kỳ thanh toán:</span>
                   <span className="text-sm font-bold text-text-main dark:text-white">
                     {invoice.invoice_category?.toUpperCase() === 'UTILITY' 
@@ -480,6 +481,7 @@ const InvoiceDetail: React.FC = () => {
                     }
                   </span>
                 </div>
+                )}
               </div>
             </div>
 

@@ -195,7 +195,7 @@ const Notification = {
       notification.buildings = buildings;
     } else if (notification.target_scope === "INDIVIDUAL") {
       const [students] = await db.query(
-        "SELECT s.id, s.full_name, s.mssv FROM students s JOIN notification_recipients nr ON s.id = nr.student_id WHERE nr.notification_id = ?",
+        "SELECT s.id, s.full_name, s.mssv FROM students s JOIN notification_recipients nr ON s.id = nr.user_id WHERE nr.notification_id = ?",
         [id]
       );
       notification.students = students;

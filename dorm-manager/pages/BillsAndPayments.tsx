@@ -265,7 +265,7 @@ const BillsAndPayments: React.FC = () => {
                   {(() => {
                     const totalDebt = bills
                       .filter(bill => bill.status?.toUpperCase() === 'PUBLISHED' || bill.status?.toUpperCase() === 'OVERDUE')
-                      .reduce((sum, bill) => sum + Number(bill.total_amount || bill.amount || 0), 0);
+                      .reduce((sum, bill) => sum + Number(bill.total_amount || bill.amount), 0);
                     return totalDebt.toLocaleString('vi-VN') + '₫';
                   })()}
                 </span>

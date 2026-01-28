@@ -359,8 +359,8 @@ const sendUtilityPublishNotifications = async (utilityInvoices, cycle, user) => 
       title,
       content,
       attachment_path: null,
-      sender_role: user.role === "manager" ? "MANAGER" : "ADMIN",
-      sender_id: user.id,
+      sender_role: "SYSTEM",
+      sender_id: null,
       target_scope: "INDIVIDUAL",
       type: "ANNOUNCEMENT",
     });
