@@ -11,6 +11,7 @@ export const createRegistration = async (req, res) => {
     
     const {
       student_id,
+      semester_id,
       registration_type, // 'NORMAL', 'PRIORITY', 'RENEWAL'
       desired_room_id,
       desired_building_id,
@@ -18,13 +19,19 @@ export const createRegistration = async (req, res) => {
       priority_description,
     } = req.body;
 
-    // 1. Get current active semester
-    const activeSemester = await Semester.getActiveSemester();
-    if (!activeSemester) {
+    // 1. Get the semester (either from request or use active semester)
+    let semester = null;
+    if (semester_id) {
+      semester = await Semester.getById(semester_id);
+    } else {
+      semester = await Semester.getActiveSemester();
+    }
+    
+    if (!semester) {
       await connection.rollback();
       return res
         .status(400)
-        .json({ message: "Không có học kỳ nào đang mở đăng ký." });
+        .json({ message: "Không có học kỳ nào được chỉ định hoặc không có học kỳ nào đang mở đăng ký." });
     }
 
     // 2. Validate registration time based on registration type
@@ -34,16 +41,16 @@ export const createRegistration = async (req, res) => {
     let registrationType = "";
 
     if (registration_type === 'NORMAL') {
-      openDate = activeSemester.registration_open_date;
-      closeDate = activeSemester.registration_close_date;
+      openDate = semester.registration_open_date;
+      closeDate = semester.registration_close_date;
       registrationType = "Đơn đăng ký thông thường";
     } else if (registration_type === 'PRIORITY') {
-      openDate = activeSemester.registration_special_open_date;
-      closeDate = activeSemester.registration_special_close_date;
+      openDate = semester.registration_special_open_date;
+      closeDate = semester.registration_special_close_date;
       registrationType = "Đơn ưu tiên/đặc biệt";
     } else if (registration_type === 'RENEWAL') {
-      openDate = activeSemester.renewal_open_date;
-      closeDate = activeSemester.renewal_close_date;
+      openDate = semester.renewal_open_date;
+      closeDate = semester.renewal_close_date;
       registrationType = "Gia hạn chỗ ở";
     }
 
@@ -111,7 +118,7 @@ export const createRegistration = async (req, res) => {
       roomPrice = room.price_per_semester;
 
       // Check current occupancy
-      const occupancy = await Room.getRoomOccupancy(desired_room_id, activeSemester.id);
+      const occupancy = await Room.getRoomOccupancy(desired_room_id, semester.id);
       if (occupancy.count >= room.max_capacity) {
         await connection.rollback();
         return res.status(400).json({ message: "Phòng đã đầy" });
@@ -160,7 +167,7 @@ export const createRegistration = async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         student_id,
-        activeSemester.id,
+        semester.id,
         registration_type,
         desired_room_id || null,
         desired_building_id || null,
@@ -194,7 +201,7 @@ export const createRegistration = async (req, res) => {
         `INSERT INTO room_fee_invoices 
          (invoice_id, student_id, room_id, semester_id, price_per_semester) 
          VALUES (?, ?, ?, ?, ?)`,
-        [invoiceId, student_id, desired_room_id, activeSemester.id, roomPrice]
+        [invoiceId, student_id, desired_room_id, semester.id, roomPrice]
       );
 
       // Link invoice to registration

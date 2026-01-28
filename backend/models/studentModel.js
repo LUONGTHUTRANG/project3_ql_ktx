@@ -112,17 +112,53 @@ const Student = {
         s.academic_year,
         s.start_date as semester_start,
         s.end_date as semester_end,
+        s.is_active as semester_is_active,
         DATEDIFF(CURDATE(), sr.start_date) as days_stayed,
         TIMESTAMPDIFF(MONTH, sr.start_date, CURDATE()) as months_stayed
       FROM stay_records sr
       JOIN rooms r ON sr.room_id = r.id
       JOIN buildings b ON r.building_id = b.id
       JOIN semesters s ON sr.semester_id = s.id
-      WHERE sr.student_id = ? AND sr.status = 'ACTIVE'
+      WHERE sr.student_id = ? AND s.is_active = 1
       ORDER BY sr.start_date DESC
       LIMIT 1
     `;
     const [rows] = await db.query(query, [studentId]);
+    return rows[0] || null;
+  },
+
+  // Get stay for a specific semester
+  getStayBySemesterId: async (studentId, semesterId) => {
+    const query = `
+      SELECT 
+        sr.id as stay_id,
+        sr.student_id,
+        sr.room_id,
+        sr.semester_id,
+        sr.start_date,
+        sr.end_date,
+        sr.status as stay_status,
+        r.room_number,
+        r.floor,
+        r.max_capacity,
+        r.price_per_semester,
+        b.id as building_id,
+        b.name as building_name,
+        s.id as semester_id,
+        s.term,
+        s.academic_year,
+        s.start_date as semester_start,
+        s.end_date as semester_end,
+        DATEDIFF(CURDATE(), sr.start_date) as days_stayed,
+        TIMESTAMPDIFF(MONTH, sr.start_date, CURDATE()) as months_stayed
+      FROM stay_records sr
+      JOIN rooms r ON sr.room_id = r.id
+      JOIN buildings b ON r.building_id = b.id
+      JOIN semesters s ON sr.semester_id = s.id
+      WHERE sr.student_id = ? AND sr.semester_id = ?
+      LIMIT 1
+    `;
+    const [rows] = await db.query(query, [studentId, semesterId]);
     return rows[0] || null;
   },
 };

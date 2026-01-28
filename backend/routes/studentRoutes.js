@@ -40,5 +40,12 @@ router.get(
   studentController.getCurrentStay
 );
 
+// Get stay for a specific semester
+router.post(
+  "/me/stay-by-semester",
+  authorizeRoles("student"),
+  studentController.getStayBySemester
+);
+
 export default router;
 

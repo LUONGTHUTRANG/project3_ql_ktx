@@ -115,3 +115,34 @@ export const getCurrentStay = async (req, res) => {
   }
 };
 
+export const getStayBySemester = async (req, res) => {
+  try {
+    const studentId = req.user?.id || req.body.student_id;
+    const semesterId = req.body.semester_id || req.query.semester_id;
+
+    if (!studentId) {
+      return res.status(400).json({ error: "Student ID is required" });
+    }
+
+    if (!semesterId) {
+      return res.status(400).json({ error: "Semester ID is required" });
+    }
+
+    const stay = await Student.getStayBySemesterId(studentId, semesterId);
+
+    if (!stay) {
+      return res.json({
+        hasStay: false,
+        message: "Bạn chưa có chỗ ở trong kỳ này"
+      });
+    }
+
+    res.json({
+      hasStay: true,
+      data: stay
+    });
+  } catch (err) {
+    console.error("Error getting stay by semester:", err);
+    res.status(500).json({ error: err.message });
+  }
+};

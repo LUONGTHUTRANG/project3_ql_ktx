@@ -98,6 +98,30 @@ const SemesterManagement: React.FC = () => {
     })),
   ];
 
+  // Helper function to get semester status
+  const getSemesterStatus = (semester: Semester): { status: string; label: string; color: string } => {
+    const now = new Date();
+    const startDate = new Date(semester.start_date);
+    const endDate = new Date(semester.end_date);
+
+    if (semester.is_active === 1) {
+      return { status: 'active', label: 'Đang hoạt động', color: 'green' };
+    } else if (startDate > now) {
+      return { status: 'upcoming', label: 'Chưa hoạt động', color: 'blue' };
+    } else if (endDate < now) {
+      return { status: 'ended', label: 'Đã kết thúc', color: 'gray' };
+    } else {
+      return { status: 'inactive', label: 'Không hoạt động', color: 'gray' };
+    }
+  };
+
+  // Helper function to check if semester can be edited
+  const canEditSemester = (semester: Semester): boolean => {
+    const semesterStatus = getSemesterStatus(semester);
+    // Can edit if active or upcoming (not started yet)
+    return semesterStatus.status === 'active' || semesterStatus.status === 'upcoming';
+  };
+
   // Handle edit row
   const handleEdit = (semester: Semester) => {
     setEditingSemester(semester);
@@ -293,34 +317,32 @@ const SemesterManagement: React.FC = () => {
                             : "-"}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          {semester.is_active === 1 ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-                              <span className="size-1.5 rounded-full bg-green-500"></span>
-                              Đang hoạt động
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-600">
-                              Không hoạt động
-                            </span>
-                          )}
+                          {(() => {
+                            const status = getSemesterStatus(semester);
+                            const colorMap = {
+                              green: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
+                              blue: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+                              gray: 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600',
+                            };
+                            const badgeClass = colorMap[status.color as keyof typeof colorMap];
+                            const hasDot = status.status === 'active';
+
+                            return (
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass}`}>
+                                {hasDot && <span className="size-1.5 rounded-full bg-green-500"></span>}
+                                {status.label}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-right text-sm font-medium">
                           <div className="flex justify-end gap-1">
-                            {semester.is_active === 1 && (
+                            {canEditSemester(semester) && (
                               <button
                                 type="button"
                                 onClick={() => handleEdit(semester)}
-                                // disabled={semester.is_active === 0}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  semester.is_active === 0
-                                    ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
-                                    : "text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                }`}
-                                title={
-                                  semester.is_active === 0
-                                    ? "Không thể chỉnh sửa kỳ đã ngừng hoạt động"
-                                    : "Chỉnh sửa"
-                                }
+                                className="p-2 rounded-lg transition-colors text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                title="Chỉnh sửa"
                               >
                                 <span className="material-symbols-outlined text-[20px]">
                                   edit

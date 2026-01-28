@@ -116,7 +116,6 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
         registration_special_close_date: form.registration_special_close_date,
         renewal_open_date: form.renewal_open_date,
         renewal_close_date: form.renewal_close_date,
-        is_active: form.is_active,
       };
 
       if (isEditMode && editingData) {
@@ -185,7 +184,7 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
       ) : (
       <div className="py-4">
         {/* Row 1: Kỳ, Năm học */}
-        <div className="grid grid-cols-3 gap-4 mb-5">
+        <div className="grid grid-cols-2 gap-4 mb-5">
           {/* Term */}
           <div>
             <label className="block text-sm font-medium text-text-main dark:text-white mb-2">
@@ -212,21 +211,6 @@ const AddSemesterModal: React.FC<AddSemesterModalProps> = ({ isVisible, onClose,
               value={form.academic_year || undefined}
               onChange={(value) => setForm({ ...form, academic_year: value })}
               options={yearOptions}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text-main dark:text-white mb-2">
-              Trạng thái <span className="text-red-500">*</span>
-            </label>
-            <Select
-              style={{ width: '100%' }}
-              value={form.is_active}
-              className='h-10'
-              onChange={(value) => setForm({ ...form, is_active: value })}
-              options={[
-                { label: 'Đang hoạt động', value: 1 },
-                { label: 'Không hoạt động', value: 0 },
-              ]}
             />
           </div>
         </div>

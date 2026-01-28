@@ -5,7 +5,7 @@ import { Select, Switch, message, Button, Input } from 'antd';
 import { createRegistration, getMyRegistrations, Registration } from '../api';
 import { fetchBuildings } from '../api';
 import { getAllSemesters, Semester } from '../api';
-import { getCurrentStay, CurrentStayInfo } from '../api';
+import { getCurrentStay, CurrentStayInfo, getStayBySemester } from '../api';
 import { checkActiveStay, ActiveStayInfo } from '../api_handlers/stayApi';
 import RoomSelectionModal from '../components/RoomSelectionModal';
 import { AvailableRoom } from '../api_handlers/roomApi';
@@ -50,6 +50,7 @@ const StudentRegistration: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [activeSemester, setActiveSemester] = useState<Semester | null>(null);
+  const [applicableSemester, setApplicableSemester] = useState<Semester | null>(null);
 
   // Form data states
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
@@ -86,6 +87,10 @@ const StudentRegistration: React.FC = () => {
   const [loadingMyRegistrations, setLoadingMyRegistrations] = useState(true);
   const [submittedRegistration, setSubmittedRegistration] = useState<Registration | null>(null);
 
+  // Track accommodation in applicable semester
+  const [applicableSemesterStay, setApplicableSemesterStay] = useState<any>(null);
+  const [loadingApplicableSemesterStay, setLoadingApplicableSemesterStay] = useState(false);
+
   // Fetch buildings and semester on mount
   useEffect(() => {
     const loadInitialData = async () => {
@@ -96,10 +101,34 @@ const StudentRegistration: React.FC = () => {
 
         // Fetch semesters and find active one
         const semesters = await getAllSemesters();
-        const active = semesters.find((s: Semester) => s.is_active === 1);
-        if (active) {
-          setActiveSemester(active);
-          checkRegistrationPeriods(active);
+        // Find the nearest semester where start_date >= now (closest future semester)
+        const now = new Date();
+        const applicableSemester = semesters
+          .filter((s: Semester) => new Date(s.start_date) >= now)
+          .sort((a: Semester, b: Semester) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())[0];
+        
+        // Also find the current active semester (is_active = 1)
+        const currentActiveSemester = semesters.find((s: Semester) => s.is_active === 1);
+        
+        console.log("applicableSemester", applicableSemester, "currentActiveSemester", currentActiveSemester, semesters)
+        if (applicableSemester) {
+          setApplicableSemester(applicableSemester);
+          setActiveSemester(applicableSemester);
+          checkRegistrationPeriods(applicableSemester);
+          
+          // Check if student has accommodation in applicable semester
+          if (user && user.id) {
+            setLoadingApplicableSemesterStay(true);
+            try {
+              const stayResponse = await getStayBySemester(applicableSemester.id);
+              setApplicableSemesterStay(stayResponse);
+            } catch (error) {
+              console.error('Error checking stay in applicable semester:', error);
+              setApplicableSemesterStay(null);
+            } finally {
+              setLoadingApplicableSemesterStay(false);
+            }
+          }
         }
 
         // Fetch current stay info for renewal tab
@@ -111,14 +140,27 @@ const StudentRegistration: React.FC = () => {
           const registrations = await getMyRegistrations();
           setMyRegistrations(registrations);
           
-          // Check if there's a pending/awaiting payment registration for current semester
-          if (active && registrations.length > 0) {
-            const currentSemesterReg = registrations.find(reg => 
-              reg.semester_id === active.id && 
+          // Check if there's a registration for applicableSemester
+          if (applicableSemester && registrations.length > 0) {
+            const applicableSemesterReg = registrations.find(reg => 
+              reg.semester_id === applicableSemester.id && 
               ['PENDING', 'AWAITING_PAYMENT', 'APPROVED', 'RETURN'].includes(reg.status)
             );
-            if (currentSemesterReg) {
-              setSubmittedRegistration(currentSemesterReg);
+            if (applicableSemesterReg) {
+              // Student already has registration for next semester
+              setSubmittedRegistration(applicableSemesterReg);
+            } else if (currentActiveSemester) {
+              // Check if student has registration for current semester
+              const currentSemesterReg = registrations.find(reg => 
+                reg.semester_id === currentActiveSemester.id && 
+                ['PENDING', 'AWAITING_PAYMENT', 'APPROVED', 'RETURN'].includes(reg.status)
+              );
+              // Only set submitted if has registration in current semester
+              // (allows them to register for next semester if they have current stay)
+              if (currentSemesterReg) {
+                // Student can still register for next semester if they have current stay
+                // Don't set submittedRegistration, let them register
+              }
             }
           }
         } catch (error) {
@@ -332,14 +374,18 @@ const StudentRegistration: React.FC = () => {
       const registrations = await getMyRegistrations();
       setMyRegistrations(registrations);
       
-      // Check if there's a pending/awaiting payment registration for current semester
+      // Check if there's a registration for applicableSemester
       if (activeSemester && registrations.length > 0) {
-        const currentSemesterReg = registrations.find(reg => 
+        const applicableSemesterReg = registrations.find(reg => 
           reg.semester_id === activeSemester.id && 
           ['PENDING', 'AWAITING_PAYMENT', 'APPROVED', 'RETURN'].includes(reg.status)
         );
-        if (currentSemesterReg) {
-          setSubmittedRegistration(currentSemesterReg);
+        if (applicableSemesterReg) {
+          // Student already has registration for next semester
+          setSubmittedRegistration(applicableSemesterReg);
+        } else {
+          // Clear submitted registration if no pending registration for applicable semester
+          setSubmittedRegistration(null);
         }
       }
     } catch (error) {
@@ -446,6 +492,7 @@ const StudentRegistration: React.FC = () => {
       // Call API
       const result = await createRegistration({
         student_id: user.id,
+        semester_id: applicableSemester?.id,
         registration_type: registrationType,
         desired_building_id: buildingIdToSend,
         desired_room_id: roomIdToSend,
@@ -486,29 +533,38 @@ const StudentRegistration: React.FC = () => {
   // Render submitted registration message
   const renderSubmittedMessage = (registration: Registration) => {
     const isNormalType = registration.registration_type === 'NORMAL';
+    const isApproved = registration.status === 'APPROVED';
     
     return (
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center animate-in fade-in zoom-in-95 duration-500">
         <div className={`size-28 rounded-full flex items-center justify-center mb-8 shadow-sm ${
-          isNormalType
+          isApproved
+            ? 'bg-green-50 dark:bg-green-900/20'
+            : isNormalType
             ? 'bg-blue-50 dark:bg-blue-900/20'
             : 'bg-amber-50 dark:bg-amber-900/20'
         }`}>
           <span className={`material-symbols-outlined text-[56px] ${
-            isNormalType
+            isApproved
+              ? 'text-green-600'
+              : isNormalType
               ? 'text-blue-600'
               : 'text-amber-600'
           }`}>
-            {isNormalType ? 'receipt_long' : 'schedule'}
+            {isApproved ? 'check_circle' : isNormalType ? 'receipt_long' : 'schedule'}
           </span>
         </div>
         
         <h3 className="text-text-main dark:text-white text-2xl md:text-3xl font-bold mb-4 tracking-tight">
-          Đã gửi đơn đăng ký
+          {isApproved ? 'Bạn đã được phê duyệt' : 'Đã gửi đơn đăng ký'}
         </h3>
         
         <div className="mb-8 max-w-[500px]">
-          {isNormalType ? (
+          {isApproved ? (
+            <p className="text-text-secondary dark:text-gray-400 text-base leading-relaxed">
+              Đơn đăng ký của bạn đã được phê duyệt thành công. Bạn sẽ được sắp xếp vào phòng ở trong kỳ học này.
+            </p>
+          ) : isNormalType ? (
             <p className="text-text-secondary dark:text-gray-400 text-base leading-relaxed">
               Bạn đã gửi đơn đăng ký thông thường thành công. Vui lòng thanh toán học phí để hoàn tất quá trình đăng ký và được phân phòng.
             </p>
@@ -521,14 +577,18 @@ const StudentRegistration: React.FC = () => {
 
         <div className="w-full max-w-2xl mb-12">
           <div className={`border-l-4 rounded-r-lg p-6 ${
-            isNormalType
+            isApproved
+              ? 'bg-green-50 dark:bg-green-900/20 border-l-green-500'
+              : isNormalType
               ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500'
               : 'bg-amber-50 dark:bg-amber-900/20 border-l-amber-500'
           }`}>
             <div className="flex flex-col gap-3 text-left">
               <div className="flex justify-between items-start">
                 <span className={`text-sm font-bold uppercase tracking-wider ${
-                  isNormalType
+                  isApproved
+                    ? 'text-green-700 dark:text-green-300'
+                    : isNormalType
                     ? 'text-blue-700 dark:text-blue-300'
                     : 'text-amber-700 dark:text-amber-300'
                 }`}>
@@ -542,7 +602,9 @@ const StudentRegistration: React.FC = () => {
               </div>
               <div className="flex justify-between items-start">
                 <span className={`text-sm font-bold uppercase tracking-wider ${
-                  isNormalType
+                  isApproved
+                    ? 'text-green-700 dark:text-green-300'
+                    : isNormalType
                     ? 'text-blue-700 dark:text-blue-300'
                     : 'text-amber-700 dark:text-amber-300'
                 }`}>
@@ -558,7 +620,9 @@ const StudentRegistration: React.FC = () => {
               {registration.created_at && (
                 <div className="flex justify-between items-start pt-2 border-t border-current border-opacity-10">
                   <span className={`text-sm font-bold uppercase tracking-wider ${
-                    isNormalType
+                    isApproved
+                      ? 'text-green-700 dark:text-green-300'
+                      : isNormalType
                       ? 'text-blue-700 dark:text-blue-300'
                       : 'text-amber-700 dark:text-amber-300'
                   }`}>
@@ -574,7 +638,7 @@ const StudentRegistration: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-          {isNormalType && (
+          {isNormalType && !isApproved && (
             <button
               onClick={() => navigate('/student/bills')}
               className="flex-1 flex items-center justify-center gap-2 px-6 h-12 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95"
@@ -583,17 +647,6 @@ const StudentRegistration: React.FC = () => {
               Thanh toán ngay
             </button>
           )}
-          {/* <button
-            onClick={() => navigate('/student/dashboard')}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 h-12 rounded-xl font-bold transition-all ${
-              isNormalType
-                ? 'bg-gray-100 dark:bg-gray-800 text-text-main dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700'
-                : 'bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/20'
-            }`}
-          >
-            <span className="material-symbols-outlined">home</span>
-            {isNormalType ? 'Về trang chủ' : 'Theo dõi'}
-          </button> */}
         </div>
       </div>
     );
@@ -650,8 +703,8 @@ const StudentRegistration: React.FC = () => {
             </div>
           </div>
 
-          {!loadingCurrentStay && hasActiveRoom && activeRoomInfo && (
-            /* CASE: STUDENT ALREADY HAS ACTIVE ROOM FOR CURRENT SEMESTER */
+          {!loadingCurrentStay && !loadingApplicableSemesterStay && applicableSemesterStay?.hasStay && applicableSemesterStay?.data && (
+            /* CASE: STUDENT ALREADY HAS ACCOMMODATION IN APPLICABLE SEMESTER */
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center w-full animate-in fade-in zoom-in duration-500">
               <div className="size-24 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-6 shadow-sm">
                 <span className="material-symbols-outlined text-emerald-600 text-[48px]">check_circle</span>
@@ -660,63 +713,43 @@ const StudentRegistration: React.FC = () => {
                 Bạn đã có chỗ ở cho kỳ học này
               </h3>
               <p className="text-text-secondary dark:text-gray-400 text-base max-w-[500px] mb-10 leading-relaxed">
-                Bạn hiện đang ở tại phòng được chỉ định cho kỳ học {activeSemester?.term} năm học {activeSemester?.academic_year}. Bạn không thể đăng ký phòng mới cho kỳ học này.
+                Bạn hiện đã được phân phòng cho kỳ học {activeSemester?.term} năm học {activeSemester?.academic_year}. Vui lòng không đăng ký thêm.
               </p>
 
               <div className="w-full max-w-2xl mb-12">
                 <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-2">
-                      <span className="text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">Phòng hiện tại</span>
+                      <span className="text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">Phòng được phân</span>
                       <span className="text-text-main dark:text-white text-lg font-bold">
-                        {activeRoomInfo.room_number} - {activeRoomInfo.building_name}
+                        {applicableSemesterStay.data?.room_number} - {applicableSemesterStay.data?.building_name}
                       </span>
                     </div>
                     <div className="flex flex-col gap-2">
                       <span className="text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">Tầng</span>
                       <span className="text-text-main dark:text-white text-lg font-bold">
-                        Tầng {activeRoomInfo.floor || 'N/A'}
+                        Tầng {applicableSemesterStay.data?.floor || 'N/A'}
                       </span>
                     </div>
                     <div className="flex flex-col gap-2">
                       <span className="text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">Kỳ học</span>
                       <span className="text-text-main dark:text-white text-lg font-bold">
-                        {activeRoomInfo.term} / {activeRoomInfo.academic_year}
+                        {activeSemester?.term} / {activeSemester?.academic_year}
                       </span>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <span className="text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">Ngày vào ở</span>
+                      <span className="text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">Ngày bắt đầu</span>
                       <span className="text-text-main dark:text-white text-lg font-bold">
-                        {formatDate(activeRoomInfo.start_date)}
+                        {formatDate(activeSemester?.start_date)}
                       </span>
                     </div>
                   </div>
-
-                  <div className="mt-6 pt-6 border-t border-emerald-200 dark:border-emerald-800">
-                    <p className="text-sm text-emerald-800 dark:text-emerald-200">
-                      Nếu bạn cần gia hạn chỗ ở cho kỳ học tiếp theo, vui lòng đợi đến thời gian mở đơn gia hạn hoặc liên hệ quản lý KTX.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full max-w-md border-t border-border-color dark:border-gray-700 pt-8 flex flex-col items-center gap-4">
-                <p className="text-text-main dark:text-gray-300 font-medium text-sm">Cần hỗ trợ?</p>
-                <div className="flex flex-wrap justify-center gap-4 w-full">
-                  <a className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-white text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary transition-all bg-white dark:bg-surface-dark min-w-[140px] shadow-sm" href="tel:02412345678">
-                    <span className="material-symbols-outlined text-[20px]">call</span>
-                    Gọi Hotline
-                  </a>
-                  <a className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-border-color dark:border-gray-700 text-text-main dark:text-white text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary transition-all bg-white dark:bg-surface-dark min-w-[140px] shadow-sm" href="mailto:ktx@school.edu.vn">
-                    <span className="material-symbols-outlined text-[20px]">mail</span>
-                    Gửi Email
-                  </a>
                 </div>
               </div>
             </div>
           )}
 
-          {!loadingCurrentStay && registrationStatus === 'upcoming' && !hasActiveRoom && (
+          {!loadingCurrentStay && registrationStatus === 'upcoming' && (
             /* CASE: PORT NOT YET OPEN */
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center w-full animate-in fade-in zoom-in duration-500">
               <div className="size-24 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-6 shadow-sm">
@@ -778,7 +811,7 @@ const StudentRegistration: React.FC = () => {
             </div>
           )}
 
-          {!loadingCurrentStay && registrationStatus === 'closed' && !hasActiveRoom && (
+          {!loadingCurrentStay && registrationStatus === 'closed' && (
             /* CASE: PORT CLOSED */
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center w-full animate-in fade-in zoom-in duration-500">
               <div className="size-24 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-6 shadow-sm">
@@ -840,7 +873,7 @@ const StudentRegistration: React.FC = () => {
             </div>
           )}
 
-          {!loadingCurrentStay && registrationStatus === 'open' && !hasActiveRoom && (
+          {!loadingCurrentStay && !loadingApplicableSemesterStay && registrationStatus === 'open' && (!applicableSemesterStay?.hasStay || !applicableSemesterStay?.data) && (
             <div className="p-6 md:p-8 flex flex-col gap-8 animate-in fade-in duration-500">
               {/* Registration Period Info Banner */}
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-xl p-5">
@@ -882,7 +915,7 @@ const StudentRegistration: React.FC = () => {
                 renderSubmittedMessage(submittedRegistration)
               )}
 
-              {!loadingCurrentStay && activeTab === 'regular' && !hasActiveRoom && !activeRoomInfo && registrationStatus === 'open' && !submittedRegistration && (
+              {!loadingCurrentStay && activeTab === 'regular' && registrationStatus === 'open' && !submittedRegistration && (!applicableSemesterStay?.hasStay || !applicableSemesterStay?.data) && (
                 /* REGULAR FORM CONTENT */
                 <>
                   {/* Section 1: Personal Info */}
@@ -949,7 +982,7 @@ const StudentRegistration: React.FC = () => {
                               Chọn phòng cụ thể và thanh toán
                             </h3>
                             <p className="text-sm text-text-secondary dark:text-gray-400 leading-relaxed">
-                              Bạn có thể xem danh sách phòng trống tại <span className="font-semibold text-blue-600 dark:text-blue-400">các tầng từ tầng 3 trở lên</span>. Sau khi chọn phòng, hệ thống sẽ tạo hóa đơn thanh toán.
+                              Bạn có thể xem danh sách phòng trống của các tòa nhà và chọn phòng phù hợp. Sau khi chọn phòng, hệ thống sẽ tạo hóa đơn thanh toán.
                               <span className="font-semibold text-orange-600 dark:text-orange-400"> Bạn có 24 giờ để hoàn tất thanh toán</span>,
                               sau đó sẽ được tự động thêm vào phòng.
                             </p>

@@ -6,12 +6,12 @@ const Stay = {
     try {
       const [rows] = await db.query(
         `SELECT sr.*, r.room_number, b.name as building_name, r.floor,
-                s.term, s.academic_year
+                s.term, s.academic_year, s.is_active as semester_is_active
          FROM stay_records sr
          JOIN rooms r ON sr.room_id = r.id
          JOIN buildings b ON r.building_id = b.id
          JOIN semesters s ON sr.semester_id = s.id
-         WHERE sr.student_id = ? AND sr.status = 'ACTIVE'
+         WHERE sr.student_id = ? AND s.is_active = 1
          LIMIT 1`,
         [studentId]
       );
@@ -27,12 +27,12 @@ const Stay = {
     try {
       const [rows] = await db.query(
         `SELECT sr.*, r.room_number, b.name as building_name, r.floor,
-                s.term, s.academic_year
+                s.term, s.academic_year, s.is_active as semester_is_active
          FROM stay_records sr
          JOIN rooms r ON sr.room_id = r.id
          JOIN buildings b ON r.building_id = b.id
          JOIN semesters s ON sr.semester_id = s.id
-         WHERE sr.student_id = ? AND sr.status = 'ACTIVE'
+         WHERE sr.student_id = ? AND s.is_active = 1
          LIMIT 1`,
         [studentId]
       );

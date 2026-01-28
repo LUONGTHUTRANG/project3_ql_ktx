@@ -4,6 +4,18 @@ import UtilityInvoiceCycle from "./models/utilityInvoiceCycleModel.js";
 
 export const initializeCronJobs = async () => {
   try {
+    // ===== SEMESTER ACTIVATION JOB =====
+    // Check for semesters that should be activated every minute
+    cron.schedule("* * * * *", async () => {
+      try {
+        await activateSemesterIfNeeded();
+      } catch (error) {
+        console.error("[CRON] Error in semester activation job:", error);
+      }
+    });
+    console.log("[CRON] Semester activation job initialized (runs every minute)");
+
+    // ===== UTILITY INVOICE CYCLE JOB =====
     // Get utility_start_day from system_setting
     const [systemSettings] = await db.query(
       "SELECT utility_start_day FROM system_setting LIMIT 1"
@@ -214,6 +226,114 @@ export const manuallyCreateUtilityInvoiceCycle = async () => {
     throw error;
   }
 };
+
+/**
+ * Activate semester when its start_date is reached
+ * Deactivates the previously active semester only if its end_date has passed
+ */
+async function activateSemesterIfNeeded() {
+  try {
+    const now = new Date();
+    
+    // Find the currently active semester
+    const [activeSemesters] = await db.query(
+      `SELECT id, term, academic_year, start_date, end_date 
+       FROM semesters 
+       WHERE is_active = 1 
+       LIMIT 1`
+    );
+
+    // Check if the active semester has ended
+    if (activeSemesters && activeSemesters.length > 0) {
+      const activeSemester = activeSemesters[0];
+      const semesterEndDate = new Date(activeSemester.end_date);
+
+      // Only proceed if the active semester has ended
+      if (now > semesterEndDate) {
+        // Find the next semester to activate
+        // - has is_active = 0
+        // - start_date <= now
+        // - is the most recent one
+        const [semestersToActivate] = await db.query(
+          `SELECT id, term, academic_year, start_date 
+           FROM semesters 
+           WHERE is_active = 0 
+           AND DATE(start_date) <= CURDATE()
+           ORDER BY start_date DESC
+           LIMIT 1`
+        );
+
+        if (semestersToActivate && semestersToActivate.length > 0) {
+          const semesterToActivate = semestersToActivate[0];
+
+          // Start transaction
+          const connection = await db.getConnection();
+          try {
+            await connection.beginTransaction();
+
+            // Deactivate the old semester
+            await connection.query(
+              `UPDATE semesters SET is_active = 0 WHERE id = ?`,
+              [activeSemester.id]
+            );
+            console.log(`[CRON] Deactivated semester ID: ${activeSemester.id} (end_date: ${activeSemester.end_date})`);
+
+            // Activate the new semester
+            await connection.query(
+              `UPDATE semesters SET is_active = 1 WHERE id = ?`,
+              [semesterToActivate.id]
+            );
+
+            await connection.commit();
+            console.log(`[CRON] Activated semester ID: ${semesterToActivate.id} (Term ${semesterToActivate.term} - ${semesterToActivate.academic_year})`);
+          } catch (error) {
+            await connection.rollback();
+            throw error;
+          } finally {
+            connection.release();
+          }
+        }
+      }
+    } else {
+      // No active semester found, try to activate one if available
+      const [semestersToActivate] = await db.query(
+        `SELECT id, term, academic_year, start_date 
+         FROM semesters 
+         WHERE is_active = 0 
+         AND DATE(start_date) <= CURDATE()
+         ORDER BY start_date DESC
+         LIMIT 1`
+      );
+
+      if (semestersToActivate && semestersToActivate.length > 0) {
+        const semesterToActivate = semestersToActivate[0];
+
+        // Start transaction
+        const connection = await db.getConnection();
+        try {
+          await connection.beginTransaction();
+
+          // Activate the semester
+          await connection.query(
+            `UPDATE semesters SET is_active = 1 WHERE id = ?`,
+            [semesterToActivate.id]
+          );
+
+          await connection.commit();
+          console.log(`[CRON] Activated semester ID: ${semesterToActivate.id} (Term ${semesterToActivate.term} - ${semesterToActivate.academic_year}) - No previous active semester found`);
+        } catch (error) {
+          await connection.rollback();
+          throw error;
+        } finally {
+          connection.release();
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[CRON] Error in activateSemesterIfNeeded:", error);
+    // Don't throw - let the job continue running
+  }
+}
 
 // Export for testing (ES module syntax)
 export { autoRejectExpiredRegistrations };

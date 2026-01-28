@@ -56,6 +56,7 @@ const RoomSelectionModal: React.FC<RoomSelectionModalProps> = ({
     };
 
     const loadRoomsByBuilding = async (buildingId: number) => {
+        console.log('Loading rooms for building:', buildingId, semesterId);
         if (!semesterId) return;
         
         try {
@@ -64,19 +65,11 @@ const RoomSelectionModal: React.FC<RoomSelectionModalProps> = ({
             
             let roomsData = await getAvailableRooms(semesterId, buildingId);
             
-            // Filter rooms by floor based on registration type
-            if (registrationType === 'NORMAL') {
-                // Normal registration: only mid-high floors (floor >= 3)
-                roomsData = roomsData.filter(room => room.floor >= 3);
-            }
-            // PRIORITY can see all rooms (no floor restriction)
-            
+            // No floor restrictions - show all available rooms
             setRooms(roomsData);
             
             if (roomsData.length === 0) {
-                message.info(registrationType === 'NORMAL' 
-                    ? 'Tòa nhà này không còn phòng trống ở tầng 3 trở lên'
-                    : 'Tòa nhà này không còn phòng trống');
+                message.info('Tòa nhà này không còn phòng trống');
             }
         } catch (error: any) {
             message.error('Lỗi khi tải danh sách phòng: ' + error.message);

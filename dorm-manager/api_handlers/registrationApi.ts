@@ -53,6 +53,7 @@ export interface Registration {
 
 export interface CreateRegistrationData {
     student_id: number;
+    semester_id?: number;
     registration_type: 'NORMAL' | 'PRIORITY' | 'RENEWAL';
     desired_room_id?: number | null;
     desired_building_id?: number | null;
@@ -72,6 +73,9 @@ export const createRegistration = async (data: CreateRegistrationData): Promise<
         const formData = new FormData();
 
         formData.append('student_id', data.student_id.toString());
+        if (data.semester_id) {
+            formData.append('semester_id', data.semester_id.toString());
+        }
         formData.append('registration_type', data.registration_type);
 
         if (data.desired_room_id) {

@@ -138,3 +138,14 @@ export const getCurrentStay = async (): Promise<CurrentStayResponse> => {
     throw error;
   }
 };
+
+// Lấy thông tin chỗ ở của sinh viên cho một kỳ học cụ thể
+export const getStayBySemester = async (semesterId: number): Promise<CurrentStayResponse> => {
+  try {
+    const response = await api.post('/me/stay-by-semester', { semester_id: semesterId });
+    return response.data;
+  } catch (error: any) {
+    console.error('Lỗi khi lấy thông tin chỗ ở theo kỳ học:', error);
+    throw error;
+  }
+};

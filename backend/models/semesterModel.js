@@ -32,7 +32,6 @@ const Semester = {
       registration_special_close_date,
       renewal_open_date,
       renewal_close_date,
-      is_active,
     } = data;
 
     // Ensure start_date and end_date are YYYY-MM-DD
@@ -52,12 +51,7 @@ const Semester = {
     try {
       await connection.beginTransaction();
 
-      if (is_active) {
-        await connection.query(
-          "UPDATE semesters SET is_active = 0 WHERE is_active = 1"
-        );
-      }
-
+      // Always create new semester with is_active = 0
       const [result] = await connection.query(
         "INSERT INTO semesters (term, academic_year, start_date, end_date, registration_open_date, registration_close_date, registration_special_open_date, registration_special_close_date, renewal_open_date, renewal_close_date, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
@@ -71,12 +65,12 @@ const Semester = {
           formatDateTime(registration_special_close_date),
           formatDateTime(renewal_open_date),
           formatDateTime(renewal_close_date),
-          is_active,
+          0,
         ]
       );
 
       await connection.commit();
-      return { id: result.insertId, ...data };
+      return { id: result.insertId, ...data, is_active: 0 };
     } catch (error) {
       await connection.rollback();
       console.error("Error creating semester:", error);
@@ -167,9 +161,9 @@ const Semester = {
         "DELETE FROM registrations WHERE semester_id = ?",
         [id]
       );
-      await connection.query("DELETE FROM invoices WHERE semester_id = ?", [
-        id,
-      ]);
+      // await connection.query("DELETE FROM invoices WHERE semester_id = ?", [
+      //   id,
+      // ]);
 
       // Finally delete the semester
       await connection.query("DELETE FROM semesters WHERE id = ?", [id]);

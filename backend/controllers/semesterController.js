@@ -31,13 +31,21 @@ export const createSemester = async (req, res) => {
 
 export const updateSemester = async (req, res) => {
   try {
-    // Check if semester exists and is not inactive
+    // Check if semester exists
     const semester = await Semester.getById(req.params.id);
     if (!semester) {
       return res.status(404).json({ message: "Semester not found" });
     }
-    if (semester.is_active === 0) {
-      return res.status(400).json({ message: "Cannot update an inactive semester" });
+    
+    // Allow update if:
+    // 1. Semester is currently active (is_active = 1), OR
+    // 2. Semester hasn't started yet (start_date > now)
+    const now = new Date();
+    const startDate = new Date(semester.start_date);
+    const isNotStartedYet = startDate > now;
+    
+    if (semester.is_active === 0 && !isNotStartedYet) {
+      return res.status(400).json({ message: "Không thể chỉnh sửa kỳ đã kết thúc hoặc chưa được cấu hình" });
     }
     
     const updatedSemester = await Semester.update(req.params.id, req.body);
